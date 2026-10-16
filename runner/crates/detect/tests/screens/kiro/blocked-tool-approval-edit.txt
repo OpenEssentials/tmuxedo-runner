@@ -1,0 +1,5 @@
+  ────────────────────────────────
+  shell requires approval · modify request
+  > npm test --watch
+  ────────────────────────────────
+  esc to close

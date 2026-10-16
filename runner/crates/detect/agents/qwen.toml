@@ -1,0 +1,98 @@
+# Qwen Code. Format and meaning: docs/design/agent-detection.md.
+agent = "qwen"
+title = "Qwen Code"
+revision = "2026-10-05.1"
+launch = "qwen"
+names = ["qwen-code", "qwen code"]
+
+[process]
+scripts = ["node_modules/@qwen-code/qwen-code/dist/index.js"]
+
+[[signal]]
+name = "title-alert"
+status = "blocked"
+rank = 100
+scope = "title"
+when = '''/^✳\x{FE0E}? /'''
+
+[[signal]]
+name = "title-busy"
+status = "working"
+rank = 90
+scope = "title"
+when = '''/^◐\x{FE0E}? /'''
+
+# The spinner line that waits for the user, in each UI language Qwen ships.
+[[signal]]
+name = "confirming"
+status = "blocked"
+rank = 80
+scope = "last 20"
+when = '''
+line /^\s*⠏\s+.*\.\.\.\s*$/
+and (
+  "Waiting for user confirmation..." or "等待用户确认..." or "等待用戶確認..."
+  or "Warten auf Benutzerbestätigung..." or "En attente de la confirmation de l'utilisateur..."
+  or "ユーザーの確認を待っています..." or "Aguardando confirmação do usuário..."
+  or "Ожидание подтверждения от пользователя..." or "Esperant la confirmació de l'usuari..."
+)'''
+
+[[signal]]
+name = "tool-approval"
+status = "blocked"
+rank = 79
+scope = "last 20"
+when = '''
+"yes, allow once"
+and (
+  "apply this change?" or "allow execution of:" or "allow execution of mcp tool"
+  or "do you want to proceed?" or "shell command execution"
+)'''
+
+[[signal]]
+name = "question"
+status = "blocked"
+rank = 78
+scope = "last 20"
+when = '''
+line /^\s*[❯›]\s*(?:\[(?: |✓)\]\s*)?[0-9]+\.\s+/
+and line /^\s*↑\/↓\s*:.*(?:Enter|Return)\s*:/'''
+
+[[signal]]
+name = "trust"
+status = "blocked"
+rank = 77
+scope = "last 20"
+when = '''"do you trust this folder?" and "trust folder (" and "don't trust (esc)"'''
+
+[[signal]]
+name = "turn"
+status = "working"
+rank = 70
+scope = "last 8"
+when = '''line /^\s*(?:[⠁-⣿]|\.{1,2})\s+.*\([0-9]+(?:m(?:\s+[0-9]+s)?|s).*\s·\sesc to cancel\)\s*$/'''
+
+# In a narrow pane the timer and hint wrap onto their own line.
+[[signal]]
+name = "turn-narrow"
+status = "working"
+rank = 69
+scope = "last 8"
+when = '''line /^\s*\([0-9]+(?:m(?:\s+[0-9]+s)?|s)\s·\sesc to cancel\)\s*$/'''
+
+[[signal]]
+name = "progress-busy"
+status = "working"
+rank = 60
+scope = "progress"
+when = '''/^4;3(?:;|$)/'''
+
+# The composer and its placeholder (which wraps in narrow panes).
+[[signal]]
+name = "composer"
+status = "idle"
+rank = 10
+scope = "last 30"
+when = '''
+line /^\s*>/
+and ("type your message" or "@path/to/file" or "type" and "mes" and "sage" and "@pat" and "h/to" and "/fil")'''

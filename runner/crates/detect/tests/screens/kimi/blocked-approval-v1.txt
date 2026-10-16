@@ -1,0 +1,5 @@
+  Requesting approval to run: rm -rf dist
+  1. Approve once
+  2. Approve for this session
+  3. Reject
+  1/2/3/4 choose · ↵ confirm

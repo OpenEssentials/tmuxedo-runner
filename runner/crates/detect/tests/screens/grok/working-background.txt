@@ -1,0 +1,2 @@
+  ● Started the watcher.
+  ○ 2 commands still running

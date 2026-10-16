@@ -1,0 +1,9 @@
+● The plan has 4 independent steps.
+
+ Run a dynamic workflow?
+ This runs the steps as background agents.
+
+ ❯ Yes
+   No
+
+ Esc to cancel

@@ -1,0 +1,2 @@
+  Permission required: bash rm -rf dist
+  y allow · n deny

@@ -1,0 +1,4 @@
+  Settings
+  › Model
+    Theme
+  enter confirm · esc go back

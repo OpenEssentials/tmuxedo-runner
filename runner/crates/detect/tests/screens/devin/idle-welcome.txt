@@ -1,0 +1,4 @@
+  Devin CLI
+
+  ❭ Ask Devin to build features, fix bugs, or explain your code
+    context: 0% · swe-1.5

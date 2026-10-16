@@ -1,0 +1,4 @@
+  Select an agent
+  ❯ dev-agent
+    Create a new agent (--new)
+  Enter select · Esc exit

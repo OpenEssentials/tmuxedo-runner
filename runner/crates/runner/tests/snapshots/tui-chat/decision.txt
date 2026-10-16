@@ -1,0 +1,107 @@
+=== 80x24 ===
+Chat · claude · /home/u/work                                         ■ needs you
+› Ship it
+
+▾ Ran 1 command · 17 s
+▸ ■ Run git push                                                16 s · needs you
+■ Needs you · Run `git push`
+
+
+
+
+
+
+
+
+
+
+
+
+
+■ Needs you · Run `git push`
+  a allow once · s allow for this chat · d deny
+────────────────────────────────────────────────────────────────────────────────
+> a message now is sent when this turn ends · Esc stops
+answer with the keys above · Esc composer
+=== 120x40 ===
+Chat · claude · /home/u/work                                                                                 ■ needs you
+› Ship it
+
+▾ Ran 1 command · 17 s
+▸ ■ Run git push                                                                                        16 s · needs you
+■ Needs you · Run `git push`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+■ Needs you · Run `git push`
+  a allow once · s allow for this chat · d deny
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> a message now is sent when this turn ends · Esc stops
+answer with the keys above · Esc composer
+=== 50x15 ===
+Chat · claude · /home/u/work           ■ needs you
+› Ship it
+
+▾ Ran 1 command · 17 s
+▸ ■ Run git push                  16 s · needs you
+■ Needs you · Run `git push`
+
+
+
+
+■ Needs you · Run `git push`
+  a allow once · s allow for this chat · d deny
+──────────────────────────────────────────────────
+> a message now is sent when this turn ends · Esc…
+answer with the keys above · Esc composer
+=== high risk, 80x24 ===
+Chat · claude · /home/u/work                                         ■ needs you
+› Ship it
+
+▾ Ran 1 command · 17 s
+▸ ■ Run git push                                                16 s · needs you
+■ Needs you · Run `git push`
+
+
+
+
+
+
+
+
+
+
+
+
+■ Needs you · Run `git push`
+  High risk: It pushes to a remote.
+  answer this on the web or phone (it needs a fresh sign-in check) · d deny
+────────────────────────────────────────────────────────────────────────────────
+> a message now is sent when this turn ends · Esc stops
+answer with the keys above · Esc composer

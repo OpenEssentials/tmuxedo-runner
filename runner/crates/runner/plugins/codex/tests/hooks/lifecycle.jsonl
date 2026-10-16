@@ -1,0 +1,11 @@
+{"native": {"hook_event_name": "SessionStart", "session_id": "019a-codex-1", "transcript_path": "/h/.codex/sessions/2026/10/08/rollout-x.jsonl", "cwd": "/w", "model": "gpt-5-codex", "permission_mode": "default", "source": "startup"}, "events": ["session.started"], "status": "idle", "hold": false, "session_id": "019a-codex-1", "cwd": "/w"}
+{"native": {"hook_event_name": "UserPromptSubmit", "session_id": "019a-codex-1", "turn_id": "t1", "prompt": "run the tests"}, "events": ["turn.started"], "status": "working", "hold": false, "releases": true}
+{"native": {"hook_event_name": "PermissionRequest", "session_id": "019a-codex-1", "turn_id": "t1", "transcript_path": "/x", "cwd": "/w", "model": "gpt-5-codex", "permission_mode": "default", "tool_name": "Bash", "tool_input": {"command": "touch /tmp/outside-sandbox-marker", "description": "needs approval"}}, "events": ["prompt.permission"], "status": "blocked", "hold": true, "prompt": {"tool": "Bash", "input": {"command": "touch /tmp/outside-sandbox-marker", "description": "needs approval"}}}
+{"native": {"hook_event_name": "PostToolUse", "session_id": "019a-codex-1", "tool_name": "Bash"}, "events": ["prompt.resolved"], "status": "working", "hold": false, "releases": true}
+{"native": {"hook_event_name": "Stop", "session_id": "019a-codex-1", "turn_id": "t1"}, "events": ["turn.completed"], "status": "done", "hold": false, "releases": true}
+{"native": {"hook_event_name": "Interrupt", "session_id": "019a-codex-1", "turn_id": "t2"}, "events": ["attention.idle"], "status": "idle", "hold": false, "releases": true}
+{"native": {"hook_event_name": "SessionEnd", "session_id": "019a-codex-1", "reason": "other"}, "events": ["session.ended"], "hold": false, "releases": true}
+{"native": {"hook_event_name": "PreCompact", "session_id": "019a-codex-1"}, "events": [], "status": null, "hold": false, "releases": false}
+{"native": {"session_id": "019a-codex-1"}, "events": [], "status": null, "hold": false}
+{"native": {"hook_event_name": "SubagentStart", "session_id": "019a-codex-1"}, "events": ["subagent.started"], "status": null, "hold": false, "releases": false}
+{"native": {"hook_event_name": "SubagentStop", "session_id": "019a-codex-1"}, "events": ["subagent.completed"], "status": null, "hold": false, "releases": false}

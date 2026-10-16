@@ -1,0 +1,5 @@
+  △ Permission required
+  ← Bash: rm -rf dist
+
+  Allow once   Allow always   Reject
+  ⇆ tab  enter confirm  esc dismiss

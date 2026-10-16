@@ -1,0 +1,168 @@
+# Claude Code. Format and meaning: docs/design/agent-detection.md.
+agent = "claude"
+title = "Claude Code"
+revision = "2026-10-05.1"
+launch = "claude"
+names = ["claude-code"]
+
+# The window title spins during a turn: braille frames in older releases,
+# quarter circles (◐◑◒◓) since 2.1.228.
+[[signal]]
+name = "title-busy"
+status = "working"
+rank = 160
+scope = "title"
+when = '''/^[\x{2800}-\x{28FF}◐◑◒◓] /'''
+
+# The detailed transcript (ctrl+o) replaces the live view; keep the last status.
+[[signal]]
+name = "transcript"
+status = "hold"
+rank = 150
+scope = "last 3"
+when = '''
+"showing detailed transcript" and (
+  ("ctrl+o" and "to toggle") or ("ctrl+e" and ("show all" or "collapse"))
+  or "↑↓ scroll" or "? for shortcuts"
+)'''
+
+# Selection forms (questions, plan approval) under the last rule.
+[[signal]]
+name = "form"
+status = "blocked"
+rank = 140
+scope = "below-rule"
+when = '''
+"esc to cancel" and (
+  "enter to confirm"
+  or "enter to select" and ("arrow keys to navigate" or "arrows to navigate" or "↑/↓ to navigate" or "↑↓ to navigate")
+)'''
+
+[[signal]]
+name = "workflow-question"
+status = "blocked"
+rank = 140
+scope = "screen"
+when = '''"run a dynamic workflow?" and "esc to cancel"'''
+
+# MCP elicitation: Accept/Decline and an Esc footer, no Enter hint.
+[[signal]]
+name = "mcp-input"
+status = "blocked"
+rank = 140
+scope = "screen"
+when = '''
+"esc to cancel"
+and line /(?i)^\s*mcp server [“"].+[”"] requests your input\s*$/
+and line /^\s*❯?\s*(?:Accept|Decline)\b/'''
+
+# The /btw side question, answered while the turn keeps running.
+[[signal]]
+name = "btw"
+status = "working"
+rank = 135
+scope = "last 5"
+when = '''line /^\s*\/btw(?:\s|$)/ and line /(?i)esc to close\s*$/'''
+
+# The mode line's interrupt hint, or the status line: a sparkle, an activity
+# ending in "…", then an elapsed timer or nothing.
+[[signal]]
+name = "turn"
+status = "working"
+rank = 130
+scope = "last 12"
+when = '''
+line /^\s*[⏵⏸].*esc to interrupt(?:\s|·|$)/
+or line /^\s*[*·✢✳✶✻✽]\s+\S.*…(?:\s+\([0-9]+[smh][\s·]|\s*$)/'''
+
+[[signal]]
+name = "background-agents"
+status = "working"
+rank = 125
+scope = "above-box-line"
+when = '''line /^\s*[*·✢✶✻✽]\s+Waiting for [1-9][0-9]* background agents? to finish\s*$/'''
+
+# A column-0 activity line whose tail (possibly wrapped onto indented lines)
+# says MCP tasks are still running; not while an approval is on screen.
+[[signal]]
+name = "mcp-tasks"
+status = "working"
+rank = 125
+scope = "last 12"
+when = '''
+/(?m)^[*·✢✶✻✽][ \t]+\S[^\n]*(?:\n[ \t]+[^\n]*){0,3}?·\s+[1-9][0-9]*\s+MCP\s+tasks?\s+still\s+running[ \t]*$/
+and not (
+  "do you want to proceed?" or "esc to cancel" or "waiting for permission"
+  or "do you want to allow this connection?" or "tab to amend" or "ctrl+e to explain"
+)'''
+
+# The input line inside the prompt box, with no picker in the box.
+[[signal]]
+name = "prompt-box"
+status = "idle"
+rank = 120
+scope = "box"
+when = '''
+line /^\s*❯/
+and not ("enter to select" or "esc to cancel" or "tab/arrow keys" or "arrow keys to navigate" or "↑/↓ to navigate")'''
+
+[[signal]]
+name = "model-picker"
+status = "hold"
+rank = 110
+scope = "screen"
+when = '''
+"select model" and "enter to set as default" and "esc to cancel"
+and not "do you want to proceed?" and not "enter to select"'''
+
+[[signal]]
+name = "bash-approval"
+status = "blocked"
+rank = 100
+scope = "screen"
+when = '''
+"do you want to proceed?"
+and ("bash command" or "bash(" or "contains expansion" or "tab to amend" or "ctrl+e to explain")
+and line /(?i)^\s*❯?\s*(?:(?:[12]\.\s*)?yes|[23]\.\s*no)\b/'''
+
+[[signal]]
+name = "approval"
+status = "blocked"
+rank = 90
+scope = "below-rule"
+when = '''
+"do you want to proceed?" and "esc to cancel"
+and line /(?i)^\s*(?:❯?\s*1\.\s*yes|2\.\s*(?:yes|no)|3\.\s*no)\b/'''
+
+# Question wording anywhere, unless an empty live composer (a lone ❯) shows.
+[[signal]]
+name = "question-text"
+status = "blocked"
+rank = 40
+scope = "screen"
+when = '''
+(
+  ("do you want to" or "would you like to") and ("yes" or "❯")
+  or "waiting for permission"
+  or "do you want to allow this connection?"
+  or "tab to amend"
+  or "ctrl+e to explain"
+  or "do you want to proceed?" and "esc to cancel"
+  or "review your answers"
+  or "skip interview and plan immediately"
+)
+and not line /^\s*❯\s*$/'''
+
+[[signal]]
+name = "title-idle"
+status = "idle"
+rank = 30
+scope = "title"
+when = '''/^✳ /'''
+
+[[signal]]
+name = "progress-idle"
+status = "idle"
+rank = 30
+scope = "progress"
+when = '''/^4;0/'''

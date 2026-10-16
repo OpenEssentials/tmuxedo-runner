@@ -1,0 +1,6 @@
+● Read(src/lib.rs)
+  ⎿  fn main() {
+       println!("hi");
+     }
+
+  Showing detailed transcript · ctrl+o to toggle · ctrl+e to show all

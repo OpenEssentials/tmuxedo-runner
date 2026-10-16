@@ -1,0 +1,94 @@
+# Letta Code. Format and meaning: docs/design/agent-detection.md.
+# Letta never defaults to idle: without evidence the reading is unknown and
+# the runner's output-timing heuristic decides.
+agent = "letta"
+title = "Letta Code"
+revision = "2026-10-05.1"
+launch = "letta"
+names = ["letta-code", "letta code"]
+
+# One-shot runs (`letta -p …`, `letta --json`, subcommands) are not the interactive agent.
+[process]
+batch_flags = [
+  "-p", "--print", "--prompt", "--json", "--stream-json", "--run", "--disable-memory-guard",
+  "--output-format", "--input-format", "--include-partial-messages", "--from-agent",
+  "--environment", "--env", "--pre-load-skills", "--tags", "--ephemeral", "--stateless",
+  "--max-turns", "--memfs-startup", "-h", "--help", "-v", "--version", "--info",
+  "--update", "--upgrade",
+]
+value_flags = ["--backend"]
+subcommand_is_batch = true
+
+[[signal]]
+name = "progress-alert"
+status = "blocked"
+rank = 100
+scope = "progress"
+when = '''/^4;3(?:;|$)/'''
+
+[[signal]]
+name = "title-action"
+status = "blocked"
+rank = 90
+scope = "title"
+when = '''/^\[ [!.] \] Action Required(?: \| |$)/'''
+
+[[signal]]
+name = "command-approval"
+status = "blocked"
+rank = 80
+scope = "last 20"
+when = '''"Run this command?" and "Enter to select · Esc to cancel"'''
+
+[[signal]]
+name = "title-busy"
+status = "working"
+rank = 70
+scope = "title"
+when = '''/(?:^| )[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏](?: |$)/'''
+
+[[signal]]
+name = "status"
+status = "working"
+rank = 60
+scope = "last 8"
+when = '''line /^\s*(?:\S+\s+)+is(?: \S+)*… \((?:esc to interrupt(?: · .*)?|interrupting)\)\s*$/'''
+
+[[signal]]
+name = "tool"
+status = "working"
+rank = 50
+scope = "last 8"
+when = '''line /^\s*(?:└\s*)?Running\.\.\.\s*(?:\(.*\))?$/'''
+
+[[signal]]
+name = "profiles"
+status = "unknown"
+rank = 40
+scope = "last 12"
+when = '''"Create a new agent (--new)" and "Enter select · Esc exit"'''
+
+# Text typed into the composer says nothing about whether a turn runs.
+[[signal]]
+name = "typing"
+status = "unknown"
+rank = 30
+scope = "last 8"
+when = '''line /^\s*›\s+\S/ and not line /^\s*›\s+Try\s+"/'''
+
+[[signal]]
+name = "composer"
+status = "idle"
+rank = 20
+scope = "last 8"
+when = '''
+(line /^\s*›\s*$/ or line /^\s*›\s+Try\s+"/)
+and not line /^\s*(?:\S+\s+)+is(?: \S+)*… \((?:esc to interrupt(?: · .*)?|interrupting)\)\s*$/
+and not line /^\s*(?:└\s*)?Running\.\.\.\s*(?:\(.*\))?$/'''
+
+[[signal]]
+name = "no-evidence"
+status = "unknown"
+rank = 1
+scope = "screen"
+when = '''/^/'''

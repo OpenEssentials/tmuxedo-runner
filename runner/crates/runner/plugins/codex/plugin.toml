@@ -1,0 +1,200 @@
+# OpenAI Codex CLI plugin (docs/design/plugin-codex.md; decision 0003).
+# Built in: embedded in the runner binary. `tmuxedo plugin test codex` and
+# `cargo test` run its fixtures; the weekly real-CLI smoke job
+# (.github/workflows/agent-cli-smoke.yml) runs it against the pinned CLI.
+schema = 1
+id = "codex"
+name = "Codex"
+version = "1.0.0"
+contract = ">=1.0, <2"
+publisher = "tmuxedo"
+description = "OpenAI's Codex CLI: hooks for status and permission prompts, device-code sign-in, login health, resume."
+capabilities = ["launch.wrap", "hooks.receive", "prompt.hold", "auth.probe_file", "screen.read", "generate.files", "ui.surfaces", "usage.report"]
+
+[agent]
+labels = ["codex"]                       # process + screen detection: tmuxedo-detect agents/codex.toml
+binaries = ["codex"]
+version_cmd = ["codex", "--version"]     # "codex-cli 0.160.0" → 0.160.0
+detect_manifest = "builtin:codex"
+tested = ">=0.160.0"
+
+# Hooks go in per launch as `-c 'hooks.<Event>=[…]'` (no profile file, no
+# write to the user's ~/.codex/config.toml). Codex trusts a hook by the hash
+# of its definition: the definition stays byte-identical (fixed command, no
+# timeout, fixed order), so a BYO user trusts once. A hosted image registers
+# the same hooks in /etc/codex/config.toml (managed: no trust step) and the
+# shim then adds none.
+[launch]
+shim = "codex"
+prepend = ["{hooks.argv...}", "{skill.argv...}"]
+passthrough = ["--version", "-V", "--help", "-h", "help", "completion"]
+
+[hooks]
+transport = "command"
+event_field = "hook_event_name"
+session_field = "session_id"
+cwd_field = "cwd"
+source_field = "source"
+config_flag = "-c"
+managed_file = "/etc/codex/config.toml"
+default_timeout = 600                    # Codex's own hook timeout (decision 0003 spike 2)
+register = [
+  { event = "SessionStart" },
+  { event = "UserPromptSubmit" },
+  { event = "PermissionRequest" },
+  { event = "PostToolUse" },
+  { event = "Stop" },
+  { event = "Interrupt" },
+  { event = "SubagentStart" },
+  { event = "SubagentStop" },
+  { event = "SessionEnd" },
+]
+map = [
+  # Fires at the first prompt, not at launch (decision 0003).
+  { native = "SessionStart",      emit = "session.started" },
+  { native = "UserPromptSubmit",  emit = "turn.started" },
+  { native = "PermissionRequest", emit = "prompt.permission", hold = true },
+  { native = "PostToolUse",       emit = "prompt.resolved" },
+  { native = "Stop",              emit = "turn.completed" },
+  # Esc: the turn stops and Codex kills a held hook.
+  { native = "Interrupt",         emit = "attention.idle", release = true },
+  # Helpers (threads Codex spawns in its own process). The payload's fields
+  # for the thread's id and role are not verified, so none are named here:
+  # the core numbers the helpers and pairs a stop with the newest one. Add
+  # `subagent = { id_field = "…", name_field = "…" }` once they are known.
+  { native = "SubagentStart",     emit = "subagent.started" },
+  { native = "SubagentStop",      emit = "subagent.completed" },
+  { native = "SessionEnd",        emit = "session.ended" },
+]
+
+# Codex shows no dialog while its PermissionRequest hook is held ("Running
+# hook"), so the runner gives the prompt back (no decision, Codex's own
+# dialog appears) as soon as anyone types into the pane.
+[permissions]
+mode = "hook_hold"
+hold_secs = 540
+release_on_input = true
+prompt = { tool = "tool_name", input = "tool_input" }
+
+[permissions.reply]
+allow = '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","message":"{message}"}}}'
+deny  = '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"{message}"}}}'
+
+# Agent chat (docs/design/agent-chat.md §2.2, §8.3): the app-server, JSON-RPC
+# over stdio, one per chat. Decisions come as requests on the same channel
+# (`item/*/requestApproval`), not through hooks, so there are no holds and no
+# generated settings. The conversation is the app-server's thread: the runner
+# learns its id from `thread/start` and reopens it with `thread/resume`.
+# `min_agent` and the native mode name are not verified against a real CLI
+# (docs/handoff/chat-agents.md).
+[chat]
+transport = "json-rpc"
+translator = "builtin:codex"
+argv = ["{agent}", "app-server"]
+min_agent = "0.160.0"
+# One mode for now: every command and file change that is not known safe asks.
+modes = [{ id = "ask_first", native = "untrusted" }]
+# ChatGPT sign-in is not listed: chat on it follows web's policy (D-C4).
+logins = ["api_key"]
+login_env = { api_key = ["OPENAI_API_KEY"] }
+features = ["text_deltas", "tool_calls", "diffs", "permissions", "interrupt", "queue"]
+
+# Links (Phase 13): OpenAI's sign-in pages; the browser login's loopback
+# callback may be relayed for auth.openai.com only.
+[links]
+open_url = ["auth.openai.com", "chatgpt.com", "*.chatgpt.com", "openai.com", "*.openai.com"]
+login = ["auth.openai.com"]
+
+# `codex resume <id>` finds the rollout by id from any folder.
+[resume]
+argv = ["{shim}", "resume", "{session_id}"]
+
+[auth]
+probes = [
+  { kind = "env_present", name = "OPENAI_API_KEY" },
+  { kind = "file_exists", path = "{home}/.codex/auth.json" },
+  # Only the age leaves the runner; ChatGPT logins refresh every ~8 days.
+  { kind = "file_json_age", path = "{home}/.codex/auth.json", field = "last_refresh", warn_days = 25 },
+  { kind = "command", argv = ["codex", "login", "status"], interval_secs = 600 },
+]
+unprobed_reason = "keyring (not inspected)"
+screen = [
+  { id = "refresh_reused",  contains = "refresh token was already used", state = "failed" },
+  { id = "refresh_expired", contains = "refresh token has expired" },
+  { id = "refresh_revoked", contains = "refresh token was revoked", state = "failed" },
+  { id = "sign_in_again",   contains = "please log out and sign in again" },
+  { id = "not_logged_in",   contains = "not logged in. run `codex login`" },
+]
+failure_errors = []
+recover_on = ["turn.completed", "probe_changed"]
+# Device code (no local listener; Codex recommends it for remote machines):
+# the link and the one-time code go to the user's device.
+login = { kind = "device_code", argv = ["{shim}", "login", "--device-auth"], label = "Sign in to Codex" }
+lift = [
+  { id = "device_code", url = 'https://auth\.openai\.com/codex/device\b', code = '\b([A-Z0-9]{4}-[A-Z0-9]{5})\b' },
+]
+
+[[actions]]
+id = "login"
+title = "Sign in to Codex"
+description = "Open a pane running `codex login --device-auth`; the link and code go to your device."
+kind = "auth.login"
+contexts = ["global", "workspace"]
+
+# The generated tmuxedo skill as Codex developer instructions, for the
+# session only (`-c developer_instructions="…"`; nothing written to ~/.codex).
+[skill]
+form = "agents-md"
+argv = ["-c", "developer_instructions={skill.toml:AGENTS.md}"]
+min_agent = "0.160.0"
+
+# Roles and helpers (PLAN Phase 18; docs/design/agent-team-builder.md §2.4, §7).
+# Codex starts helpers from `[agents.<id>]` plus a role config file. Only the
+# description and the model are verified against its source; the keys for a
+# role's instructions, access and MCP servers are not, so they are left out
+# and apply to the whole pane until a run confirms them. Both limits are
+# settings of the parent's own config.
+[multi_agent]
+subagents = "native"
+role_fields = ["purpose", "model"]
+hosts = ["codex"]
+limits = { max_concurrency = "agents.max_concurrent_threads_per_session", max_depth = "agents.max_depth" }
+
+[[ui]]
+key = "sign-in"
+kind = "banner"
+when = "auth.state in ['missing', 'expired', 'failed']"
+tone = "warning"
+text = "Codex needs you to sign in on this machine."
+actions = [{ label = "Sign in", action = "login" }]
+
+[[ui]]
+key = "sign-in-action"
+kind = "quick_action"
+when = "auth.state in ['missing', 'expired', 'failed']"
+label = "Sign in to Codex"
+action = "login"
+
+[[ui]]
+key = "reused"
+kind = "status_line"
+when = "auth.reason == 'refresh_reused'"
+text = "This Codex login is in use on another machine; sign in again here."
+
+# AI usage (docs/design/agent-usage.md, D-U3). Codex writes the server's
+# rate-limit snapshot into its session log on every turn; its hooks name that
+# log (`transcript_path`). The end of it is read (never written), the newest
+# `token_count` line. Windows are named by their length, not by their place.
+[usage]
+modes = ["plan"]
+
+[[usage.sources]]
+kind = "jsonl_tail"
+path_field = "transcript_path"
+root = "{home}/.codex/sessions"
+select = { "type" = "event_msg", "payload.type" = "token_count" }
+windows = [
+  { at = "payload.rate_limits.primary", pct = "used_percent", resets = "resets_at", mins_field = "window_minutes" },
+  { at = "payload.rate_limits.secondary", pct = "used_percent", resets = "resets_at", mins_field = "window_minutes" },
+]
+plan = "payload.rate_limits.plan_type"

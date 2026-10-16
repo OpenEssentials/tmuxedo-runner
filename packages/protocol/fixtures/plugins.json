@@ -1,0 +1,155 @@
+{
+  "note": "Plugins on the wire (docs/protocol.md \"Plugins\"). Hand-written; checked by packages/protocol/test/plugins.test.ts (parsers, web's builders) and runner/crates/protocol/tests/fixtures.rs (the runner serialises `hello.dual.runner` and `ui.claude` byte-for-byte and parses every frame). Change both sides or neither.",
+  "hello": {
+    "legacy": {
+      "t": "hello", "v": 1,
+      "runner": { "version": "0.9.0", "holderVersion": "0.9.0", "os": "linux", "arch": "x86_64", "hostname": "old-box",
+        "claudeVersion": "2.1.289", "claudeAuth": { "state": "expired", "reason": "login expired", "since": "2026-10-07T10:00:00.000Z" },
+        "features": ["glance", "login_callback", "names", "chat"] }
+    },
+    "legacy_no_claude": {
+      "t": "hello", "v": 1,
+      "runner": { "version": "0.9.0", "holderVersion": "0.9.0", "os": "linux", "arch": "x86_64", "hostname": "bare", "claudeVersion": null }
+    },
+    "dual": {
+      "t": "hello", "v": 1,
+      "runner": { "version": "1.0.0", "holderVersion": "1.0.0", "os": "linux", "arch": "x86_64", "hostname": "new-box",
+        "claudeVersion": "2.1.289", "claudeAuth": { "state": "expired", "reason": "login expired", "since": "2026-10-07T10:00:00.000Z" },
+        "features": ["glance", "login_callback", "names", "chat"],
+        "plugins": [
+          { "id": "claude", "version": "1.0.0", "contract": ">=1.0, <2", "state": "enabled", "agent": "claude", "agentVersion": "2.1.289",
+            "auth": { "state": "expired", "reason": "login expired", "since": "2026-10-07T10:00:00.000Z" } }
+        ] }
+    },
+    "plugins_only": {
+      "t": "hello", "v": 1,
+      "runner": { "version": "2.0.0", "holderVersion": "2.0.0", "os": "darwin", "arch": "aarch64", "hostname": "future",
+        "plugins": [
+          { "id": "claude", "version": "1.1.0", "contract": ">=1.0, <2", "state": "enabled", "agent": "claude",
+            "auth": { "state": "ok", "reason": "keychain (not inspected)", "since": "2026-10-07T10:00:00.000Z" } },
+          { "id": "codex", "version": "1.0.0", "contract": ">=1.1, <2", "state": "incompatible", "agent": "codex", "reason": "needs contract 1.1" }
+        ] }
+    },
+    "disabled": {
+      "t": "hello", "v": 1,
+      "runner": { "version": "1.0.0", "holderVersion": "1.0.0", "os": "linux", "arch": "x86_64", "hostname": "off",
+        "claudeVersion": "2.1.289",
+        "plugins": [ { "id": "claude", "version": "1.0.0", "contract": ">=1.0, <2", "state": "disabled", "agent": "claude", "agentVersion": "2.1.289" } ] }
+    },
+    "junk_plugins": {
+      "in": [
+        { "id": "claude", "version": "1.0.0", "contract": ">=1.0, <2", "state": "enabled", "auth": { "state": "sleepy" }, "extra": 1 },
+        { "id": "Bad Id", "state": "enabled" },
+        { "id": "claude", "state": "disabled" },
+        { "id": "codex", "state": "on" },
+        "nope",
+        null,
+        { "id": "cursor", "state": "failed", "version": 7, "auth": { "state": "expiring", "reason": "in 3 days", "since": "2026-10-07T10:00:00.000Z", "expiresAt": "2026-10-10T10:00:00.000Z" } }
+      ],
+      "out": [
+        { "id": "claude", "version": "1.0.0", "contract": ">=1.0, <2", "state": "enabled" },
+        { "id": "cursor", "version": "", "contract": "", "state": "failed", "auth": { "state": "expiring", "reason": "in 3 days", "since": "2026-10-07T10:00:00.000Z", "expiresAt": "2026-10-10T10:00:00.000Z" } }
+      ]
+    }
+  },
+  "auth_of": [
+    { "hello": "legacy", "plugin": "claude", "reported": true, "state": "expired" },
+    { "hello": "legacy_no_claude", "plugin": "claude", "reported": true, "state": null },
+    { "hello": "dual", "plugin": "claude", "reported": true, "state": "expired" },
+    { "hello": "plugins_only", "plugin": "claude", "reported": true, "state": "ok" },
+    { "hello": "plugins_only", "plugin": "codex", "reported": true, "state": null },
+    { "hello": "disabled", "plugin": "claude", "reported": true, "state": null },
+    { "hello": "legacy", "plugin": "codex", "reported": false, "state": null }
+  ],
+  "config": {
+    "dual": { "t": "config", "claude": { "args": ["--model", "opus"] },
+      "plugins": [ { "id": "claude", "settings": { "launch": { "args": ["--model", "opus"] }, "skill": { "enabled": true } } },
+                   { "id": "codex", "settings": { "skill": { "enabled": true } } },
+                   { "id": "cursor", "settings": { "skill": { "enabled": true }, "keystroke": { "enabled": false } } } ],
+      "shell": { "aliases": {}, "env": {}, "rc": "" }, "workDir": "" },
+    "legacy": { "t": "config", "claude": { "args": ["--model", "opus"] }, "shell": { "aliases": {}, "env": {}, "rc": "" } },
+    "plugins_only": { "t": "config", "plugins": [ { "id": "claude", "settings": { "launch": { "args": ["--model", "opus"] } } } ] },
+    "skill_off": { "t": "config", "claude": { "args": [] }, "plugins": [ { "id": "claude", "settings": { "launch": { "args": [] }, "skill": { "enabled": false } } },
+                   { "id": "codex", "settings": { "skill": { "enabled": false } } },
+                   { "id": "cursor", "settings": { "skill": { "enabled": false }, "keystroke": { "enabled": false } } } ] },
+    "keystroke_on": { "t": "config", "claude": { "args": [] }, "plugins": [ { "id": "claude", "settings": { "launch": { "args": [] }, "skill": { "enabled": true } } },
+                   { "id": "codex", "settings": { "skill": { "enabled": true } } },
+                   { "id": "cursor", "settings": { "skill": { "enabled": true }, "keystroke": { "enabled": true } } } ] },
+    "plugins_win": { "t": "config", "claude": { "args": ["--model", "haiku"] }, "plugins": [ { "id": "claude", "settings": { "launch": { "args": ["--model", "opus"] } } } ] },
+    "usage_on": { "t": "config", "claude": { "args": [] }, "plugins": [ { "id": "claude", "settings": { "launch": { "args": [] }, "skill": { "enabled": true }, "usage": { "enabled": true } } },
+                   { "id": "codex", "settings": { "skill": { "enabled": true }, "usage": { "enabled": true } } },
+                   { "id": "cursor", "settings": { "skill": { "enabled": true }, "keystroke": { "enabled": false } } } ] },
+    "usage_off": { "t": "config", "claude": { "args": [] }, "plugins": [ { "id": "claude", "settings": { "launch": { "args": [] }, "skill": { "enabled": true }, "usage": { "enabled": false } } },
+                   { "id": "codex", "settings": { "skill": { "enabled": true }, "usage": { "enabled": false } } },
+                   { "id": "cursor", "settings": { "skill": { "enabled": true }, "keystroke": { "enabled": false } } } ] },
+    "effective_args": { "dual": ["--model", "opus"], "legacy": ["--model", "opus"], "plugins_only": ["--model", "opus"], "skill_off": [], "plugins_win": ["--model", "opus"], "keystroke_on": [], "usage_on": [], "usage_off": [] },
+    "effective_skill": { "dual": true, "legacy": false, "plugins_only": true, "skill_off": false, "plugins_win": true, "keystroke_on": true, "usage_on": true, "usage_off": true },
+    "effective_keystroke": { "dual": false, "legacy": null, "plugins_only": null, "skill_off": false, "plugins_win": null, "keystroke_on": true, "usage_on": false, "usage_off": false },
+    "effective_usage": { "dual": false, "legacy": false, "plugins_only": false, "skill_off": false, "plugins_win": false, "keystroke_on": false, "usage_on": true, "usage_off": false }
+  },
+  "ui": {
+    "claude": { "t": "ui", "pluginId": "claude", "scope": "machine", "items": [
+      { "key": "sign-in", "kind": "quick_action", "when": "auth.state in ['missing', 'expired', 'failed']", "label": "Sign in to Claude", "action": "login" }
+    ] },
+    "codex": { "t": "ui", "pluginId": "codex", "scope": "machine", "items": [
+      { "key": "sign-in", "kind": "banner", "when": "auth.state in ['missing', 'expired', 'failed']", "tone": "warning", "text": "Codex needs you to sign in on this machine.", "actions": [ { "label": "Sign in", "action": "login" } ] },
+      { "key": "sign-in-action", "kind": "quick_action", "when": "auth.state in ['missing', 'expired', 'failed']", "label": "Sign in to Codex", "action": "login" },
+      { "key": "reused", "kind": "status_line", "when": "auth.reason == 'refresh_reused'", "text": "This Codex login is in use on another machine; sign in again here." }
+    ] },
+    "cursor": { "t": "ui", "pluginId": "cursor", "scope": "machine", "items": [
+      { "key": "sign-in", "kind": "banner", "when": "auth.state in ['missing', 'expired', 'failed']", "tone": "warning", "text": "Cursor needs you to sign in on this machine.", "actions": [ { "label": "Sign in", "action": "login" } ] },
+      { "key": "sign-in-action", "kind": "quick_action", "when": "auth.state in ['missing', 'expired', 'failed']", "label": "Sign in to Cursor", "action": "login" }
+    ] },
+    "valid": [
+      { "t": "ui", "pluginId": "demo", "scope": "machine", "items": [
+        { "key": "b1", "kind": "banner", "tone": "warning", "text": "Login needed on {machine.name}", "when": "auth.state != 'ok'", "actions": [ { "label": "Sign in", "action": "login" }, { "label": "Settings", "action": "settings.open" } ], "dismissible": true },
+        { "key": "t1", "kind": "toast", "tone": "success", "text": "Done", "action": { "label": "Open", "action": "open" } },
+        { "key": "g1", "kind": "badge", "tone": "info", "text": "demo: ok", "target": "agent" },
+        { "key": "q1", "kind": "quick_action", "label": "Say hi", "action": "hi" },
+        { "key": "s1", "kind": "status_line", "text": "{agent.kind} is {agent.status}", "target": "agent", "when": "agent.status == 'working'" }
+      ] },
+      { "t": "ui", "pluginId": "demo", "scope": "pane", "paneId": "w1:p1", "items": [] }
+    ],
+    "dropped_items": {
+      "frame": { "t": "ui", "pluginId": "demo", "scope": "machine", "items": [
+        { "key": "ok", "kind": "badge", "tone": "nope", "text": "fine" },
+        { "key": "Bad Key", "kind": "badge", "text": "x" },
+        { "key": "k2", "kind": "sparkle", "text": "x" },
+        { "key": "k3", "kind": "badge", "text": "" },
+        { "key": "k4", "kind": "badge", "text": "this badge text is far too long for a chip" },
+        { "key": "k5", "kind": "banner", "text": "x", "actions": [ { "label": "a", "action": "a" }, { "label": "b", "action": "b" }, { "label": "c", "action": "c" }, { "label": "d", "action": "d" } ] },
+        { "key": "k6", "kind": "banner", "text": "x", "actions": [ { "label": "", "action": "a" } ] },
+        { "key": "k7", "kind": "quick_action", "label": "x", "action": "Bad Action" },
+        { "key": "k8", "kind": "status_line", "text": "x", "when": "auth.state ==" },
+        { "key": "k9", "kind": "toast", "text": "x", "action": { "label": "x" } },
+        { "key": "k10", "kind": "status_line", "text": "x", "target": "everyone" },
+        { "key": "ok", "kind": "badge", "text": "duplicate key" }
+      ] },
+      "keep": [ { "key": "ok", "kind": "badge", "tone": "info", "text": "fine" } ]
+    },
+    "invalid": [
+      { "t": "ui", "pluginId": "Bad", "scope": "machine", "items": [] },
+      { "t": "ui", "pluginId": "demo", "scope": "workspace", "items": [] },
+      { "t": "ui", "pluginId": "demo", "scope": "pane", "items": [] },
+      { "t": "ui", "pluginId": "demo", "scope": "machine", "items": {} }
+    ]
+  },
+  "plugin_action": {
+    "valid": [
+      { "frame": { "t": "plugin_action", "id": "r1", "pluginId": "claude", "actionId": "login" },
+        "request": { "method": "plugin.action.invoke", "params": { "plugin_id": "claude", "action_id": "login", "context": {} } } },
+      { "frame": { "t": "plugin_action", "id": "r2", "pluginId": "demo", "actionId": "hi", "paneId": "w1:p1" },
+        "request": { "method": "plugin.action.invoke", "params": { "plugin_id": "demo", "action_id": "hi", "context": { "focused_pane_id": "w1:p1" } } } }
+    ],
+    "invalid": [
+      { "t": "plugin_action", "pluginId": "claude", "actionId": "login" },
+      { "t": "plugin_action", "id": "r", "pluginId": "Claude", "actionId": "login" },
+      { "t": "plugin_action", "id": "r", "pluginId": "claude", "actionId": "rm -rf" },
+      { "t": "plugin_action", "id": "r", "pluginId": "claude", "actionId": "login", "paneId": "" }
+    ]
+  },
+  "welcome": {
+    "new": { "t": "welcome", "machineId": "m1", "userId": "u1", "lastEventSeq": 4, "features": ["ui"] },
+    "old": { "t": "welcome", "machineId": "m1", "userId": "u1", "lastEventSeq": 4 }
+  }
+}

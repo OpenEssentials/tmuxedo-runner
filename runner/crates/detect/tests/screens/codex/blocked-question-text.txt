@@ -1,0 +1,3 @@
+• The command failed with a permission error.
+
+  Do you want to retry with sudo? [y/n]

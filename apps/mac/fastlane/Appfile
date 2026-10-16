@@ -1,0 +1,5 @@
+# The bundle identifier is NOT repeated here: the Fastfile reads it out of project.yml.
+#
+# The team is yours, from the environment (README.md, "Signing your own build"); unsigned lanes
+# (build, test) need none.
+team_id(ENV["DEVELOPMENT_TEAM"]) if ENV["DEVELOPMENT_TEAM"].to_s != ""

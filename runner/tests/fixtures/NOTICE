@@ -1,0 +1,24 @@
+codex.bin, gemini.bin and opencode.bin are raw PTY recordings (120x40) of the
+startup screens of Codex CLI 0.160.0, Gemini CLI 0.62.0 and opencode 1.18.34,
+made without accounts (dummy API keys only), for screen-detection tests; see
+crates/runner/tests/detect.rs and crates/detect/tests/emulated.rs.
+
+htop.bin and nvim.bin are raw PTY recordings (120x40) of htop 3.5.3 (`htop -d 10`)
+and Neovim 0.12.2 (editing /etc/os-release past a stale swap file, then :vsplit),
+made in a clean alpine:3 container as user `dev` on host `box` (home /home/dev),
+for the emulator snapshot tests (crates/emu/tests/recordings.rs). The htop
+header (CPU count, memory, load, uptime) is the recording host's.
+
+claude-busy-120x40.bin and claude-busy-50x20.bin are raw PTY recordings of
+Claude Code v2.1.296 in its classic (main screen) mode
+(CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN=1) at 120x40 and 50x20, six turns each
+against a local stand-in for the Messages API (no account): long streamed
+Markdown answers and a Bash tool call printing 150 lines, with one resize.
+claude-fullscreen-120x40.bin is the same session in Claude Code's default
+full-screen mode (alternate screen, mouse tracking). All text in them is the
+stand-in's; the working directory is /work. Used by the emulator history tests
+(crates/emu/tests/history.rs).
+
+claude.bin is a raw PTY recording (120x40) of Claude Code v2.1.288's idle
+prompt box. Two banner strings were replaced after recording: the working
+directory (now `~/work`) and the plan name (now `Claude API`).

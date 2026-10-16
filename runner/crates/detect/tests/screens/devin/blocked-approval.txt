@@ -1,0 +1,6 @@
+  Run: npm publish
+
+  ❯ Approve once
+    Approve for this session
+    Deny
+  ↑↓ select · enter confirm · esc cancel

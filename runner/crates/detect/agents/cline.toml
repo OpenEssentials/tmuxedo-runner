@@ -1,0 +1,52 @@
+# Cline CLI. Format and meaning: docs/design/agent-detection.md.
+# Cline shows no idle chrome outside its composer, so a screen with nothing
+# else recognisable reads as working (rank 10) rather than the default idle.
+agent = "cline"
+title = "Cline CLI"
+revision = "2026-10-05.1"
+launch = "cline"
+names = [".cline"]
+
+[[signal]]
+name = "tool-approval"
+status = "blocked"
+rank = 40
+scope = "screen"
+when = '''
+"let cline use this tool"
+or ("[act mode]" or "[plan mode]") and ("execute command?" or "use this tool?") and "yes"'''
+
+[[signal]]
+name = "inline-approval"
+status = "blocked"
+rank = 40
+scope = "last 16"
+when = '''"Cline needs permission" and "Approve tool call?" and "[y] Approve" and "[n] Deny"'''
+
+[[signal]]
+name = "question"
+status = "blocked"
+rank = 40
+scope = "last 24"
+when = '''line /^\s*Cline is asking a question\s*$/ and line /^\s*>\s+\S/ and "(Tab)" and "Shift+Tab"'''
+
+[[signal]]
+name = "turn"
+status = "working"
+rank = 30
+scope = "last 20"
+when = '''line /^\s*[\x{2801}-\x{28FF}]\s+\S/ or "Thinking... (esc to cancel)"'''
+
+[[signal]]
+name = "composer"
+status = "idle"
+rank = 20
+scope = "last 12"
+when = '''line /^\s*❯(?:\s.*)?$/ and "─" and "(Tab)" and "Shift+Tab"'''
+
+[[signal]]
+name = "default-working"
+status = "working"
+rank = 10
+scope = "screen"
+when = '''/(?s)./'''

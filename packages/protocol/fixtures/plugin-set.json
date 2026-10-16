@@ -1,0 +1,1054 @@
+{
+  "_": "config.pluginSet (docs/protocol.md \"Plugin settings\"). rows + build: the table the TypeScript resolver turns into config.full.pluginSet (packages/protocol/test/plugin-set.test.ts). config: frames as the gateway sends them; parsed: what both parsers must make of each one's pluginSet (null = no set: absent, not an object, or a version this side does not know). Both sides check config and parsed (runner/crates/protocol/tests/plugin_set.rs).",
+  "rows": {
+    "items": [
+      {
+        "id": "i-gh",
+        "kind": "mcp",
+        "name": "github",
+        "version": 3,
+        "definition": {
+          "transport": "stdio",
+          "command": [
+            "npx",
+            "-y",
+            "@modelcontextprotocol/server-github"
+          ],
+          "env": {
+            "GITHUB_TOKEN": {
+              "$secret": "GH_TOKEN"
+            },
+            "GITHUB_HOST": "github.com"
+          }
+        },
+        "scope": "user",
+        "key": ""
+      },
+      {
+        "id": "i-gh-api",
+        "kind": "mcp",
+        "name": "github",
+        "version": 1,
+        "definition": {
+          "transport": "http",
+          "url": "https://mcp.example.com/github",
+          "bearer": {
+            "$secret": "API_GH"
+          }
+        },
+        "scope": "project",
+        "key": "github.com/acme/api"
+      },
+      {
+        "id": "i-pg",
+        "kind": "mcp",
+        "name": "postgres",
+        "version": 2,
+        "definition": {
+          "transport": "stdio",
+          "command": [
+            "pg-mcp"
+          ],
+          "env": {
+            "DATABASE_URL": {
+              "$secret": "DB_URL"
+            }
+          }
+        },
+        "scope": "machine",
+        "key": "m1"
+      },
+      {
+        "id": "i-notes",
+        "kind": "skill",
+        "name": "release-notes",
+        "version": 1,
+        "definition": {
+          "description": "Draft release notes from merged PRs since a tag.",
+          "body": "# Release notes\n\nList merged PRs since the tag.\n"
+        },
+        "scope": "user",
+        "key": ""
+      },
+      {
+        "id": "i-rule",
+        "kind": "instructions",
+        "name": "house-rules",
+        "version": 4,
+        "definition": {
+          "body": "Prefer small commits.\n"
+        },
+        "scope": "user",
+        "key": ""
+      },
+      {
+        "id": "i-other",
+        "kind": "mcp",
+        "name": "elsewhere",
+        "version": 1,
+        "definition": {
+          "transport": "stdio",
+          "command": [
+            "other-mcp"
+          ]
+        },
+        "scope": "machine",
+        "key": "m2"
+      }
+    ],
+    "states": [
+      {
+        "itemId": "i-gh",
+        "plugin": "claude",
+        "scope": "user",
+        "key": "",
+        "enabled": true
+      },
+      {
+        "itemId": "i-gh",
+        "plugin": "codex",
+        "scope": "user",
+        "key": "",
+        "enabled": true
+      },
+      {
+        "itemId": "i-gh",
+        "plugin": "codex",
+        "scope": "machine",
+        "key": "m1",
+        "enabled": false
+      },
+      {
+        "itemId": "i-gh-api",
+        "plugin": "claude",
+        "scope": "project",
+        "key": "github.com/acme/api",
+        "enabled": true
+      },
+      {
+        "itemId": "i-pg",
+        "plugin": "claude",
+        "scope": "machine",
+        "key": "m1",
+        "enabled": true
+      },
+      {
+        "itemId": "i-pg",
+        "plugin": "claude",
+        "scope": "project",
+        "key": "github.com/acme/web",
+        "enabled": false
+      },
+      {
+        "itemId": "i-notes",
+        "plugin": "claude",
+        "scope": "user",
+        "key": "",
+        "enabled": true
+      },
+      {
+        "itemId": "i-notes",
+        "plugin": "claude",
+        "scope": "project",
+        "key": "github.com/acme/api",
+        "enabled": false
+      },
+      {
+        "itemId": "i-rule",
+        "plugin": "codex",
+        "scope": "user",
+        "key": "",
+        "enabled": true
+      },
+      {
+        "itemId": "i-rule",
+        "plugin": "codex",
+        "scope": "machine",
+        "key": "m2",
+        "enabled": false
+      },
+      {
+        "itemId": "i-other",
+        "plugin": "claude",
+        "scope": "machine",
+        "key": "m2",
+        "enabled": true
+      }
+    ],
+    "settings": [
+      {
+        "plugin": "claude",
+        "scope": "user",
+        "key": "",
+        "values": {
+          "launch": {
+            "args": [
+              "--verbose"
+            ],
+            "model": "sonnet"
+          },
+          "extras": true
+        }
+      },
+      {
+        "plugin": "claude",
+        "scope": "machine",
+        "key": "m1",
+        "values": {
+          "launch": {
+            "model": "opus"
+          }
+        }
+      },
+      {
+        "plugin": "claude",
+        "scope": "project",
+        "key": "github.com/acme/api",
+        "values": {
+          "launch": {
+            "args": []
+          },
+          "extras": false
+        }
+      },
+      {
+        "plugin": "codex",
+        "scope": "machine",
+        "key": "m2",
+        "values": {
+          "launch": {
+            "model": "x"
+          }
+        }
+      }
+    ]
+  },
+  "build": {
+    "machineId": "m1",
+    "plugins": [
+      "claude",
+      "codex",
+      "cursor"
+    ],
+    "projectKeys": [
+      "github.com/acme/api",
+      "github.com/acme/web",
+      "github.com/acme/untouched"
+    ]
+  },
+  "config": {
+    "full": {
+      "t": "config",
+      "claude": {
+        "args": [
+          "--verbose"
+        ]
+      },
+      "plugins": [
+        {
+          "id": "claude",
+          "settings": {
+            "launch": {
+              "args": [
+                "--verbose"
+              ]
+            }
+          }
+        }
+      ],
+      "shell": {
+        "aliases": {},
+        "env": {},
+        "rc": ""
+      },
+      "pluginSet": {
+        "v": 1,
+        "items": [
+          {
+            "id": "i-gh",
+            "kind": "mcp",
+            "name": "github",
+            "version": 3,
+            "definition": {
+              "transport": "stdio",
+              "command": [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-github"
+              ],
+              "env": {
+                "GITHUB_TOKEN": {
+                  "$secret": "GH_TOKEN"
+                },
+                "GITHUB_HOST": "github.com"
+              }
+            }
+          },
+          {
+            "id": "i-gh-api",
+            "kind": "mcp",
+            "name": "github",
+            "version": 1,
+            "definition": {
+              "transport": "http",
+              "url": "https://mcp.example.com/github",
+              "bearer": {
+                "$secret": "API_GH"
+              }
+            }
+          },
+          {
+            "id": "i-notes",
+            "kind": "skill",
+            "name": "release-notes",
+            "version": 1,
+            "definition": {
+              "description": "Draft release notes from merged PRs since a tag.",
+              "body": "# Release notes\n\nList merged PRs since the tag.\n"
+            }
+          },
+          {
+            "id": "i-pg",
+            "kind": "mcp",
+            "name": "postgres",
+            "version": 2,
+            "definition": {
+              "transport": "stdio",
+              "command": [
+                "pg-mcp"
+              ],
+              "env": {
+                "DATABASE_URL": {
+                  "$secret": "DB_URL"
+                }
+              }
+            }
+          },
+          {
+            "id": "i-rule",
+            "kind": "instructions",
+            "name": "house-rules",
+            "version": 4,
+            "definition": {
+              "body": "Prefer small commits.\n"
+            }
+          }
+        ],
+        "machine": {
+          "claude": {
+            "items": [
+              "i-gh",
+              "i-pg",
+              "i-notes"
+            ],
+            "values": {
+              "launch": {
+                "args": [
+                  "--verbose"
+                ],
+                "model": "opus"
+              },
+              "extras": true
+            }
+          },
+          "codex": {
+            "items": [
+              "i-rule"
+            ]
+          },
+          "cursor": {
+            "items": []
+          }
+        },
+        "projects": {
+          "github.com/acme/api": {
+            "claude": {
+              "items": [
+                "i-gh-api",
+                "i-pg"
+              ],
+              "values": {
+                "launch": {
+                  "args": [],
+                  "model": "opus"
+                },
+                "extras": false
+              }
+            },
+            "codex": {
+              "items": [
+                "i-rule"
+              ]
+            },
+            "cursor": {
+              "items": []
+            }
+          },
+          "github.com/acme/web": {
+            "claude": {
+              "items": [
+                "i-gh",
+                "i-notes"
+              ],
+              "values": {
+                "launch": {
+                  "args": [
+                    "--verbose"
+                  ],
+                  "model": "opus"
+                },
+                "extras": true
+              }
+            },
+            "codex": {
+              "items": [
+                "i-rule"
+              ]
+            },
+            "cursor": {
+              "items": []
+            }
+          }
+        }
+      }
+    },
+    "absent": {
+      "t": "config",
+      "claude": {
+        "args": [
+          "--verbose"
+        ]
+      },
+      "plugins": [
+        {
+          "id": "claude",
+          "settings": {
+            "launch": {
+              "args": [
+                "--verbose"
+              ]
+            }
+          }
+        }
+      ],
+      "shell": {
+        "aliases": {},
+        "env": {},
+        "rc": ""
+      }
+    },
+    "empty": {
+      "t": "config",
+      "claude": {
+        "args": [
+          "--verbose"
+        ]
+      },
+      "plugins": [
+        {
+          "id": "claude",
+          "settings": {
+            "launch": {
+              "args": [
+                "--verbose"
+              ]
+            }
+          }
+        }
+      ],
+      "shell": {
+        "aliases": {},
+        "env": {},
+        "rc": ""
+      },
+      "pluginSet": {
+        "v": 1,
+        "items": [],
+        "machine": {},
+        "projects": {}
+      }
+    },
+    "junk": {
+      "t": "config",
+      "claude": {
+        "args": [
+          "--verbose"
+        ]
+      },
+      "plugins": [
+        {
+          "id": "claude",
+          "settings": {
+            "launch": {
+              "args": [
+                "--verbose"
+              ]
+            }
+          }
+        }
+      ],
+      "shell": {
+        "aliases": {},
+        "env": {},
+        "rc": ""
+      },
+      "pluginSet": {
+        "v": 1,
+        "items": [
+          {
+            "id": "a",
+            "kind": "command",
+            "name": "ship",
+            "version": 1,
+            "definition": {
+              "body": "Ship it.\n"
+            }
+          },
+          {
+            "id": "bad id!",
+            "kind": "command",
+            "name": "ship",
+            "version": 1,
+            "definition": {
+              "body": "Ship it.\n"
+            }
+          },
+          {
+            "id": "a",
+            "kind": "command",
+            "name": "ship",
+            "version": 9,
+            "definition": {
+              "body": "Ship it.\n"
+            }
+          },
+          {
+            "id": "b",
+            "kind": "plugin",
+            "name": "ship",
+            "version": 1,
+            "definition": {
+              "body": "Ship it.\n"
+            }
+          },
+          {
+            "id": "c",
+            "kind": "command",
+            "name": "ship",
+            "version": 0,
+            "definition": {
+              "body": "Ship it.\n"
+            }
+          },
+          {
+            "id": "d",
+            "kind": "command",
+            "name": "ship",
+            "version": 1.5,
+            "definition": {
+              "body": "Ship it.\n"
+            }
+          },
+          {
+            "id": "e",
+            "kind": "command",
+            "name": "ship",
+            "version": 1,
+            "definition": "text"
+          },
+          {
+            "id": "f",
+            "kind": "command",
+            "name": "Not Allowed",
+            "version": 1,
+            "definition": {
+              "body": "Ship it.\n"
+            }
+          },
+          {
+            "id": "g"
+          },
+          "x",
+          null
+        ],
+        "machine": {
+          "claude": {
+            "items": [
+              "a",
+              "missing",
+              5,
+              "a"
+            ],
+            "values": {
+              "k": 1
+            },
+            "later": true
+          },
+          "BAD ID": {
+            "items": []
+          },
+          "codex": {
+            "items": "a"
+          },
+          "cursor": {
+            "items": [],
+            "values": []
+          },
+          "x": "y"
+        },
+        "projects": {
+          "ok/key": {
+            "claude": {
+              "items": [
+                "a"
+              ]
+            }
+          },
+          "": {
+            "claude": {
+              "items": [
+                "a"
+              ]
+            }
+          },
+          "bad\u0001key": {
+            "claude": {
+              "items": [
+                "a"
+              ]
+            }
+          },
+          "text": "x"
+        },
+        "later": {
+          "anything": true
+        }
+      }
+    },
+    "future": {
+      "t": "config",
+      "claude": {
+        "args": [
+          "--verbose"
+        ]
+      },
+      "plugins": [
+        {
+          "id": "claude",
+          "settings": {
+            "launch": {
+              "args": [
+                "--verbose"
+              ]
+            }
+          }
+        }
+      ],
+      "shell": {
+        "aliases": {},
+        "env": {},
+        "rc": ""
+      },
+      "pluginSet": {
+        "v": 2,
+        "items": [
+          {
+            "id": "i-gh",
+            "kind": "mcp",
+            "name": "github",
+            "version": 3,
+            "definition": {
+              "transport": "stdio",
+              "command": [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-github"
+              ],
+              "env": {
+                "GITHUB_TOKEN": {
+                  "$secret": "GH_TOKEN"
+                },
+                "GITHUB_HOST": "github.com"
+              }
+            }
+          },
+          {
+            "id": "i-gh-api",
+            "kind": "mcp",
+            "name": "github",
+            "version": 1,
+            "definition": {
+              "transport": "http",
+              "url": "https://mcp.example.com/github",
+              "bearer": {
+                "$secret": "API_GH"
+              }
+            }
+          },
+          {
+            "id": "i-notes",
+            "kind": "skill",
+            "name": "release-notes",
+            "version": 1,
+            "definition": {
+              "description": "Draft release notes from merged PRs since a tag.",
+              "body": "# Release notes\n\nList merged PRs since the tag.\n"
+            }
+          },
+          {
+            "id": "i-pg",
+            "kind": "mcp",
+            "name": "postgres",
+            "version": 2,
+            "definition": {
+              "transport": "stdio",
+              "command": [
+                "pg-mcp"
+              ],
+              "env": {
+                "DATABASE_URL": {
+                  "$secret": "DB_URL"
+                }
+              }
+            }
+          },
+          {
+            "id": "i-rule",
+            "kind": "instructions",
+            "name": "house-rules",
+            "version": 4,
+            "definition": {
+              "body": "Prefer small commits.\n"
+            }
+          }
+        ],
+        "machine": {
+          "claude": {
+            "items": [
+              "i-gh",
+              "i-pg",
+              "i-notes"
+            ],
+            "values": {
+              "launch": {
+                "args": [
+                  "--verbose"
+                ],
+                "model": "opus"
+              },
+              "extras": true
+            }
+          },
+          "codex": {
+            "items": [
+              "i-rule"
+            ]
+          },
+          "cursor": {
+            "items": []
+          }
+        },
+        "projects": {
+          "github.com/acme/api": {
+            "claude": {
+              "items": [
+                "i-gh-api",
+                "i-pg"
+              ],
+              "values": {
+                "launch": {
+                  "args": [],
+                  "model": "opus"
+                },
+                "extras": false
+              }
+            },
+            "codex": {
+              "items": [
+                "i-rule"
+              ]
+            },
+            "cursor": {
+              "items": []
+            }
+          },
+          "github.com/acme/web": {
+            "claude": {
+              "items": [
+                "i-gh",
+                "i-notes"
+              ],
+              "values": {
+                "launch": {
+                  "args": [
+                    "--verbose"
+                  ],
+                  "model": "opus"
+                },
+                "extras": true
+              }
+            },
+            "codex": {
+              "items": [
+                "i-rule"
+              ]
+            },
+            "cursor": {
+              "items": []
+            }
+          }
+        }
+      }
+    },
+    "not_object": {
+      "t": "config",
+      "claude": {
+        "args": [
+          "--verbose"
+        ]
+      },
+      "plugins": [
+        {
+          "id": "claude",
+          "settings": {
+            "launch": {
+              "args": [
+                "--verbose"
+              ]
+            }
+          }
+        }
+      ],
+      "shell": {
+        "aliases": {},
+        "env": {},
+        "rc": ""
+      },
+      "pluginSet": "on"
+    },
+    "null": {
+      "t": "config",
+      "claude": {
+        "args": [
+          "--verbose"
+        ]
+      },
+      "plugins": [
+        {
+          "id": "claude",
+          "settings": {
+            "launch": {
+              "args": [
+                "--verbose"
+              ]
+            }
+          }
+        }
+      ],
+      "shell": {
+        "aliases": {},
+        "env": {},
+        "rc": ""
+      },
+      "pluginSet": null
+    }
+  },
+  "parsed": {
+    "full": {
+      "v": 1,
+      "items": [
+        {
+          "id": "i-gh",
+          "kind": "mcp",
+          "name": "github",
+          "version": 3,
+          "definition": {
+            "transport": "stdio",
+            "command": [
+              "npx",
+              "-y",
+              "@modelcontextprotocol/server-github"
+            ],
+            "env": {
+              "GITHUB_TOKEN": {
+                "$secret": "GH_TOKEN"
+              },
+              "GITHUB_HOST": "github.com"
+            }
+          }
+        },
+        {
+          "id": "i-gh-api",
+          "kind": "mcp",
+          "name": "github",
+          "version": 1,
+          "definition": {
+            "transport": "http",
+            "url": "https://mcp.example.com/github",
+            "bearer": {
+              "$secret": "API_GH"
+            }
+          }
+        },
+        {
+          "id": "i-notes",
+          "kind": "skill",
+          "name": "release-notes",
+          "version": 1,
+          "definition": {
+            "description": "Draft release notes from merged PRs since a tag.",
+            "body": "# Release notes\n\nList merged PRs since the tag.\n"
+          }
+        },
+        {
+          "id": "i-pg",
+          "kind": "mcp",
+          "name": "postgres",
+          "version": 2,
+          "definition": {
+            "transport": "stdio",
+            "command": [
+              "pg-mcp"
+            ],
+            "env": {
+              "DATABASE_URL": {
+                "$secret": "DB_URL"
+              }
+            }
+          }
+        },
+        {
+          "id": "i-rule",
+          "kind": "instructions",
+          "name": "house-rules",
+          "version": 4,
+          "definition": {
+            "body": "Prefer small commits.\n"
+          }
+        }
+      ],
+      "machine": {
+        "claude": {
+          "items": [
+            "i-gh",
+            "i-pg",
+            "i-notes"
+          ],
+          "values": {
+            "launch": {
+              "args": [
+                "--verbose"
+              ],
+              "model": "opus"
+            },
+            "extras": true
+          }
+        },
+        "codex": {
+          "items": [
+            "i-rule"
+          ]
+        },
+        "cursor": {
+          "items": []
+        }
+      },
+      "projects": {
+        "github.com/acme/api": {
+          "claude": {
+            "items": [
+              "i-gh-api",
+              "i-pg"
+            ],
+            "values": {
+              "launch": {
+                "args": [],
+                "model": "opus"
+              },
+              "extras": false
+            }
+          },
+          "codex": {
+            "items": [
+              "i-rule"
+            ]
+          },
+          "cursor": {
+            "items": []
+          }
+        },
+        "github.com/acme/web": {
+          "claude": {
+            "items": [
+              "i-gh",
+              "i-notes"
+            ],
+            "values": {
+              "launch": {
+                "args": [
+                  "--verbose"
+                ],
+                "model": "opus"
+              },
+              "extras": true
+            }
+          },
+          "codex": {
+            "items": [
+              "i-rule"
+            ]
+          },
+          "cursor": {
+            "items": []
+          }
+        }
+      }
+    },
+    "absent": null,
+    "empty": {
+      "v": 1,
+      "items": [],
+      "machine": {},
+      "projects": {}
+    },
+    "junk": {
+      "v": 1,
+      "items": [
+        {
+          "id": "a",
+          "kind": "command",
+          "name": "ship",
+          "version": 1,
+          "definition": {
+            "body": "Ship it.\n"
+          }
+        }
+      ],
+      "machine": {
+        "claude": {
+          "items": [
+            "a"
+          ],
+          "values": {
+            "k": 1
+          }
+        },
+        "cursor": {
+          "items": []
+        }
+      },
+      "projects": {
+        "ok/key": {
+          "claude": {
+            "items": [
+              "a"
+            ]
+          }
+        }
+      }
+    },
+    "future": null,
+    "not_object": null,
+    "null": null
+  }
+}

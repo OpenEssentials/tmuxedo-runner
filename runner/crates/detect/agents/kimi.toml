@@ -1,0 +1,62 @@
+# Kimi Code. Format and meaning: docs/design/agent-detection.md.
+agent = "kimi"
+title = "Kimi Code"
+revision = "2026-10-05.1"
+launch = "kimi"
+names = ["kimi-code", "kimi code"]
+
+[process]
+scripts = ["node_modules/@moonshot-ai/kimi-code/dist/main.mjs"]
+
+[[signal]]
+name = "approval"
+status = "blocked"
+rank = 60
+scope = "screen"
+when = '''
+"↵ confirm"
+and (
+  "run this command?" or "write this file?" or "apply these edits?" or "stop this task?"
+  or "ready to build with this plan?" or line /(?i)^\s*▶?\s*approve .*\?$/
+)
+and " choose" and ("approve" or "reject" or "revise")'''
+
+[[signal]]
+name = "question"
+status = "blocked"
+rank = 50
+scope = "screen"
+when = '''
+"↑↓ select" and "esc cancel" and line /^\s*question\s*$/ and line /^\s*\? /
+and ("↵ choose" or "↵ toggle" or "↵ save")'''
+
+[[signal]]
+name = "approval-v1"
+status = "blocked"
+rank = 40
+scope = "screen"
+when = '''
+"requesting approval" and "reject"
+and ("approve once" or "approve for this session")
+and ("1/2/3/4 choose" or "↵ confirm")'''
+
+[[signal]]
+name = "agents"
+status = "working"
+rank = 30
+scope = "last 3"
+when = '''line /(?i)\bkimi[-\w.]*\s+thinking\b.*\[[1-9][0-9]*\s+agents?\s+running\]/'''
+
+[[signal]]
+name = "moon"
+status = "working"
+rank = 20
+scope = "screen"
+when = '''line /^\s*[🌑🌒🌓🌔🌕🌖🌗🌘]\s*$/'''
+
+[[signal]]
+name = "spinner"
+status = "working"
+rank = 10
+scope = "screen"
+when = '''line /(?i)^\s*[\x{2800}-\x{28FF}]+\s*(?:thinking\.\.\.|working\.\.\.|using )/'''

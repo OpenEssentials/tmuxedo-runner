@@ -1,0 +1,92 @@
+{
+  "note": "Machine stats (docs/protocol.md \"Machine stats\"). Hand-written; checked by packages/protocol/test/stats.test.ts and runner/crates/protocol/tests/fixtures.rs. Change both sides or neither.",
+  "feature": "stats",
+  "hz": { "min": 0.1, "max": 0.5 },
+  "samples": [
+    {
+      "name": "host",
+      "frame": { "t": "stats", "at": 1800000000000, "cpu": { "pct": 23.5, "cores": 8, "load1": 1.25 }, "mem": { "used": 4096000000, "limit": 16384000000, "pressure10": 0.5, "swapUsed": 512000000 }, "disks": [{ "id": "home", "free": 51539607552, "total": 107374182400 }] },
+      "memPct": 25,
+      "diskUsedPct": 52,
+      "mem": "ok",
+      "disk": "ok"
+    },
+    {
+      "name": "container-with-limits",
+      "frame": { "t": "stats", "at": 1800000002000, "cpu": { "pct": 61.2, "cores": 16, "quota": 1.5, "throttledPct": 12.5 }, "mem": { "used": 3650722201, "limit": 4294967296, "limited": true, "pressure10": 3.25 }, "disks": [{ "id": "home", "free": 1073741824, "total": 10737418240 }] },
+      "memPct": 85,
+      "diskUsedPct": 90,
+      "mem": "high",
+      "disk": "high"
+    },
+    {
+      "name": "container-at-the-watchdog-threshold",
+      "frame": { "t": "stats", "at": 1800000004000, "cpu": { "cores": 16, "quota": 1.5 }, "mem": { "used": 3865470567, "limit": 4294967296, "limited": true }, "disks": [{ "id": "home", "free": 107374182, "total": 10737418240 }] },
+      "memPct": 90,
+      "diskUsedPct": 99,
+      "mem": "full",
+      "disk": "full"
+    },
+    {
+      "name": "pressure-makes-memory-high",
+      "frame": { "t": "stats", "at": 1800000006000, "mem": { "used": 1000, "limit": 4000, "pressure10": 10.5 }, "disks": [] },
+      "memPct": 25,
+      "diskUsedPct": null,
+      "mem": "high",
+      "disk": "none"
+    },
+    {
+      "name": "nothing-available",
+      "frame": { "t": "stats", "at": 1800000008000, "disks": [] },
+      "memPct": null,
+      "diskUsedPct": null,
+      "mem": "none",
+      "disk": "none"
+    }
+  ],
+  "invalidSamples": [
+    { "name": "no-at", "frame": { "t": "stats", "disks": [] } },
+    { "name": "negative-at", "frame": { "t": "stats", "at": -1, "disks": [] } },
+    { "name": "cpu-over-100", "frame": { "t": "stats", "at": 1, "cpu": { "pct": 100.5 }, "disks": [] } },
+    { "name": "cpu-not-a-number", "frame": { "t": "stats", "at": 1, "cpu": { "pct": "23" }, "disks": [] } },
+    { "name": "cpu-not-an-object", "frame": { "t": "stats", "at": 1, "cpu": 23, "disks": [] } },
+    { "name": "cores-fraction", "frame": { "t": "stats", "at": 1, "cpu": { "cores": 2.5 }, "disks": [] } },
+    { "name": "quota-zero", "frame": { "t": "stats", "at": 1, "cpu": { "quota": 0 }, "disks": [] } },
+    { "name": "mem-limit-zero", "frame": { "t": "stats", "at": 1, "mem": { "used": 0, "limit": 0 }, "disks": [] } },
+    { "name": "mem-negative", "frame": { "t": "stats", "at": 1, "mem": { "used": -5, "limit": 10 }, "disks": [] } },
+    { "name": "mem-limited-not-boolean", "frame": { "t": "stats", "at": 1, "mem": { "used": 1, "limit": 10, "limited": "yes" }, "disks": [] } },
+    { "name": "pressure-over-100", "frame": { "t": "stats", "at": 1, "mem": { "used": 1, "limit": 10, "pressure10": 250 }, "disks": [] } },
+    { "name": "disk-id-is-a-path", "frame": { "t": "stats", "at": 1, "disks": [{ "id": "/home/someone", "free": 1, "total": 2 }] } },
+    { "name": "disk-free-above-total", "frame": { "t": "stats", "at": 1, "disks": [{ "id": "home", "free": 3, "total": 2 }] } },
+    { "name": "disk-total-zero", "frame": { "t": "stats", "at": 1, "disks": [{ "id": "home", "free": 0, "total": 0 }] } },
+    { "name": "disks-not-a-list", "frame": { "t": "stats", "at": 1, "disks": "home" } },
+    { "name": "too-many-disks", "frame": { "t": "stats", "at": 1, "disks": [{ "id": "a", "free": 1, "total": 2 }, { "id": "b", "free": 1, "total": 2 }, { "id": "c", "free": 1, "total": 2 }, { "id": "d", "free": 1, "total": 2 }, { "id": "e", "free": 1, "total": 2 }] } }
+  ],
+  "dropped": {
+    "note": "Fields beside the numbers are never passed on: `in` parses to `out`.",
+    "in": { "t": "stats", "at": 5, "cpu": { "pct": 1.5, "top": "a process name" }, "mem": { "used": 1, "limit": 2, "limited": false, "who": "a user name" }, "disks": [{ "id": "home", "free": 1, "total": 2, "mount": "/a/path" }], "top": [{ "cmd": "a command line" }], "hostname": "a host name" },
+    "out": { "at": 5, "cpu": { "pct": 1.5 }, "mem": { "used": 1, "limit": 2 }, "disks": [{ "id": "home", "free": 1, "total": 2 }] }
+  },
+  "gateway": [
+    { "name": "start", "text": "{\"t\":\"stats\",\"hz\":0.5}", "hz": 0.5 },
+    { "name": "slow", "text": "{\"t\":\"stats\",\"hz\":0.1}", "hz": 0.1 },
+    { "name": "stop", "text": "{\"t\":\"stats\",\"hz\":0}", "hz": 0 },
+    { "name": "no-rate-is-stop", "text": "{\"t\":\"stats\"}", "hz": 0 },
+    { "name": "negative-is-stop", "text": "{\"t\":\"stats\",\"hz\":-2}", "hz": 0 },
+    { "name": "too-fast-is-the-most", "text": "{\"t\":\"stats\",\"hz\":60}", "hz": 0.5 },
+    { "name": "too-slow-is-the-least", "text": "{\"t\":\"stats\",\"hz\":0.0001}", "hz": 0.1 }
+  ],
+  "gatewayInvalid": [
+    { "name": "rate-is-text", "text": "{\"t\":\"stats\",\"hz\":\"fast\"}" },
+    { "name": "rate-is-null", "text": "{\"t\":\"stats\",\"hz\":null}" }
+  ],
+  "client": [
+    { "name": "subscribe", "text": "{\"t\":\"stats\",\"on\":true}", "frame": { "t": "stats", "on": true, "hz": 0.5 } },
+    { "name": "subscribe-slow", "text": "{\"t\":\"stats\",\"on\":true,\"hz\":0.1}", "frame": { "t": "stats", "on": true, "hz": 0.1 } },
+    { "name": "rate-clamped", "text": "{\"t\":\"stats\",\"on\":true,\"hz\":1000}", "frame": { "t": "stats", "on": true, "hz": 0.5 } },
+    { "name": "unsubscribe", "text": "{\"t\":\"stats\",\"on\":false}", "frame": { "t": "stats", "on": false, "hz": 0.5 } },
+    { "name": "no-on", "text": "{\"t\":\"stats\"}", "frame": null },
+    { "name": "on-is-text", "text": "{\"t\":\"stats\",\"on\":\"yes\"}", "frame": null },
+    { "name": "rate-is-text", "text": "{\"t\":\"stats\",\"on\":true,\"hz\":\"2\"}", "frame": null }
+  ]
+}

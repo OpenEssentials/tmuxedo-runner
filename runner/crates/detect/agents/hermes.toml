@@ -1,0 +1,79 @@
+# Hermes Agent. Format and meaning: docs/design/agent-detection.md.
+# Hermes puts its state in the window title: ⚠ needs you, ⏳ busy, ✓ done.
+agent = "hermes"
+title = "Hermes Agent"
+revision = "2026-10-05.1"
+launch = "hermes"
+names = ["hermes-agent"]
+
+[[signal]]
+name = "title-alert"
+status = "blocked"
+rank = 100
+scope = "title"
+when = '''/^⚠[\x{FE0E}\x{FE0F}]?(?:\s|$)/'''
+
+[[signal]]
+name = "title-busy"
+status = "working"
+rank = 90
+scope = "title"
+when = '''/^⏳[\x{FE0E}\x{FE0F}]?(?:\s|$)/'''
+
+[[signal]]
+name = "interrupt"
+status = "working"
+rank = 80
+scope = "last 5"
+when = '''"msg=interrupt" or "ctrl+c to interrupt"'''
+
+[[signal]]
+name = "command-approval"
+status = "blocked"
+rank = 70
+scope = "last 14"
+when = '''
+("dangerous" or "approval" or "allow once" and "deny" or line /(?i)^\s*[▸>]?\s*1\.\s*allow/)
+and ("enter confirm" or "enter to confirm" or "↑/↓ to select" or "show full command")'''
+
+[[signal]]
+name = "clarify"
+status = "blocked"
+rank = 70
+scope = "last 14"
+when = '''
+("hermes needs your" or line /^\s*ask\s+\S/ or "type your answer")
+and (
+  "enter confirm" or "enter to confirm" or "enter send" or "press enter"
+  or "↑/↓ select" or "↑/↓ to select" or "other (type"
+)'''
+
+[[signal]]
+name = "credentials"
+status = "blocked"
+rank = 70
+scope = "last 14"
+when = '''"sudo password" or "skill setup" or "🔑" and "for "'''
+
+[[signal]]
+name = "confirm"
+status = "blocked"
+rank = 70
+scope = "last 14"
+when = '''
+("approve once" and "cancel" or "start a new session" and "keep going")
+and ("enter to confirm" or "enter confirm" or "type 1/2/3" or "y/n quick")'''
+
+[[signal]]
+name = "cancel"
+status = "working"
+rank = 60
+scope = "last 5"
+when = '''"ctrl+c cancel"'''
+
+[[signal]]
+name = "title-idle"
+status = "idle"
+rank = 10
+scope = "title"
+when = '''/^✓[\x{FE0E}\x{FE0F}]?(?:\s|$)/'''

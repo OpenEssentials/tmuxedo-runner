@@ -1,0 +1,5 @@
+ ● Read src/lib.rs (120 lines)
+
+ ◉ Thinking (Esc to cancel)
+
+ >  Enter @ to mention files or / for commands

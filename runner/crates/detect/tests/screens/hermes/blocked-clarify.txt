@@ -1,0 +1,4 @@
+  Hermes needs your input
+  Which file should I edit?
+  > src/lib.rs
+  ↑/↓ select · enter confirm

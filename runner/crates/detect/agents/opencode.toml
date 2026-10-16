@@ -1,0 +1,29 @@
+# opencode. Format and meaning: docs/design/agent-detection.md.
+agent = "opencode"
+title = "opencode"
+revision = "2026-10-05.1"
+launch = "opencode"
+names = ["opencode2", "open-code"]
+
+[[signal]]
+name = "permission"
+status = "blocked"
+rank = 30
+scope = "screen"
+when = '''
+"△ Permission required"
+or "esc dismiss" and ("enter confirm" or "enter submit" or "enter toggle") and ("↑↓ select" or "⇆ tab")'''
+
+[[signal]]
+name = "interrupt"
+status = "working"
+rank = 20
+scope = "screen"
+when = '''"esc to interrupt" or "ctrl+c to interrupt" or line /(?i)opencode.*esc (?:again to )?interrupt/'''
+
+[[signal]]
+name = "progress-bar"
+status = "working"
+rank = 10
+scope = "screen"
+when = '''/[■⬝]{4,}/'''

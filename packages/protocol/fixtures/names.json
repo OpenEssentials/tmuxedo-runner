@@ -1,0 +1,143 @@
+{
+  "note": "Workspace, tab and pane names (docs/protocol.md \"Names\"). Hand-written; checked by packages/protocol/test/names.test.ts and runner/crates/protocol/tests/fixtures.rs. Change both sides or neither.",
+  "max": 64,
+  "clean": [
+    {
+      "name": "plain",
+      "in": "api server",
+      "out": "api server"
+    },
+    {
+      "name": "trim-and-collapse",
+      "in": "   api    server  ",
+      "out": "api server"
+    },
+    {
+      "name": "tabs-and-newlines",
+      "in": "api\tserver\r\nlogs",
+      "out": "api server logs"
+    },
+    {
+      "name": "only-spaces-is-empty",
+      "in": " \t\n 　 ",
+      "out": ""
+    },
+    {
+      "name": "empty",
+      "in": "",
+      "out": ""
+    },
+    {
+      "name": "escape-sequence-loses-esc",
+      "in": "\u001b[31mred\u001b[0m",
+      "out": "[31mred[0m"
+    },
+    {
+      "name": "nul-and-bell",
+      "in": "a\u0000b\u0007c",
+      "out": "abc"
+    },
+    {
+      "name": "del-and-c1",
+      "in": "xyz",
+      "out": "xyz"
+    },
+    {
+      "name": "bidi-override",
+      "in": "evil‮gnp.exe",
+      "out": "evilgnp.exe"
+    },
+    {
+      "name": "bidi-isolates-and-marks",
+      "in": "⁦a⁩‎b‏",
+      "out": "ab"
+    },
+    {
+      "name": "zero-width-space-and-bom",
+      "in": "﻿a​b",
+      "out": "ab"
+    },
+    {
+      "name": "zero-width-between-spaces",
+      "in": "a ​ b",
+      "out": "a b"
+    },
+    {
+      "name": "nbsp-and-wide-spaces",
+      "in": "a b c　d",
+      "out": "a b c d"
+    },
+    {
+      "name": "line-separator",
+      "in": "a b c",
+      "out": "a b c"
+    },
+    {
+      "name": "emoji-zwj-kept",
+      "in": "team 👨‍👩‍👧 and ⚙️",
+      "out": "team 👨‍👩‍👧 and ⚙️"
+    },
+    {
+      "name": "accents-and-cjk",
+      "in": "Café 日本語",
+      "out": "Café 日本語"
+    },
+    {
+      "name": "exactly-max",
+      "in": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "out": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "name": "over-max-cut",
+      "in": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "out": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "name": "cut-never-splits-a-surrogate-pair",
+      "in": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀b",
+      "out": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa😀"
+    },
+    {
+      "name": "cut-then-trim",
+      "in": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa xyz",
+      "out": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "collapse-before-cut",
+      "in": "dddddddddddddddddddddddddddddd          eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "out": "dddddddddddddddddddddddddddddd eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ],
+  "defaults": [
+    {
+      "kind": "workspace",
+      "id": "w1",
+      "name": "default"
+    },
+    {
+      "kind": "workspace",
+      "id": "w2",
+      "name": "2"
+    },
+    {
+      "kind": "workspace",
+      "id": "w17",
+      "name": "17"
+    },
+    {
+      "kind": "tab",
+      "id": "w1:t1",
+      "name": "1"
+    },
+    {
+      "kind": "tab",
+      "id": "w3:t12",
+      "name": "12"
+    },
+    {
+      "kind": "pane",
+      "id": "w1:p1",
+      "name": null
+    }
+  ]
+}

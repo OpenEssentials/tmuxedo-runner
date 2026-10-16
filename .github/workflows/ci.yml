@@ -1,0 +1,224 @@
+# CI for every push and pull request: the runner on Linux (fmt, clippy, tests,
+# the agent-detection coverage gate) and natively on macOS (Intel and Apple
+# Silicon), tmuxedo for Mac (apps/mac: unsigned build, XCTest, launchd and
+# isolation checks), the TypeScript protocol package and its fixtures, the
+# publication gate (scripts/scrub.py) and two secret scanners over the whole
+# history. GitHub-hosted runners only. The one secret, SCRUB_PRIVATE_PATTERNS,
+# holds the operator's scrub gates (scripts/scrub.py explains why they are not
+# in the repository); pull requests from forks run without it. Actions are
+# pinned by commit SHA (the tag is in the comment).
+name: ci
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  RUST_VERSION: 1.96.1
+  CARGO_TERM_COLOR: never
+jobs:
+  runner-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The test stage of runner/Dockerfile.downloads (rust:1.96.1-bookworm):
+      # cargo fmt --check, clippy -D warnings, cargo test (real PTYs, the codec
+      # against packages/protocol/fixtures).
+      - name: fmt + clippy + tests
+        run: docker build -f runner/Dockerfile.downloads --target test .
+
+  runner-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Intel. macos-13 is retired on GitHub-hosted runners; macos-15-intel
+          # is the standard Intel image.
+          - runner: macos-15-intel
+          # Apple Silicon.
+          - runner: macos-latest
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        working-directory: runner
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Rust ${{ env.RUST_VERSION }}
+        run: |
+          rustup toolchain install "$RUST_VERSION" --profile minimal --component clippy
+          rustup default "$RUST_VERSION"
+      - name: clippy
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: tests
+        run: cargo test --locked --workspace --no-fail-fast
+      # The detect crate's macOS code (libproc, sysctl) is only built here: the same
+      # 100 % line and branch gate as on Linux.
+      - name: detect coverage (nightly, cargo-llvm-cov)
+        run: |
+          rustup toolchain install nightly-2026-10-01 --profile minimal --component llvm-tools-preview
+          cargo install cargo-llvm-cov --version 0.9.1 --locked
+          sh scripts/detect-coverage.sh nightly-2026-10-01
+
+  # crates/detect: every line and every branch covered (runner/scripts/detect-coverage.sh).
+  detect-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: coverage gate
+        run: docker build -f runner/Dockerfile.downloads --target coverage .
+
+  protocol:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/protocol
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - name: fixtures are up to date
+        run: npm run fixtures && git diff --exit-code -- fixtures
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: gitleaks (whole history)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" zricethezav/gitleaks:v8.30.1 \
+            git /repo --redact --exit-code 1
+      - name: trufflehog (whole history)
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" trufflesecurity/trufflehog:3.97.9 \
+            git file:///repo --exclude-paths /repo/.trufflehog-exclude --no-verification --no-update --fail
+
+  # The publication gate: nothing internal (hosts, accounts, identifiers, private names) in the
+  # tree or anywhere in the history (scripts/scrub.py, scripts/scrub-allow.txt).
+  scrub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: scrub gate (tree, then every blob in the history)
+        env:
+          SCRUB_PRIVATE_PATTERNS: ${{ secrets.SCRUB_PRIVATE_PATTERNS }}
+          # The operator's gates are required wherever the secret is available (not on forks' PRs).
+          OWN: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          req=""
+          if [ "$OWN" = true ]; then req=--require-private; else echo "::notice::fork pull request: generic gates only"; fi
+          python3 scripts/scrub.py $req
+          python3 scripts/scrub.py --history $req
+
+  # tmuxedo for Mac (apps/mac). Unsigned: signing is the release pipeline's (apps/mac/README.md).
+  #   the universal runner from THIS commit (cargo, both architectures, lipo), the app built
+  #   unsigned with it embedded, the XCTest suite three times (flakes are fixed, not retried) with
+  #   coverage, then the launchd checks (the holder survives runner restarts and app updates) and
+  #   separate-user mode: the hidden `tmuxedo` user created by the app's own helper (this runner
+  #   has passwordless sudo), the live ACL tests inside XCTest, and Tools/isolation-e2e.sh proving
+  #   every boundary three times, each from setup to uninstall.
+  mac-app:
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchains
+        run: |
+          brew install xcodegen
+          rustup toolchain install "$RUST_VERSION" --profile minimal --target aarch64-apple-darwin --target x86_64-apple-darwin
+          rustup default "$RUST_VERSION"
+          xcodebuild -version
+          cargo --version
+      - name: Build the universal runner from this commit
+        working-directory: runner
+        run: |
+          for t in aarch64-apple-darwin x86_64-apple-darwin; do
+            cargo build --release --locked --target "$t" -p tmuxedo-runner
+          done
+          lipo -create target/aarch64-apple-darwin/release/tmuxedo-runner target/x86_64-apple-darwin/release/tmuxedo-runner \
+            -output "$RUNNER_TEMP/tmuxedo-runner"
+          codesign -f -s - "$RUNNER_TEMP/tmuxedo-runner"
+          lipo -archs "$RUNNER_TEMP/tmuxedo-runner"
+          "$RUNNER_TEMP/tmuxedo-runner" version --json
+          echo "TMUXEDO_RUNNER_BIN=$RUNNER_TEMP/tmuxedo-runner" >> "$GITHUB_ENV"
+      - name: Generate the project
+        working-directory: apps/mac
+        run: xcodegen generate
+      - name: Build the app (unsigned, runner embedded)
+        working-directory: apps/mac
+        run: |
+          set -o pipefail
+          xcodebuild build -project Tmuxedo.xcodeproj -scheme Tmuxedo -configuration Release -destination 'platform=macOS' \
+            -derivedDataPath build/dd CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -40
+          APP=build/dd/Build/Products/Release/tmuxedo.app
+          test -x "$APP/Contents/Helpers/tmuxedo-runner"
+          test -f "$APP/Contents/Library/LaunchAgents/dev.tmuxedo.mac.holder.plist"
+          test -f "$APP/Contents/Resources/NOTICE"
+          test -x "$APP/Contents/MacOS/tmuxedo-helper"
+          plutil -lint "$APP/Contents/Library/LaunchAgents/dev.tmuxedo.mac.holder.plist"
+          plutil -lint "$APP/Contents/Library/LaunchDaemons/dev.tmuxedo.mac.helper.plist"
+          [ "$(/usr/libexec/PlistBuddy -c 'Print :BundleProgram' "$APP/Contents/Library/LaunchDaemons/dev.tmuxedo.mac.helper.plist")" = "Contents/MacOS/tmuxedo-helper" ]
+          if "$APP/Contents/MacOS/tmuxedo-helper" status --owner nobody; then echo "::error::the helper ran without root"; exit 1; fi
+          lipo -archs "$APP/Contents/Helpers/tmuxedo-runner"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist"
+          echo "APP=$PWD/$APP" >> "$GITHUB_ENV"
+      - name: Create the separate user (for the live isolation tests)
+        run: |
+          sudo -n "$APP/Contents/MacOS/tmuxedo-helper" setup --owner "$(id -un)"
+          id tmuxedo
+      - name: XCTest, three times, with coverage
+        working-directory: apps/mac
+        env:
+          # xcodebuild passes TEST_RUNNER_<NAME> to the tests as <NAME>.
+          TEST_RUNNER_TMUXEDO_TEST_RUNNER: ${{ env.TMUXEDO_RUNNER_BIN }}
+          TEST_RUNNER_TMUXEDO_TEST_ISO: "1"
+        run: |
+          set -o pipefail
+          xcodebuild test -project Tmuxedo.xcodeproj -scheme Tmuxedo -destination 'platform=macOS' \
+            -derivedDataPath build/dd -enableCodeCoverage YES -resultBundlePath build/tests.xcresult \
+            -test-iterations 3 CODE_SIGNING_ALLOWED=NO \
+            | grep -E 'error:|failed|passed|skipped|Executed|TEST (SUCCEEDED|FAILED)' | grep -v '^Test Case .* passed' | tail -200
+          xcrun xccov view --report --only-targets build/tests.xcresult | tee build/coverage.txt
+      - name: launchd end to end (holder survives runner restarts and app updates)
+        run: apps/mac/Tools/holder-e2e.sh "$TMUXEDO_RUNNER_BIN"
+      - name: Separate user end to end (abuse cases), three times
+        run: |
+          sudo -n "$APP/Contents/MacOS/tmuxedo-helper" uninstall --owner "$(id -un)"
+          for i in 1 2 3; do
+            echo "::group::isolation-e2e run $i"
+            apps/mac/Tools/isolation-e2e.sh "$APP"
+            echo "::endgroup::"
+          done
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### tmuxedo for Mac"
+            echo '```'
+            cat apps/mac/build/coverage.txt 2>/dev/null || echo "no coverage report"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,206 @@
+=== 1x1 (micro) ===
+3
+=== 7x2 (micro) ===
+3!
+# w2:p1
+=== 12x1 (strip) ===
+3 need you
+=== 20x1 (strip) ===
+Needs you · 3
+=== 20x3 (tiny) ===
+Needs you · 3
+# w2:p1
++2 more
+=== 33x5 (tiny) ===
+Needs you · 3
+# w2:p1
+! w1:p2: Run a command
+# w1:p1
+
+=== 40x8 (small) ===
+ Needs you · 3             this machine
+ --------------------------------------
+ # w2:p1 · codex               12 h ago
+     Which branch should the release
+     notes go on? There are three …
+ +2 more
+
+             answer in tmuxedo · q quit
+=== 44x30 (small, portrait) ===
+ Needs you · 3                 this machine
+ ------------------------------------------
+ # w2:p1 · codex                   12 h ago
+     Which branch should the release notes
+     go on? There are three candidates.
+ ! w1:p2 · claude       HIGH RISK · 5 m ago
+     Run a command
+     command: git push origin main
+ # w1:p1 · claude                   2 m ago
+     wants to run: npm test --
+     --watch=false
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                 answer in tmuxedo · q quit
+=== 80x24 (medium) ===
+ Needs you · 3                                                     this machine
+ ------------------------------------------------------------------------------
+ # w2:p1 · codex                                                       12 h ago
+     Which branch should the release notes go on? There are three candidates.
+
+ ! w1:p2 · claude                                           HIGH RISK · 5 m ago
+     Run a command
+     command: git push origin main
+
+ # w1:p1 · claude                                                       2 m ago
+     wants to run: npm test -- --watch=false
+
+
+
+
+
+
+
+
+
+
+
+
+                                   answer in tmuxedo (web, app or TUI) · q quit
+=== 120x40 (large) ===
+ Needs you · 3                                                                                             this machine
+ ----------------------------------------------------------------------------------------------------------------------
+ # w2:p1 · codex                                                                                               12 h ago
+     Which branch should the release notes go on? There are three candidates.
+
+ ! w1:p2 · claude                                                                                   HIGH RISK · 5 m ago
+     Run a command
+     command: git push origin main
+
+ # w1:p1 · claude                                                                                               2 m ago
+     wants to run: npm test -- --watch=false
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                           answer in tmuxedo (web, app or TUI) · q quit
+=== 300x80 (large) ===
+ Needs you · 3                                                                                                                                                                                                                                                                                 this machine
+ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ # w2:p1 · codex                                                                                                                                                                                                                                                                                   12 h ago
+     Which branch should the release notes go on? There are three candidates.
+
+ ! w1:p2 · claude                                                                                                                                                                                                                                                                       HIGH RISK · 5 m ago
+     Run a command
+     command: git push origin main
+
+ # w1:p1 · claude                                                                                                                                                                                                                                                                                   2 m ago
+     wants to run: npm test -- --watch=false
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                               answer in tmuxedo (web, app or TUI) · q quit

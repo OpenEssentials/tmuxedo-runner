@@ -1,0 +1,3 @@
+  Yes, proceed
+  No, reject
+  Use ← → to choose permission whitelist scope

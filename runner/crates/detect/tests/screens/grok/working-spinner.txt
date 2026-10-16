@@ -1,0 +1,2 @@
+  ⠋ Run cargo test [stop]
+  ctrl+.:shortcuts  esc:cancel

@@ -1,0 +1,124 @@
+# Build, test and check tmuxedo for Mac.
+#
+# THERE CAN NEVER BE AN APP STORE BUILD OF THIS APP: it supervises a runner whose
+# terminals run the person's own shells and agents, outside what the App Sandbox
+# permits. It is Developer ID distribution, notarised.
+#
+# RELEASES are built, signed (Developer ID + the provisioning profile the restricted
+# entitlements need), notarised, stapled and published with a signed Sparkle appcast
+# by the release pipeline (Motorcade for tmuxedo's own builds). These lanes are for
+# building and checking on a developer's Mac and in CI (README.md, "Signing your own
+# build").
+#
+
+require "yaml"
+require "shellwords"
+require "json"
+
+default_platform(:mac)
+
+SCHEME      = "Tmuxedo"
+PROJECT     = "Tmuxedo.xcodeproj"
+PROJECT_YML = File.expand_path("../project.yml", __dir__)
+BUILD_DIR   = File.expand_path("../build", __dir__)
+APP_NAME    = "tmuxedo.app"
+
+def project_setting(key)
+  yml = YAML.load_file(PROJECT_YML)
+  value = yml.dig("targets", "Tmuxedo", "settings", "base", key)
+  UI.user_error!("#{key} not found in project.yml") if value.nil?
+  value.to_s
+end
+
+# --- Artefact checks (every signed lane) -------------------------------------
+
+def verify_no_debug_entitlement(app:)
+  ents = sh("codesign -d --entitlements :- #{app.shellescape} 2>/dev/null || true", log: false)
+  UI.user_error!("#{app} carries get-task-allow (a debugger may attach); notarisation will reject it") if ents.include?("get-task-allow")
+end
+
+def verify_signature(app:)
+  out = sh("codesign -dvv #{app.shellescape} 2>&1", log: false)
+  UI.user_error!("#{app} is not signed with the hardened runtime") unless out.include?("flags=0x10000(runtime)")
+  UI.user_error!("#{app} has no secure timestamp") unless out.match?(/^Timestamp=/)
+  sh("codesign --verify --deep --strict #{app.shellescape}")
+end
+
+# The bundled runner: present, universal, signed by the same team with the hardened runtime.
+def verify_runner(app:)
+  bin = File.join(app, "Contents/Helpers/tmuxedo-runner")
+  UI.user_error!("no runner at #{bin}") unless File.executable?(bin)
+  archs = sh("lipo -archs #{bin.shellescape}", log: false).split
+  UI.user_error!("the runner is not universal (#{archs.join(' ')})") unless (%w[arm64 x86_64] - archs).empty?
+  out = sh("codesign -dvv #{bin.shellescape} 2>&1", log: false)
+  app_out = sh("codesign -dvv #{app.shellescape} 2>&1", log: false)
+  team = ->(s) { s[/^TeamIdentifier=(\S+)/, 1] }
+  UI.user_error!("the runner is signed by #{team.(out)}, the app by #{team.(app_out)}") unless team.(out) == team.(app_out)
+  UI.user_error!("the runner lacks the hardened runtime") unless out.include?("flags=0x10000(runtime)")
+  info = JSON.parse(sh("#{bin.shellescape} version --json", log: false))
+  UI.success("runner #{info['version']} holder #{info['holderBuild']} features #{info['features'].join(',')}")
+end
+
+def verify_launch_agent(app:)
+  plist = File.join(app, "Contents/Library/LaunchAgents/dev.tmuxedo.mac.holder.plist")
+  UI.user_error!("the holder's LaunchAgent plist is missing from the bundle") unless File.exist?(plist)
+  sh("plutil -lint #{plist.shellescape}")
+end
+
+platform :mac do
+  before_all do
+    ENV["FASTLANE_SKIP_UPDATE_CHECK"] = "1"
+  end
+
+  private_lane :generate_project do
+    Dir.chdir("..") { sh("xcodegen generate") }
+  end
+
+  desc "Compile check. No signing, no credentials."
+  lane :build do
+    generate_project
+    xcodebuild(project: PROJECT, scheme: SCHEME, configuration: "Release", clean: true, build: true,
+               xcargs: 'CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY=""')
+    UI.success("tmuxedo builds (unsigned)")
+  end
+
+  desc "The XCTest suite with coverage (build/coverage.json and a summary)."
+  lane :test do
+    generate_project
+    Dir.chdir("..") do
+      FileUtils.rm_rf("build/tests.xcresult")
+      sh("set -o pipefail && xcodebuild test -project #{PROJECT} -scheme #{SCHEME} " \
+         "-destination 'platform=macOS' -enableCodeCoverage YES -resultBundlePath build/tests.xcresult " \
+         "CODE_SIGNING_ALLOWED=NO " \
+         "| grep -E 'error:|failed|passed|skipped|Executed|TEST (SUCCEEDED|FAILED)' | grep -v '^Test Case .* passed'")
+      sh("xcrun xccov view --report --json build/tests.xcresult > build/coverage.json")
+      sh("xcrun xccov view --report --only-targets build/tests.xcresult")
+    end
+    UI.success("tmuxedo tests pass")
+  end
+
+  desc "Build signed with Developer ID and check the artefact (needs the identity in the keychain)."
+  lane :signed do
+    generate_project
+    FileUtils.rm_rf(File.join(BUILD_DIR, APP_NAME))
+    gym(project: PROJECT, scheme: SCHEME, configuration: "Release", export_method: "developer-id",
+        output_directory: BUILD_DIR, skip_package_pkg: true, clean: true)
+    app = File.join(BUILD_DIR, APP_NAME)
+    verify_signature(app: app)
+    verify_no_debug_entitlement(app: app)
+    verify_runner(app: app)
+    verify_launch_agent(app: app)
+    UI.success("#{app} checks out")
+  end
+
+  desc "Launch the built app as an ISOLATED PROFILE: its own settings, key, token and terminals."
+  desc "PROFILE=name (default: verify). Never the owner's pairing."
+  lane :try do
+    app = File.join(BUILD_DIR, APP_NAME)
+    UI.user_error!("No app at #{app}; run `fastlane mac signed` first") unless File.directory?(app)
+    profile = (ENV["PROFILE"] || "verify").downcase
+    UI.user_error!("PROFILE must be a-z, 0-9 and dashes") unless profile.match?(/\A[a-z0-9-]{1,32}\z/)
+    sh("open -n --env TMUXEDO_MAC_PROFILE=#{profile} #{app.shellescape}")
+    UI.success("Launched profile '#{profile}'. The owner's pairing and terminals are untouched.")
+  end
+end

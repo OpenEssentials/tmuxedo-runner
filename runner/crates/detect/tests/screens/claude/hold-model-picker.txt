@@ -1,0 +1,7 @@
+ Select model
+ Switch between Claude models. Applies to this session and future sessions.
+
+ ❯ 1. Default (recommended)  Opus 5.5
+   2. Sonnet                 Sonnet 5
+
+ Enter to set as default · Esc to cancel

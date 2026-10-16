@@ -1,0 +1,9 @@
+[package]
+name = "tmuxedo-emu"
+description = "Terminal emulation for tmuxedo panes: vt100 state, snapshots with scrollback, synchronized-output tracking, query matching"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+vt100.workspace = true

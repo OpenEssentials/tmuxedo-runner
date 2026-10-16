@@ -1,0 +1,9 @@
+# Oh My Pi. Format and meaning: docs/design/agent-detection.md.
+# No screen signals: identified by process, driven by hooks and report_agent.
+agent = "omp"
+title = "Oh My Pi"
+revision = "2026-10-05.1"
+launch = "omp"
+
+[process]
+scripts = ["node_modules/@oh-my-pi/pi-coding-agent/dist/cli.js"]

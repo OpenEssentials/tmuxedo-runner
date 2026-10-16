@@ -1,0 +1,8 @@
+• Explored
+  └ Read lib.rs
+
+• Thinking (1m 03s • esc to interrupt)
+• Queued follow-up inputs
+  ↳ also update the docs
+
+›

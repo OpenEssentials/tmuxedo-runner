@@ -1,0 +1,82 @@
+=== 80x24 ===
+Chat · claude · /home/u/work                                              ○ idle
+› hi
+
+▾ Ran 1 command · 4 s
+Hello red ⟨U+202E⟩txt.exe⟨U+200B⟩!
+▾ ✓ Ran echo ok                                                              1 s
+  │ $ echo ok
+  │ link
+  │ line2 end
+  │ 1 s
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
+> Message the agent
+Enter send · Alt+Enter new line · Tab transcript · ^b C terminal · ^b q panes
+=== 120x40 ===
+Chat · claude · /home/u/work                                                                                      ○ idle
+› hi
+
+▾ Ran 1 command · 4 s
+Hello red ⟨U+202E⟩txt.exe⟨U+200B⟩!
+▾ ✓ Ran echo ok                                                                                                      1 s
+  │ $ echo ok
+  │ link
+  │ line2 end
+  │ 1 s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+> Message the agent
+Enter send · Alt+Enter new line · Tab transcript · ^b C terminal · ^b q panes
+=== 50x15 ===
+Chat · claude · /home/u/work                ○ idle
+› hi
+
+▾ Ran 1 command · 4 s
+Hello red ⟨U+202E⟩txt.exe⟨U+200B⟩!
+▾ ✓ Ran echo ok                                1 s
+  │ $ echo ok
+  │ link
+  │ line2 end
+  │ 1 s
+
+
+──────────────────────────────────────────────────
+> Message the agent
+Enter send · Alt+Enter new line · Tab transcript …

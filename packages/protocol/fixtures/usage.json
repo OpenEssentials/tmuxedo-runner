@@ -1,0 +1,46 @@
+{
+  "feature": "usage",
+  "minIntervalMs": 2000,
+  "windowsMax": 8,
+  "records": [
+    {
+      "name": "a plan with two windows and a pane's context",
+      "frame": {
+        "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan",
+        "windows": [
+          { "id": "5h", "usedPct": 62.4, "resetsAt": 1791900000, "windowMins": 300 },
+          { "id": "7d", "usedPct": 41.0, "resetsAt": 1792300000, "windowMins": 10080 }
+        ],
+        "context": { "paneId": "w1:p1", "usedPct": 34.0, "size": 200000 },
+        "source": "statusline", "observedAt": 1791890000000
+      }
+    },
+    {
+      "name": "a plan name, a window used up, no reset time",
+      "frame": {
+        "t": "usage", "plugin": "codex", "accountKey": "h:00112233445566778899aabbccddeeff", "mode": "plan", "plan": "plus",
+        "windows": [{ "id": "5h", "usedPct": 100.0, "windowMins": 300 }, { "id": "43200m", "usedPct": 3.5 }],
+        "reached": "5h", "source": "jsonl", "observedAt": 1791890000001
+      }
+    },
+    {
+      "name": "nothing reported yet",
+      "frame": { "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [], "source": "statusline", "observedAt": 1 }
+    }
+  ],
+  "invalid": [
+    { "name": "an account key that is not a hash", "frame": { "t": "usage", "plugin": "claude", "accountKey": "someone@example.com", "mode": "plan", "windows": [], "source": "statusline", "observedAt": 1 } },
+    { "name": "a percentage above 100", "frame": { "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [{ "id": "5h", "usedPct": 140.0 }], "source": "statusline", "observedAt": 1 } },
+    { "name": "a window id with a space", "frame": { "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [{ "id": "5 h", "usedPct": 1.0 }], "source": "statusline", "observedAt": 1 } },
+    { "name": "an unknown source", "frame": { "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [], "source": "screen-scrape", "observedAt": 1 } },
+    { "name": "an unknown mode", "frame": { "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "free", "windows": [], "source": "statusline", "observedAt": 1 } },
+    { "name": "a plugin id with a slash", "frame": { "t": "usage", "plugin": "cl/aude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [], "source": "statusline", "observedAt": 1 } },
+    { "name": "nine windows", "frame": { "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [{ "id": "a", "usedPct": 1.0 }, { "id": "b", "usedPct": 1.0 }, { "id": "c", "usedPct": 1.0 }, { "id": "d", "usedPct": 1.0 }, { "id": "e", "usedPct": 1.0 }, { "id": "f", "usedPct": 1.0 }, { "id": "g", "usedPct": 1.0 }, { "id": "h", "usedPct": 1.0 }, { "id": "i", "usedPct": 1.0 }], "source": "statusline", "observedAt": 1 } },
+    { "name": "a pane id that is a path", "frame": { "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [], "context": { "paneId": "../x", "usedPct": 1.0 }, "source": "statusline", "observedAt": 1 } }
+  ],
+  "stripped": {
+    "name": "fields the record does not have are not passed on",
+    "frame": { "t": "usage", "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [{ "id": "5h", "usedPct": 1.0, "label": "x" }], "source": "statusline", "observedAt": 1, "email": "x", "raw": { "a": 1 } },
+    "clean": { "plugin": "claude", "accountKey": "m:0123456789abcdef", "mode": "plan", "windows": [{ "id": "5h", "usedPct": 1.0 }], "source": "statusline", "observedAt": 1 }
+  }
+}

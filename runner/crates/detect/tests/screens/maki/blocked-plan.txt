@@ -1,0 +1,4 @@
+  Plan complete
+  1. Add tests
+  2. Fix parser
+  enter confirm · space toggle parallel

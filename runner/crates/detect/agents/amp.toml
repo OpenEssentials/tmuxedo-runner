@@ -1,0 +1,54 @@
+# Amp. Format and meaning: docs/design/agent-detection.md.
+agent = "amp"
+title = "Amp"
+revision = "2026-10-05.1"
+launch = "amp"
+names = ["amp-local"]
+
+[[signal]]
+name = "title-plugin"
+status = "blocked"
+rank = 60
+scope = "title"
+when = '''"Plugin confirmation needed"'''
+
+[[signal]]
+name = "title-busy"
+status = "working"
+rank = 50
+scope = "title"
+when = '''/^[\x{2800}-\x{28FF}] /'''
+
+[[signal]]
+name = "approval"
+status = "blocked"
+rank = 40
+scope = "screen"
+when = '''
+"waiting for approval" or "invoke tool" or "run this command?"
+or "allow editing file:" or "allow creating file:" or "confirm tool call"
+or "approve" and (
+  "allow all for this session" or "allow all for every session"
+  or "allow file for every session" or "deny with feedback"
+)'''
+
+[[signal]]
+name = "footer"
+status = "working"
+rank = 30
+scope = "last 5"
+when = '''line /(?i)^\s*╰\s+\S+\s+(?:thinking|streaming|running tools|waiting)\s+─/'''
+
+[[signal]]
+name = "cancel"
+status = "working"
+rank = 20
+scope = "screen"
+when = '''"esc to cancel"'''
+
+[[signal]]
+name = "title-idle"
+status = "idle"
+rank = 10
+scope = "title"
+when = '''" - amp - " and not /^[\x{2800}-\x{28FF}] / and not "Plugin confirmation needed"'''

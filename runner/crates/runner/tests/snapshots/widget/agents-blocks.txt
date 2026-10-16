@@ -1,0 +1,206 @@
+=== 1x1 (micro) ===
+!
+=== 7x2 (micro) ===
+5 · 1!
+! w1:p2
+=== 12x1 (strip) ===
+! release +4
+=== 20x1 (strip) ===
+! release +4
+=== 20x3 (tiny) ===
+! release
+● api-agent
++3 more
+=== 33x5 (tiny) ===
+! release · needs you
+● api-agent · working
+✓ tests · done
+○ w2:p4
+? レビュー · unknown
+=== 40x8 (small) ===
+ Agents          5 agents · 1 needs you
+ ──────────────────────────────────────
+ ! release                    needs you
+ ● api-agent                  working
+ ✓ tests                      done
+ ○ w2:p4                      idle
+ ? レビュー                   unknown
+                                 q quit
+=== 44x30 (small, portrait) ===
+ Agents              5 agents · 1 needs you
+ ──────────────────────────────────────────
+ ! release                       needs you
+ ● api-agent                     working
+ ✓ tests                         done
+ ○ w2:p4                         idle
+ ? レビュー                      unknown
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                     q quit
+=== 80x24 (medium) ===
+ Agents                                                  5 agents · 1 needs you
+ ──────────────────────────────────────────────────────────────────────────────
+ ! release                       needs you  claude  site
+ ● api-agent                     working    claude  api
+ ✓ tests                         done       codex   api
+ ○ w2:p4                         idle       cursor  /
+ ? レビュー                      unknown    claude  dev
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                         q quit
+=== 120x40 (large) ===
+ Agents                                                                                          5 agents · 1 needs you
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ! release                       needs you  claude  site  w1:p2
+ ● api-agent                     working    claude  api   w1:p1
+ ✓ tests                         done       codex   api   w2:p1
+ ○ w2:p4                         idle       cursor  /     w2:p4
+ ? レビュー                      unknown    claude  dev   w3:p1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                 q quit
+=== 300x80 (large) ===
+ Agents                                                                                                                                                                                                                                                                              5 agents · 1 needs you
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ! release                       needs you  claude  site  w1:p2
+ ● api-agent                     working    claude  api   w1:p1
+ ✓ tests                         done       codex   api   w2:p1
+ ○ w2:p4                         idle       cursor  /     w2:p4
+ ? レビュー                      unknown    claude  dev   w3:p1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                                                                     q quit

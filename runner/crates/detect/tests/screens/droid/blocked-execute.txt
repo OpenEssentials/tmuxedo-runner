@@ -1,0 +1,5 @@
+  Execute command?
+    rm -rf dist
+  > Yes, allow
+    No, cancel
+  ↑↓ to navigate · enter to select · esc to cancel

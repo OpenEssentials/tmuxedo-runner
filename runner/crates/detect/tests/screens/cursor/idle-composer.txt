@@ -1,0 +1,7 @@
+  Cursor Agent
+  ~/project · main
+
+ ┌──────────────────────────────────────────────┐
+ │ → Plan, search, build anything               │
+ └──────────────────────────────────────────────┘
+   GPT-5 · 100% · Auto-run off

@@ -1,0 +1,206 @@
+=== 1x1 (micro) ===
+0
+=== 7x2 (micro) ===
+none
+
+=== 12x1 (strip) ===
+no agents
+=== 20x1 (strip) ===
+no agents
+=== 20x3 (tiny) ===
+no agents
+
+
+=== 33x5 (tiny) ===
+No agents on this machine
+
+
+
+
+=== 40x8 (small) ===
+ Agents                        0 agents
+ ──────────────────────────────────────
+ No agents on this machine. Start one
+ from tmuxedo, or type its name in a
+ pane.
+
+
+                                 q quit
+=== 44x30 (small, portrait) ===
+ Agents                            0 agents
+ ──────────────────────────────────────────
+ No agents on this machine. Start one from
+ tmuxedo, or type its name in a pane.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                     q quit
+=== 80x24 (medium) ===
+ Agents                                                                0 agents
+ ──────────────────────────────────────────────────────────────────────────────
+ No agents on this machine. Start one from tmuxedo, or type its name in a pane.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                         q quit
+=== 120x40 (large) ===
+ Agents                                                                                                        0 agents
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ No agents on this machine. Start one from tmuxedo, or type its name in a pane.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                 q quit
+=== 300x80 (large) ===
+ Agents                                                                                                                                                                                                                                                                                            0 agents
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ No agents on this machine. Start one from tmuxedo, or type its name in a pane.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                                                                     q quit

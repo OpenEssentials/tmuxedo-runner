@@ -1,0 +1,8 @@
+  Waiting for approval...
+
+  Run this command?
+  $ npm install
+
+   → Run (once) (y)
+     Add Shell(npm) to allowlist (tab)
+     Skip (esc or n)

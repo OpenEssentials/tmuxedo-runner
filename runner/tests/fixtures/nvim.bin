@@ -1,0 +1,159 @@
+[?1049h[22;0;0t[?1h=[H[2J[?2004h[?69$p[?2026$p[?2027$p[?2031$p[?2048$p[0m[4:3mP$qm\[?u[c]11;?[5n[?25h]11;?[5n[?2026h[>4;2m(B[m[H                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        [1 q[?1002h[?1006h[H[?2026l[c[?2026h(B[m[38;2;224;226;234m[48;2;20;22;27mNAME="Alpine Linux"[K
+ID=alpine[K
+VERSION_ID=3.24.2[K
+PRETTY_NAME="Alpine Linux v3.24"[K
+HOME_URL="https://alpinelinux.org/"[K
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"[K
+(B[m[38;2;79;82;88m[48;2;20;22;27m~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+(B[m[38;2;224;226;234m[48;2;79;82;88m/etc/os-release [RO]                                                                                  1,1            All(B[m[38;2;224;226;234m[48;2;20;22;27m
+[J[2 q[2 q[HNAME="Alpine Linux"[K
+ID=alpine[K
+VERSION_ID=3.24.2[K
+PRETTY_NAME="Alpine Linux v3.24"[K
+HOME_URL="https://alpinelinux.org/"[K
+BUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aports/-/issues"[K
+(B[m[38;2;79;82;88m[48;2;20;22;27m~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+(B[m[38;2;224;226;234m[48;2;79;82;88m/etc/os-release [RO]                                                                                  1,1            All(B[m[38;2;224;226;234m[48;2;20;22;27m
+[J[H[?2026lP+q4D73\[?2026h[?1004h[?2026l[?2026h[40;110HG[H[?2026l[?2026h[40;110H [39;103H(B[m[38;2;224;226;234m[48;2;79;82;88m6[33A[?2026l[?2026h[40;110H(B[m[38;2;224;226;234m[48;2;20;22;27mo[34A[?2026l[?2026h[34B(B[m[38;2;252;224;148m[48;2;20;22;27mW10: Warning: Changing a readonly file[71C(B[m[38;2;224;226;234m[48;2;20;22;27m [72D[?2026l[?2026h[21;40r[21;1H[19M[r[20;1H(B[m[38;2;224;226;234m[48;2;79;82;88m                                                                                                                        
+
+(B[m[38;2;255;192;185m[48;2;20;22;27mE325: ATTENTION(B[m[38;2;224;226;234m[48;2;20;22;27mFound a swap file by the name "~/.local/state/nvim/swap/%usr%lib%os-release.swp"                         
+          owned by: dev   dated: Mon Oct 05 03:34:08 2026                                                               
+         file name: /etc/os-release                                                                                     
+          modified: YES                                                                                                 
+         user name: dev   host name: box                                                                                
+        process ID: 32                                                                                                  
+While opening file "/etc/os-release"                                                                                    
+             dated: Thu Sep 17 17:30:54 2026                                                                            
+                                                                                                                        
+(1) Another program may be editing the same file.  If this is the case,                                                 
+    be careful not to end up with two different instances of the same                                                   
+    file when making changes.  Quit, or continue with caution.                                                          
+(2) An edit session for this file crashed.                                                                              
+    If this is the case, use ":recover" or "nvim -r /etc/os-release"                                                    
+    to recover the changes (see ":help recovery").                                                                      
+    If you did this already, delete the swap file "/home/dev/.local/state/nvim/swap/%usr%lib%os-release.swp"            
+    to avoid this message.                                                                                              
+                                                                                                                        
+                                                                                                                        [40;1H[?2026l[?2026h(B[m[38;2;140;248;247m[48;2;20;22;27mPress ENTER or type command to continue[?1002l[?1006l[?2026l[?2026h[40;1H(B[m[38;2;179;246;192m[48;2;20;22;27m-- INSERT --(B[m[38;2;224;226;234m[48;2;20;22;27m[27X[40;1H[12X[33Awide: 日本語テキスト   🦀[7;24H café[7;29H é[7;31H[K[13B(B[m[38;2;79;82;88m[48;2;20;22;27m~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+~[K
+(B[m[38;2;224;226;234m[48;2;79;82;88m/etc/os-release [+][RO]                                                                               7,40-30        All(B[m[38;2;224;226;234m[48;2;20;22;27m
+[J[2 q[?1002h[?1006h[7;30H[?2026l[?2026h[33B:vsplit[2 q[?1002l[?1006l[40;1H[?2026l[?2026h[33A/-/issues"[20X
+wide: 日本語テキスト   🦀[8;24H café[8;29H é[8;31H[30X[1;61H(B[m[38;2;224;226;234m[48;2;20;22;27m│[2;61H│[3;61H│[4;61H│[5;61H│[6;61H│[7;61H│[8;61H│[9;61H│[10;61H│[11;61H│[12;61H│[13;61H│[14;61H│[15;61H│[16;61H│[17;61H│[18;61H│[19;61H│[20;61H│[21;61H│[22;61H│[23;61H│[24;61H│[25;61H│[26;61H│[27;61H│[28;61H│[29;61H│[30;61H│[31;61H│[32;61H│[33;61H│[34;61H│[35;61H│[36;61H│[37;61H│[38;61H│[39;43H(B[m[38;2;224;226;234m[48;2;79;82;88m7,40-30        All[1;62H(B[m[38;2;224;226;234m[48;2;20;22;27mNAME="Alpine Linux"[2;62HID=alpine[3;62HVERSION_ID=3.24.2[4;62HPRETTY_NAME="Alpine Linux v3.24"[5;62HHOME_URL="https://alpinelinux.org/"[6;62HBUG_REPORT_URL="https://gitlab.alpinelinux.org/alpine/aport[7;62Hs/-/issues"[8;62Hwide: 日本語テキスト   🦀[8;85H café[8;90H é[8;92H[K[9;62H(B[m[38;2;79;82;88m[48;2;20;22;27m~[10;62H~[11;62H~[12;62H~[13;62H~[14;62H~[15;62H~[16;62H~[17;62H~[18;62H~[19;62H~[20;62H~[21;62H~[22;62H~[23;62H~[24;62H~[25;62H~[26;62H~[27;62H~[28;62H~[29;62H~[30;62H~[31;62H~[32;62H~[33;62H~[34;62H~[35;62H~[36;62H~[37;62H~[38;62H~[39;62H(B[m[38;2;196;198;205m[48;2;44;46;51m/etc/os-release [+][RO]                  7,40-30        All[2 q[?1002h[?1006h[8;30H[?2026l[?2026h[40;110H(B[m[38;2;224;226;234m[48;2;20;22;27mgg[8;30H[?2026l[?2026h[40;110H  [39;43H(B[m[38;2;224;226;234m[48;2;79;82;88m1,19   [1;19H[?2026l[?2026h(B[m[38;2;224;226;234m[48;2;20;22;27m[39B[7X:qa![2 q[?1002l[?1006l[40;1H[?2026l[?2026h[2 q[?1002h[?1006h[?2026l[?2026h[2 q[?1002l[?1006l(B[m[?25h[2 q[?1l>[<u[?2004l[?1004l[c[?2026l[?2026h[?1049l[23;0;0t[?2026l^[[?62;22c

@@ -1,0 +1,17 @@
+[package]
+name = "tmuxedo-holder"
+description = "The tmuxedo PTY holder: owns PTYs, rings and process groups; serves a versioned unix-socket protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tmuxedo-emu.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+portable-pty.workspace = true
+libc.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

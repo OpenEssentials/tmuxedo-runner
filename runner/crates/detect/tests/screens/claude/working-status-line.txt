@@ -1,0 +1,11 @@
+● I'll look at the failing test first.
+
+● Read(src/lib.rs)
+  ⎿  Read 120 lines
+
+✻ Deliberating… (12s · ↑ 1.2k tokens · esc to interrupt)
+
+────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

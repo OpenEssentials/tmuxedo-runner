@@ -1,0 +1,744 @@
+{
+  "schema": 1,
+  "access": [
+    "read-only",
+    "edit",
+    "edit+shell",
+    "full"
+  ],
+  "colors": [
+    "slate",
+    "red",
+    "orange",
+    "amber",
+    "green",
+    "teal",
+    "blue",
+    "purple"
+  ],
+  "limits": {
+    "name": 60,
+    "purpose": 200,
+    "instructionsBytes": 16384,
+    "glyph": 2,
+    "model": 80,
+    "models": 16,
+    "tool": 200,
+    "tools": 64,
+    "list": 32,
+    "delegates": 16,
+    "maxSubagents": 16,
+    "maxDepth": 4
+  },
+  "valid": [
+    {
+      "name": "the-smallest-role",
+      "input": {
+        "id": "ab",
+        "name": "A"
+      },
+      "role": {
+        "schema": 1,
+        "id": "ab",
+        "name": "A",
+        "purpose": "",
+        "instructions": "",
+        "cli": "any",
+        "model": {},
+        "access": "read-only",
+        "tools": {
+          "allow": [],
+          "deny": []
+        },
+        "mcp": [],
+        "skills": [],
+        "secrets": [],
+        "delegates": [],
+        "limits": {}
+      },
+      "canonical": "{\"access\":\"read-only\",\"cli\":\"any\",\"id\":\"ab\",\"name\":\"A\",\"schema\":1}",
+      "hash": "efd4d195bb7edcf016c74ad2c96392d27930c3a85bbda583885256e3cad8880a"
+    },
+    {
+      "name": "every-field",
+      "input": {
+        "schema": 1,
+        "id": "reviewer",
+        "name": "Reviewer",
+        "avatar": {
+          "glyph": "R",
+          "color": "teal"
+        },
+        "purpose": "Reviews diffs for correctness and risk; never edits.",
+        "instructions": "Read the diff paths you are given.\nReport blocking issues first.\n",
+        "cli": "codex",
+        "model": {
+          "codex": "gpt-5-codex",
+          "claude": "opus",
+          "cursor": "auto"
+        },
+        "access": "read-only",
+        "tools": {
+          "allow": [
+            "Read",
+            "Grep"
+          ],
+          "deny": [
+            "Bash(git push*)"
+          ]
+        },
+        "mcp": [
+          "github"
+        ],
+        "skills": [
+          "review-checklist"
+        ],
+        "secrets": [
+          "GH_TOKEN"
+        ],
+        "delegates": [
+          "explorer"
+        ],
+        "limits": {
+          "max_subagents": 3,
+          "max_depth": 1
+        }
+      },
+      "role": {
+        "schema": 1,
+        "id": "reviewer",
+        "name": "Reviewer",
+        "avatar": {
+          "glyph": "R",
+          "color": "teal"
+        },
+        "purpose": "Reviews diffs for correctness and risk; never edits.",
+        "instructions": "Read the diff paths you are given.\nReport blocking issues first.\n",
+        "cli": "codex",
+        "model": {
+          "claude": "opus",
+          "codex": "gpt-5-codex",
+          "cursor": "auto"
+        },
+        "access": "read-only",
+        "tools": {
+          "allow": [
+            "Read",
+            "Grep"
+          ],
+          "deny": [
+            "Bash(git push*)"
+          ]
+        },
+        "mcp": [
+          "github"
+        ],
+        "skills": [
+          "review-checklist"
+        ],
+        "secrets": [
+          "GH_TOKEN"
+        ],
+        "delegates": [
+          "explorer"
+        ],
+        "limits": {
+          "max_subagents": 3,
+          "max_depth": 1
+        }
+      },
+      "canonical": "{\"access\":\"read-only\",\"avatar\":{\"color\":\"teal\",\"glyph\":\"R\"},\"cli\":\"codex\",\"delegates\":[\"explorer\"],\"id\":\"reviewer\",\"instructions\":\"Read the diff paths you are given.\\nReport blocking issues first.\\n\",\"limits\":{\"max_depth\":1,\"max_subagents\":3},\"mcp\":[\"github\"],\"model\":{\"claude\":\"opus\",\"codex\":\"gpt-5-codex\",\"cursor\":\"auto\"},\"name\":\"Reviewer\",\"purpose\":\"Reviews diffs for correctness and risk; never edits.\",\"schema\":1,\"secrets\":[\"GH_TOKEN\"],\"skills\":[\"review-checklist\"],\"tools\":{\"allow\":[\"Read\",\"Grep\"],\"deny\":[\"Bash(git push*)\"]}}",
+      "hash": "30b57e5af487c35021083fd15a29ac1addfb973e0e5dbbb9bb4961aa111be5e9"
+    },
+    {
+      "name": "every-field-in-another-order",
+      "input": {
+        "limits": {
+          "max_subagents": 3,
+          "max_depth": 1
+        },
+        "delegates": [
+          "explorer"
+        ],
+        "secrets": [
+          "GH_TOKEN"
+        ],
+        "skills": [
+          "review-checklist"
+        ],
+        "mcp": [
+          "github"
+        ],
+        "tools": {
+          "allow": [
+            "Read",
+            "Grep"
+          ],
+          "deny": [
+            "Bash(git push*)"
+          ]
+        },
+        "access": "read-only",
+        "model": {
+          "codex": "gpt-5-codex",
+          "claude": "opus",
+          "cursor": "auto"
+        },
+        "cli": "codex",
+        "instructions": "Read the diff paths you are given.\nReport blocking issues first.\n",
+        "purpose": "Reviews diffs for correctness and risk; never edits.",
+        "avatar": {
+          "glyph": "R",
+          "color": "teal"
+        },
+        "name": "Reviewer",
+        "id": "reviewer",
+        "schema": 1
+      },
+      "role": {
+        "schema": 1,
+        "id": "reviewer",
+        "name": "Reviewer",
+        "avatar": {
+          "glyph": "R",
+          "color": "teal"
+        },
+        "purpose": "Reviews diffs for correctness and risk; never edits.",
+        "instructions": "Read the diff paths you are given.\nReport blocking issues first.\n",
+        "cli": "codex",
+        "model": {
+          "claude": "opus",
+          "codex": "gpt-5-codex",
+          "cursor": "auto"
+        },
+        "access": "read-only",
+        "tools": {
+          "allow": [
+            "Read",
+            "Grep"
+          ],
+          "deny": [
+            "Bash(git push*)"
+          ]
+        },
+        "mcp": [
+          "github"
+        ],
+        "skills": [
+          "review-checklist"
+        ],
+        "secrets": [
+          "GH_TOKEN"
+        ],
+        "delegates": [
+          "explorer"
+        ],
+        "limits": {
+          "max_subagents": 3,
+          "max_depth": 1
+        }
+      },
+      "canonical": "{\"access\":\"read-only\",\"avatar\":{\"color\":\"teal\",\"glyph\":\"R\"},\"cli\":\"codex\",\"delegates\":[\"explorer\"],\"id\":\"reviewer\",\"instructions\":\"Read the diff paths you are given.\\nReport blocking issues first.\\n\",\"limits\":{\"max_depth\":1,\"max_subagents\":3},\"mcp\":[\"github\"],\"model\":{\"claude\":\"opus\",\"codex\":\"gpt-5-codex\",\"cursor\":\"auto\"},\"name\":\"Reviewer\",\"purpose\":\"Reviews diffs for correctness and risk; never edits.\",\"schema\":1,\"secrets\":[\"GH_TOKEN\"],\"skills\":[\"review-checklist\"],\"tools\":{\"allow\":[\"Read\",\"Grep\"],\"deny\":[\"Bash(git push*)\"]}}",
+      "hash": "30b57e5af487c35021083fd15a29ac1addfb973e0e5dbbb9bb4961aa111be5e9"
+    },
+    {
+      "name": "defaults-written-out-and-empty-parts",
+      "input": {
+        "schema": 1,
+        "id": "ab",
+        "name": "A",
+        "purpose": "",
+        "instructions": "",
+        "cli": "any",
+        "model": {},
+        "access": "read-only",
+        "tools": {
+          "allow": [],
+          "deny": []
+        },
+        "mcp": [],
+        "skills": [],
+        "secrets": [],
+        "delegates": [],
+        "limits": {}
+      },
+      "role": {
+        "schema": 1,
+        "id": "ab",
+        "name": "A",
+        "purpose": "",
+        "instructions": "",
+        "cli": "any",
+        "model": {},
+        "access": "read-only",
+        "tools": {
+          "allow": [],
+          "deny": []
+        },
+        "mcp": [],
+        "skills": [],
+        "secrets": [],
+        "delegates": [],
+        "limits": {}
+      },
+      "canonical": "{\"access\":\"read-only\",\"cli\":\"any\",\"id\":\"ab\",\"name\":\"A\",\"schema\":1}",
+      "hash": "efd4d195bb7edcf016c74ad2c96392d27930c3a85bbda583885256e3cad8880a"
+    },
+    {
+      "name": "text-that-needs-escaping",
+      "input": {
+        "id": "quoter",
+        "name": "Zoë \"the\" <b>Builder</b>",
+        "avatar": {
+          "glyph": "🛠",
+          "color": "amber"
+        },
+        "purpose": "Back\\slash, quote \" and é",
+        "instructions": "Tab\there\nnew line separator — done",
+        "access": "edit+shell"
+      },
+      "role": {
+        "schema": 1,
+        "id": "quoter",
+        "name": "Zoë \"the\" <b>Builder</b>",
+        "avatar": {
+          "glyph": "🛠",
+          "color": "amber"
+        },
+        "purpose": "Back\\slash, quote \" and é",
+        "instructions": "Tab\there\nnew line separator — done",
+        "cli": "any",
+        "model": {},
+        "access": "edit+shell",
+        "tools": {
+          "allow": [],
+          "deny": []
+        },
+        "mcp": [],
+        "skills": [],
+        "secrets": [],
+        "delegates": [],
+        "limits": {}
+      },
+      "canonical": "{\"access\":\"edit+shell\",\"avatar\":{\"color\":\"amber\",\"glyph\":\"🛠\"},\"cli\":\"any\",\"id\":\"quoter\",\"instructions\":\"Tab\\there\\nnew line separator — done\",\"name\":\"Zoë \\\"the\\\" <b>Builder</b>\",\"purpose\":\"Back\\\\slash, quote \\\" and é\",\"schema\":1}",
+      "hash": "048d41dff81949979583298cf66eb1763ee5f73fad823e666d0f8711664e5810"
+    },
+    {
+      "name": "only-a-deny-list-and-one-limit",
+      "input": {
+        "id": "tester",
+        "name": "Tester",
+        "cli": "claude",
+        "access": "edit+shell",
+        "tools": {
+          "deny": [
+            "Bash(rm -rf*)"
+          ]
+        },
+        "limits": {
+          "max_depth": 0
+        }
+      },
+      "role": {
+        "schema": 1,
+        "id": "tester",
+        "name": "Tester",
+        "purpose": "",
+        "instructions": "",
+        "cli": "claude",
+        "model": {},
+        "access": "edit+shell",
+        "tools": {
+          "allow": [],
+          "deny": [
+            "Bash(rm -rf*)"
+          ]
+        },
+        "mcp": [],
+        "skills": [],
+        "secrets": [],
+        "delegates": [],
+        "limits": {
+          "max_depth": 0
+        }
+      },
+      "canonical": "{\"access\":\"edit+shell\",\"cli\":\"claude\",\"id\":\"tester\",\"limits\":{\"max_depth\":0},\"name\":\"Tester\",\"schema\":1,\"tools\":{\"deny\":[\"Bash(rm -rf*)\"]}}",
+      "hash": "d56ccc6a47e4d915a5eef4fa34ab2ee6c4747fb048d365a80af9c4c501845764"
+    },
+    {
+      "name": "a-cli-this-build-has-never-heard-of",
+      "input": {
+        "id": "pilot",
+        "name": "Pilot",
+        "cli": "some-new-cli",
+        "model": {
+          "some-new-cli": "big-1"
+        },
+        "access": "full"
+      },
+      "role": {
+        "schema": 1,
+        "id": "pilot",
+        "name": "Pilot",
+        "purpose": "",
+        "instructions": "",
+        "cli": "some-new-cli",
+        "model": {
+          "some-new-cli": "big-1"
+        },
+        "access": "full",
+        "tools": {
+          "allow": [],
+          "deny": []
+        },
+        "mcp": [],
+        "skills": [],
+        "secrets": [],
+        "delegates": [],
+        "limits": {}
+      },
+      "canonical": "{\"access\":\"full\",\"cli\":\"some-new-cli\",\"id\":\"pilot\",\"model\":{\"some-new-cli\":\"big-1\"},\"name\":\"Pilot\",\"schema\":1}",
+      "hash": "2ec9cf4b968a8dfb752fdeb74bc806f5caf2a598a2c17119049a984cacb44483"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "not-a-table",
+      "input": [
+        "reviewer"
+      ],
+      "paths": [
+        ""
+      ]
+    },
+    {
+      "name": "nothing-in-it",
+      "input": {},
+      "paths": [
+        "id",
+        "name"
+      ]
+    },
+    {
+      "name": "unknown-fields",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "colour": "red",
+        "avatar": {
+          "glyph": "A",
+          "color": "red",
+          "size": 2
+        },
+        "tools": {
+          "ask": []
+        },
+        "limits": {
+          "max_width": 1
+        }
+      },
+      "paths": [
+        "colour",
+        "avatar.size",
+        "tools.ask",
+        "limits.max_width"
+      ]
+    },
+    {
+      "name": "a-newer-schema",
+      "input": {
+        "schema": 2,
+        "id": "ab",
+        "name": "A"
+      },
+      "paths": [
+        "schema"
+      ]
+    },
+    {
+      "name": "bad-ids",
+      "input": {
+        "id": "Reviewer",
+        "name": "A",
+        "delegates": [
+          "ok-role",
+          "Not_ok",
+          "ok-role"
+        ]
+      },
+      "paths": [
+        "id",
+        "delegates.1",
+        "delegates.2"
+      ]
+    },
+    {
+      "name": "delegates-to-itself",
+      "input": {
+        "id": "loop",
+        "name": "Loop",
+        "delegates": [
+          "loop"
+        ]
+      },
+      "paths": [
+        "delegates.0"
+      ]
+    },
+    {
+      "name": "name-and-purpose-with-a-line-break",
+      "input": {
+        "id": "ab",
+        "name": "A\nB",
+        "purpose": "one\ntwo"
+      },
+      "paths": [
+        "name",
+        "purpose"
+      ]
+    },
+    {
+      "name": "name-too-long",
+      "input": {
+        "id": "ab",
+        "name": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+      },
+      "paths": [
+        "name"
+      ]
+    },
+    {
+      "name": "name-ending-in-a-space",
+      "input": {
+        "id": "ab",
+        "name": "A "
+      },
+      "paths": [
+        "name"
+      ]
+    },
+    {
+      "name": "instructions-too-large",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "instructions": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+      },
+      "paths": [
+        "instructions"
+      ]
+    },
+    {
+      "name": "instructions-with-an-escape-character",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "instructions": "red \u001b[31m text"
+      },
+      "paths": [
+        "instructions"
+      ]
+    },
+    {
+      "name": "bad-avatar",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "avatar": {
+          "glyph": "ABC",
+          "color": "pink"
+        }
+      },
+      "paths": [
+        "avatar.glyph",
+        "avatar.color"
+      ]
+    },
+    {
+      "name": "bad-cli-model-and-access",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "cli": "Claude Code",
+        "model": {
+          "any": "x",
+          "claude": "",
+          "codex": 7
+        },
+        "access": "root"
+      },
+      "paths": [
+        "cli",
+        "model.any",
+        "model.claude",
+        "model.codex",
+        "access"
+      ]
+    },
+    {
+      "name": "wrong-types",
+      "input": {
+        "id": 7,
+        "name": null,
+        "purpose": 1,
+        "instructions": [],
+        "cli": {},
+        "model": [],
+        "access": true,
+        "tools": "Read",
+        "mcp": "github",
+        "skills": {},
+        "secrets": 1,
+        "delegates": "x",
+        "limits": 3,
+        "avatar": "R"
+      },
+      "paths": [
+        "id",
+        "name",
+        "avatar",
+        "purpose",
+        "instructions",
+        "cli",
+        "model",
+        "access",
+        "tools",
+        "mcp",
+        "skills",
+        "secrets",
+        "delegates",
+        "limits"
+      ]
+    },
+    {
+      "name": "bad-list-entries",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "mcp": [
+          "git hub"
+        ],
+        "skills": [
+          "-x"
+        ],
+        "secrets": [
+          "1TOKEN",
+          "OK_ONE"
+        ],
+        "tools": {
+          "allow": [
+            "Read",
+            "Read",
+            ""
+          ],
+          "deny": [
+            3
+          ]
+        }
+      },
+      "paths": [
+        "tools.allow.1",
+        "tools.allow.2",
+        "tools.deny.0",
+        "mcp.0",
+        "skills.0",
+        "secrets.0"
+      ]
+    },
+    {
+      "name": "lists-too-long",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "mcp": [
+          "m0",
+          "m1",
+          "m2",
+          "m3",
+          "m4",
+          "m5",
+          "m6",
+          "m7",
+          "m8",
+          "m9",
+          "m10",
+          "m11",
+          "m12",
+          "m13",
+          "m14",
+          "m15",
+          "m16",
+          "m17",
+          "m18",
+          "m19",
+          "m20",
+          "m21",
+          "m22",
+          "m23",
+          "m24",
+          "m25",
+          "m26",
+          "m27",
+          "m28",
+          "m29",
+          "m30",
+          "m31",
+          "m32"
+        ],
+        "delegates": [
+          "role-0",
+          "role-1",
+          "role-2",
+          "role-3",
+          "role-4",
+          "role-5",
+          "role-6",
+          "role-7",
+          "role-8",
+          "role-9",
+          "role-10",
+          "role-11",
+          "role-12",
+          "role-13",
+          "role-14",
+          "role-15",
+          "role-16"
+        ]
+      },
+      "paths": [
+        "mcp",
+        "delegates"
+      ]
+    },
+    {
+      "name": "limits-out-of-range",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "limits": {
+          "max_subagents": 17,
+          "max_depth": -1
+        }
+      },
+      "paths": [
+        "limits.max_subagents",
+        "limits.max_depth"
+      ]
+    },
+    {
+      "name": "limits-not-whole-numbers",
+      "input": {
+        "id": "ab",
+        "name": "A",
+        "limits": {
+          "max_subagents": 1.5,
+          "max_depth": "1"
+        }
+      },
+      "paths": [
+        "limits.max_subagents",
+        "limits.max_depth"
+      ]
+    }
+  ]
+}

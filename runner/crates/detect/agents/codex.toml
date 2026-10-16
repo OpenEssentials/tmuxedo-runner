@@ -1,0 +1,110 @@
+# Codex CLI. Format and meaning: docs/design/agent-detection.md.
+# Codex's composer line starts with "›"; replies start with •, ■, ✗ or ✓.
+agent = "codex"
+title = "Codex CLI"
+revision = "2026-10-08.1"
+launch = "codex"
+
+[[signal]]
+name = "title-action"
+status = "blocked"
+rank = 160
+scope = "title"
+when = '''"Action Required"'''
+
+[[signal]]
+name = "title-busy"
+status = "working"
+rank = 150
+scope = "title"
+when = '''/(?:^| )[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏](?: |$)/'''
+
+# The transcript pager (ctrl+t) after the composer.
+[[signal]]
+name = "transcript"
+status = "hold"
+rank = 140
+scope = "after-composer"
+when = '''
+"↑/↓ to scroll" and "pgup/pgdn to" and "home/end to jump" and "q to quit"
+and ("esc to edit prev" or "esc/← to edit prev")'''
+
+# First-run folder trust, at the top of the screen.
+[[signal]]
+name = "trust"
+status = "blocked"
+rank = 130
+scope = "first 20"
+when = '''
+(/\A> You are in [^\r\n]/ or "Folder access")
+and (
+  /Do\s+you\s+trust\s+the\s+contents\s+of\s+this\s+directory\?/
+  or "Trust this folder?" and "Codex can read, edit, and run files here"
+     and ("Trust and continue" or "enter continue")
+)'''
+
+# The startup review of new or changed hooks (tmuxedo's status hooks on a
+# machine where they were not trusted yet): Codex waits for an answer.
+[[signal]]
+name = "hook-trust"
+status = "blocked"
+rank = 135
+scope = "screen"
+when = '''
+"Hooks need review"
+and ("Trust all and continue" or "Continue without trusting")'''
+
+[[signal]]
+name = "update"
+status = "blocked"
+rank = 130
+scope = "last 20"
+when = '''
+"Update available!" and "Update now"
+and /Skip\s+until\s+next\s+version/ and /Press enter to continue\s*\z/'''
+
+# Approval and question footers below the composer.
+[[signal]]
+name = "approval"
+status = "blocked"
+rank = 120
+scope = "after-composer"
+when = '''
+"press enter to confirm or esc to cancel"
+or "enter to submit answer" or "enter to submit all"
+or "allow command?"
+or "All Results" and "Filesystem Only" and "Plugins"'''
+
+# Question wording while no composer is live, unless the last composer line
+# carries a sparkle (a draft being typed) with no reply after it.
+[[signal]]
+name = "question-text"
+status = "blocked"
+rank = 80
+scope = "unless-composer"
+when = '''
+(
+  "[y/n]" or "yes (y)"
+  or ("do you want to" or "would you like to") and ("yes" or "❯")
+)
+and not /(?m)^›[⠁⠂⠄⠈⠐⠠⡀⢀][^\n]*(?:\n(?:[^•■✗✓\n][^\n]*)?)*\z/'''
+
+# The status line above the live composer: an activity with a running timer
+# "(…s" (optionally "• esc to interrupt"), followed only by queued-input notes
+# or sparkle drafts; a failed reconnect keeps its timer but is not working.
+[[signal]]
+name = "turn"
+status = "working"
+rank = 70
+scope = "before-composer"
+when = '''
+(" to interrupt)" or "s)")
+and /(?m)^(?:[•◦][ \t]+)?[^\s›•◦■✗✓─][^\n]* \((?:[0-9]+[hm] )*[0-9]+s(?: • [^\n]+? to interrupt)?\)(?: · [^\n]*)?(?:\n(?:[^•◦›■✗✓─\n][^\n]*|•[ \t]+(?:Queued\s+follow-up\s+inputs|Messages\s+to\s+be\s+submitted\s+(?:after\s+next\s+tool\s+call(?:\s+\(press\s+[^\n]+?\s+to\s+interrupt\s+and\s+send\s+immediately\))?|at\s+end\s+of\s+turn))|›[⠁⠂⠄⠈⠐⠠⡀⢀][^\n]*)?)*\s*\z/
+and not line /^(?:[•◦][ \t]+)?Reconnect failed — check the endpoint, then relaunch \([0-9hms ]+\)$/'''
+
+[[signal]]
+name = "title-idle"
+status = "idle"
+rank = 10
+scope = "title"
+when = '''/\S/ and not /(?:^| )[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏](?: |$)/ and not "Action Required"'''

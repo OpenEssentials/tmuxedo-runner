@@ -1,0 +1,42 @@
+{
+  "rev": 5,
+  "eventSeq": 3,
+  "workspaces": [
+    {
+      "id": "w1",
+      "name": "default",
+      "cwd": "/home/u",
+      "position": 0
+    }
+  ],
+  "tabs": [
+    {
+      "id": "w1:t1",
+      "workspaceId": "w1",
+      "name": "1",
+      "position": 0,
+      "layout": {
+        "pane": "w1:p1"
+      }
+    }
+  ],
+  "panes": [
+    {
+      "id": "w1:p1",
+      "tabId": "w1:t1",
+      "cwd": "/home/u",
+      "command": "/bin/zsh -l",
+      "title": "zsh",
+      "cols": 120,
+      "rows": 40,
+      "agent": null,
+      "argv": [
+        "/bin/zsh",
+        "-l"
+      ],
+      "gen": 1,
+      "base": 0,
+      "highWater": 12345
+    }
+  ]
+}

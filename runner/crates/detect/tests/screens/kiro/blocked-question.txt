@@ -1,0 +1,4 @@
+  Which branch should I use?
+  > main
+    develop
+  ↑↓ to navigate · enter to submit · esc to cancel

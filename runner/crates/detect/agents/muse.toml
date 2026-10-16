@@ -1,0 +1,67 @@
+# Muse. Format and meaning: docs/design/agent-detection.md.
+# The launcher execs muse-bin-<version>, so that name means Muse too.
+agent = "muse"
+title = "Muse"
+revision = "2026-10-05.1"
+launch = "muse"
+names = ["muse-code", "muse-cli"]
+
+[process]
+versioned = "muse-bin-"
+
+[[signal]]
+name = "trust"
+status = "blocked"
+rank = 70
+scope = "last 12"
+when = '''"Do you trust this workspace?" and ("Trust and continue" or "Use Up/Down")'''
+
+[[signal]]
+name = "pick"
+status = "blocked"
+rank = 60
+scope = "last 8"
+when = '''"Enter to select" and "Tab for an optional note" or "Enter to toggle" and "Esc to interrupt"'''
+
+# Settings and picker overlays hide the live state.
+[[signal]]
+name = "menu"
+status = "hold"
+rank = 50
+scope = "last 8"
+when = '''
+"enter confirm" and "esc go back"
+or "enter save" and "esc go back"
+or "space toggle" and "esc close" and "type filter"'''
+
+[[signal]]
+name = "turn"
+status = "working"
+rank = 40
+scope = "last 8"
+when = '''"esc to interrupt"'''
+
+[[signal]]
+name = "approval"
+status = "blocked"
+rank = 30
+scope = "last 8"
+when = '''
+"Allow this stage once" and "Always allow in this workspace"
+or "Allow once" and "Allow for this session"
+or "Yes, proceed" and "Yes, don't ask again this session"'''
+
+[[signal]]
+name = "prompt"
+status = "idle"
+rank = 20
+scope = "last 5"
+when = '''line /^\s*⟩(?:\s*$|\s+\S)/'''
+
+# The model · effort · … status line.
+[[signal]]
+name = "status-idle"
+status = "idle"
+rank = 10
+scope = "last 3"
+when = '''line /^\s*\S+ · (?:none|minimal|low|medium|high|xhigh|ultra) · /'''

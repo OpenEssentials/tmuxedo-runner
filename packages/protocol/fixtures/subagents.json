@@ -1,0 +1,546 @@
+{
+  "note": "Helpers on the wire (docs/protocol.md \"Helpers\", PLAN Phase 18). Written by hand (a one-off script); checked by packages/protocol/test/subagents.test.ts and runner/crates/protocol/tests/subagents.rs.",
+  "maxChildren": 16,
+  "eventTypes": [
+    "subagent_started",
+    "subagent_completed"
+  ],
+  "frames": [
+    {
+      "name": "no-helpers",
+      "text": "{\"t\":\"status\",\"paneId\":\"w1:p1\",\"agent\":{\"kind\":\"claude\",\"status\":\"working\",\"since\":\"2026-10-12T10:00:00.000Z\",\"source\":\"reported\",\"sessionId\":\"s-1\"}}",
+      "frame": {
+        "t": "status",
+        "paneId": "w1:p1",
+        "agent": {
+          "kind": "claude",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "source": "reported",
+          "sessionId": "s-1"
+        }
+      }
+    },
+    {
+      "name": "one-working",
+      "text": "{\"t\":\"status\",\"paneId\":\"w1:p1\",\"agent\":{\"kind\":\"claude\",\"status\":\"working\",\"since\":\"2026-10-12T10:00:00.000Z\",\"source\":\"reported\",\"sessionId\":\"s-1\",\"children\":[{\"id\":\"a1\",\"name\":\"Explore\",\"status\":\"working\",\"since\":\"2026-10-12T10:00:00.000Z\",\"startedAt\":\"2026-10-12T10:00:00.000Z\"}]}}",
+      "frame": {
+        "t": "status",
+        "paneId": "w1:p1",
+        "agent": {
+          "kind": "claude",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "source": "reported",
+          "sessionId": "s-1",
+          "children": [
+            {
+              "id": "a1",
+              "name": "Explore",
+              "status": "working",
+              "since": "2026-10-12T10:00:00.000Z",
+              "startedAt": "2026-10-12T10:00:00.000Z"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "nested-one-done",
+      "text": "{\"t\":\"status\",\"paneId\":\"w1:p1\",\"agent\":{\"kind\":\"claude\",\"status\":\"working\",\"since\":\"2026-10-12T10:00:00.000Z\",\"source\":\"reported\",\"sessionId\":\"s-1\",\"children\":[{\"id\":\"a1\",\"name\":\"Explore\",\"status\":\"done\",\"since\":\"2026-10-12T10:01:00.000Z\",\"startedAt\":\"2026-10-12T10:00:00.000Z\"},{\"id\":\"a2\",\"name\":\"tester\",\"status\":\"working\",\"since\":\"2026-10-12T10:00:05.000Z\",\"startedAt\":\"2026-10-12T10:00:05.000Z\",\"parentId\":\"a1\",\"model\":\"sonnet\",\"roleId\":\"tester\"}]}}",
+      "frame": {
+        "t": "status",
+        "paneId": "w1:p1",
+        "agent": {
+          "kind": "claude",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "source": "reported",
+          "sessionId": "s-1",
+          "children": [
+            {
+              "id": "a1",
+              "name": "Explore",
+              "status": "done",
+              "since": "2026-10-12T10:01:00.000Z",
+              "startedAt": "2026-10-12T10:00:00.000Z"
+            },
+            {
+              "id": "a2",
+              "name": "tester",
+              "status": "working",
+              "since": "2026-10-12T10:00:05.000Z",
+              "startedAt": "2026-10-12T10:00:05.000Z",
+              "parentId": "a1",
+              "model": "sonnet",
+              "roleId": "tester"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "name": "started",
+      "text": "{\"t\":\"event\",\"seq\":7,\"paneId\":\"w1:p1\",\"type\":\"subagent_started\",\"at\":\"2026-10-12T10:00:05.000Z\",\"data\":{\"kind\":\"claude\",\"childId\":\"a2\",\"name\":\"tester\",\"parentId\":\"a1\",\"model\":\"sonnet\",\"roleId\":\"tester\"}}",
+      "frame": {
+        "t": "event",
+        "seq": 7,
+        "paneId": "w1:p1",
+        "type": "subagent_started",
+        "at": "2026-10-12T10:00:05.000Z",
+        "data": {
+          "kind": "claude",
+          "childId": "a2",
+          "name": "tester",
+          "parentId": "a1",
+          "model": "sonnet",
+          "roleId": "tester"
+        }
+      }
+    },
+    {
+      "name": "completed",
+      "text": "{\"t\":\"event\",\"seq\":8,\"paneId\":\"w1:p1\",\"type\":\"subagent_completed\",\"at\":\"2026-10-12T10:01:00.000Z\",\"data\":{\"kind\":\"claude\",\"childId\":\"a1\",\"name\":\"Explore\"}}",
+      "frame": {
+        "t": "event",
+        "seq": 8,
+        "paneId": "w1:p1",
+        "type": "subagent_completed",
+        "at": "2026-10-12T10:01:00.000Z",
+        "data": {
+          "kind": "claude",
+          "childId": "a1",
+          "name": "Explore"
+        }
+      }
+    }
+  ],
+  "lenient": [
+    {
+      "name": "absent",
+      "input": null,
+      "want": []
+    },
+    {
+      "name": "not-a-list",
+      "input": {
+        "id": "a1"
+      },
+      "want": []
+    },
+    {
+      "name": "drops-what-is-not-a-child",
+      "input": [
+        null,
+        3,
+        "x",
+        {},
+        {
+          "id": "",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "b",
+          "status": "paused",
+          "since": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "c",
+          "status": "working"
+        },
+        {
+          "id": "a1",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        }
+      ],
+      "want": [
+        {
+          "id": "a1",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "keeps-known-fields-only",
+      "input": [
+        {
+          "id": "a1",
+          "name": 5,
+          "status": "done",
+          "since": "2026-10-12T10:01:00.000Z",
+          "parentId": "",
+          "model": 9,
+          "needs": 0,
+          "extra": true
+        }
+      ],
+      "want": [
+        {
+          "id": "a1",
+          "name": "",
+          "status": "done",
+          "since": "2026-10-12T10:01:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "needs-count",
+      "input": [
+        {
+          "id": "a1",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z",
+          "needs": 2
+        }
+      ],
+      "want": [
+        {
+          "id": "a1",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z",
+          "needs": 2
+        }
+      ]
+    },
+    {
+      "name": "cuts-long-strings",
+      "input": [
+        {
+          "id": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+          "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "model": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+        }
+      ],
+      "want": [
+        {
+          "id": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+          "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "model": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+        }
+      ]
+    },
+    {
+      "name": "cuts-the-list-at-16",
+      "input": [
+        {
+          "id": "k0",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k1",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k2",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k3",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k4",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k5",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k6",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k7",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k8",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k9",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k10",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k11",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k12",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k13",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k14",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k15",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k16",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k17",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k18",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k19",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        }
+      ],
+      "want": [
+        {
+          "id": "k0",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k1",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k2",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k3",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k4",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k5",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k6",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k7",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k8",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k9",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k10",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k11",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k12",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k13",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k14",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "k15",
+          "name": "Explore",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "startedAt": "2026-10-12T10:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "name": "keeps-a-role-id-only-when-it-is-one",
+      "input": [
+        {
+          "id": "a1",
+          "name": "tester",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "roleId": "tester"
+        },
+        {
+          "id": "a2",
+          "name": "x",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "roleId": "Not A Role"
+        },
+        {
+          "id": "a3",
+          "name": "x",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "roleId": 7
+        }
+      ],
+      "want": [
+        {
+          "id": "a1",
+          "name": "tester",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z",
+          "roleId": "tester"
+        },
+        {
+          "id": "a2",
+          "name": "x",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z"
+        },
+        {
+          "id": "a3",
+          "name": "x",
+          "status": "working",
+          "since": "2026-10-12T10:00:00.000Z"
+        }
+      ]
+    }
+  ]
+}

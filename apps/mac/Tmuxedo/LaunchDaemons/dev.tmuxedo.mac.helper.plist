@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  tmuxedo's privileged helper (docs/design/mac-isolation.md §2.1).
+
+  Registered by the app with SMAppService.daemon(plistName:), from
+  Contents/Library/LaunchDaemons/ inside the app bundle; macOS asks an administrator to
+  allow it once (System Settings, General, Login Items). It runs on demand (MachServices),
+  serves only the tmuxedo app signed by the same team, and can do exactly this: create and
+  remove the hidden standard user `tmuxedo`, install the root-owned runner copy and the two
+  daemons that run as that user, start and stop them, and copy a migration in.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>dev.tmuxedo.mac.helper</string>
+	<key>BundleProgram</key>
+	<string>Contents/MacOS/tmuxedo-helper</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>tmuxedo-helper</string>
+		<string>--xpc</string>
+	</array>
+	<key>MachServices</key>
+	<dict>
+		<key>dev.tmuxedo.mac.helper</key>
+		<true/>
+	</dict>
+	<key>AssociatedBundleIdentifiers</key>
+	<array>
+		<string>dev.tmuxedo.mac</string>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,9 @@
+@title ⠙ project
+╭──────────────────────────────────────────────────╮
+│ >_ OpenAI Codex (v0.160.0)                       │
+│                                                  │
+│ model:     gpt-5-codex high   /model to change   │
+│ directory: ~/project                             │
+╰──────────────────────────────────────────────────╯
+
+› 

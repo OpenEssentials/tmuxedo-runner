@@ -1,0 +1,82 @@
+#!/bin/bash
+# A screen-only stand-in for a coding agent: installed as a symlink named
+# after the agent (`codex`, `gemini`, `letta`, …), it draws that agent's
+# stand-in screens (runner/crates/detect/tests/screens/<agent>/*.txt) the
+# way a full-screen TUI does, so the runner reads its state from the screen
+# alone (no hooks). One key per action:
+#
+#   i / w / b / h / u   draw the next idle / working / blocked / hold / unknown screen
+#   d                   ring the bell and send an OSC 9 notification ("done" for the heuristic)
+#   s                   redraw inside a synchronized-output frame that stays open for 1.5 s
+#   q                   quit
+#
+# STANDIN_START=<status> draws that status first instead of idle (no key needed, so a
+# test that cannot be sure where keyboard focus is can still start it blocked).
+#
+# The title (OSC 0) and progress (OSC 9;4) come from the screen file's
+# `@title` / `@progress` lines; without them the title is cleared and the
+# progress set to "no progress" (4;0;).
+set -u
+agent=$(basename "$0")
+[ "$agent" = standin ] && agent=${1:?usage: standin <agent>}
+# Launch names and aliases → the agent's canonical id (the screens directory).
+case "$agent" in
+  claude-code) agent=claude ;;
+  cursor-agent) agent=cursor ;;
+  kiro-cli) agent=kiro ;;
+esac
+dir=${STANDIN_SCREENS:-/opt/standin/screens}/$agent
+[ -d "$dir" ] || { echo "standin: no screens for $agent in $dir"; exit 2; }
+
+draw() { # draw <file> [sync]
+  local file=$1 title="" progress="4;0;" line
+  local -a body=()
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      "@title "*) title=${line#@title } ;;
+      "@progress "*) progress=${line#@progress } ;;
+      *) body+=("$line") ;;
+    esac
+  done < "$file"
+  # Every frame is a synchronized-output frame, as a real full-screen TUI draws it: the
+  # runner reads the screen on a timer and must never see the cleared, half-drawn one.
+  printf '\033[?2026h'
+  printf '\033[H\033[2J\033[3J'
+  local i
+  for i in "${!body[@]}"; do
+    [ "$i" -gt 0 ] && printf '\r\n'
+    printf '%s' "${body[$i]}"
+    # Half the frame, then wait with the frame open (a reader must not trust it).
+    if [ "${2:-}" = sync ] && [ "$i" -eq $(( ${#body[@]} / 2 )) ]; then sleep 1.5; fi
+  done
+  printf '\033]0;%s\007\033]9;%s\007' "$title" "$progress"
+  printf '\033[?2026l'
+  last=$file
+}
+
+show() { # show <status>: the next screen file of that status, round robin (bash 3.2 safe: macOS)
+  local status=$1 n file
+  set -- "$dir"/"$status"-*.txt
+  [ -e "$1" ] || { printf '\a'; return; }
+  eval "n=\${next_$status:-0}"
+  eval "file=\${$(( n % $# + 1 ))}"
+  draw "$file"
+  eval "next_$status=$(( n + 1 ))"
+}
+
+last=""
+stty -icanon -echo 2>/dev/null
+trap 'stty sane 2>/dev/null; printf "\033]0;\007\033[H\033[2J"' EXIT
+show "${STANDIN_START:-idle}"
+while IFS= read -r -s -n 1 key; do
+  case "$key" in
+    i) show idle ;;
+    w) show working ;;
+    b) show blocked ;;
+    h) show hold ;;
+    u) show unknown ;;
+    d) printf '\a\033]9;%s finished\007' "$agent" ;;
+    s) [ -n "$last" ] && draw "$last" sync ;;
+    q) break ;;
+  esac
+done

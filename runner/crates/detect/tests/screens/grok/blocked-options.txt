@@ -1,0 +1,3 @@
+  Allow running `rm -rf dist`?
+  ┃ 1 (●) Allow once
+  ┃ 2 (○) Deny

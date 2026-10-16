@@ -1,0 +1,10 @@
+@title ✳ Fix split_at
+● The tests pass now: the off-by-one was in `split_at`.
+
+● Bash(cargo test)
+  ⎿  test result: ok. 42 passed; 0 failed
+
+────────────────────────────────────────────────────────────────────────
+❯
+────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

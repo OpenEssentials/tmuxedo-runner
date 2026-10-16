@@ -1,0 +1,3 @@
+  Bash: rm -rf dist
+  Waiting for user confirmation
+  Yes   No

@@ -1,0 +1,12 @@
+// The signing hook for tmuxedo for Mac (README.md, "Signing your own build").
+//
+// Out of the box the team is empty: build unsigned (CODE_SIGNING_ALLOWED=NO, what CI does and
+// what `fastlane mac build` / `fastlane mac test` pass). To sign with your own Developer ID,
+// create Signing.local.xcconfig next to this file (it is gitignored) with:
+//
+//   DEVELOPMENT_TEAM = <your 10-character Apple team id>
+//
+// then run `xcodegen generate` and `fastlane mac signed`. Notarising and distributing a build is
+// up to whoever signs it.
+DEVELOPMENT_TEAM =
+#include? "Signing.local.xcconfig"

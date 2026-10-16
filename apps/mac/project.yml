@@ -1,0 +1,157 @@
+# XcodeGen spec (the .xcodeproj is generated and gitignored).
+#
+#   brew install xcodegen
+#   cd mac && xcodegen generate && open Tmuxedo.xcodeproj
+#
+# Signing: Signing.xcconfig (README.md, "Signing your own build").
+name: Tmuxedo
+options:
+  bundleIdPrefix: dev.tmuxedo
+  deploymentTarget:
+    # 14.0: SMAppService agents, SwiftUI `.symbolEffect`, `MainActor.assumeIsolated`.
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+packages:
+  # Updates. Pinned: an updater is the last thing to take on trust.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
+
+targets:
+  Tmuxedo:
+    type: application
+    platform: macOS
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    sources:
+      - path: Tmuxedo
+        excludes:
+          - "LaunchAgents/**"
+          - "LaunchDaemons/**"
+          - "Resources/**"
+          - "Helper/**"
+      - path: Tmuxedo/Resources
+        buildPhase: resources
+      # The holder's LaunchAgent, registered with SMAppService.agent(plistName:).
+      - path: Tmuxedo/LaunchAgents/dev.tmuxedo.mac.holder.plist
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchAgents
+      # The privileged helper's LaunchDaemon (separate-user mode), SMAppService.daemon(plistName:).
+      - path: Tmuxedo/LaunchDaemons/dev.tmuxedo.mac.helper.plist
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchDaemons
+    dependencies:
+      - package: Sparkle
+      # Contents/MacOS/tmuxedo-helper, signed as ours (docs/design/mac-isolation.md §2.1).
+      - target: TmuxedoHelper
+        embed: true
+        codeSign: true
+        copy:
+          destination: executables
+    postBuildScripts:
+      # The Rust runner into Contents/Helpers, signed as ours (Scripts/embed-runner.sh).
+      - name: Embed tmuxedo-runner
+        basedOnDependencyAnalysis: false
+        script: |
+          "${SRCROOT}/Scripts/embed-runner.sh"
+      # SPARKLE'S HELPERS SIGNED AS OURS. Xcode re-signs Sparkle.framework but not what is
+      # nested in it, which arrives ad-hoc signed: Sparkle then skips its atomic swap and
+      # Gatekeeper scan of an update, and notarisation rejects the bundle. The XPC services
+      # exist only for sandboxed apps, which this can never be, so they are removed.
+      - name: Sign Sparkle helpers with the Developer ID
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          [ "${CODE_SIGNING_ALLOWED}" = "NO" ] && exit 0
+          ID="${EXPANDED_CODE_SIGN_IDENTITY}"
+          if [ -z "$ID" ] || [ "$ID" = "-" ]; then exit 0; fi
+          F="${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle.framework"
+          [ -d "$F" ] || exit 0
+          rm -rf "$F/Versions/B/XPCServices" "$F/XPCServices"
+          for p in "$F/Versions/B/Autoupdate" "$F/Versions/B/Updater.app" "$F"; do
+            /usr/bin/codesign -f -s "$ID" -o runtime --timestamp "$p"
+          done
+    scheme:
+      testTargets:
+        - TmuxedoTests
+      gatherCoverageData: true
+      coverageTargets:
+        - TmuxedoTests
+    settings:
+      base:
+        PRODUCT_NAME: tmuxedo
+        PRODUCT_BUNDLE_IDENTIFIER: dev.tmuxedo.mac
+        INFOPLIST_FILE: Tmuxedo/App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Tmuxedo/App/Tmuxedo.entitlements
+        # dev unless a release lane says otherwise (BuildInfo.swift); a Motorcade build reads `motorcade`.
+        TMX_BUILD_CHANNEL: dev
+        TMX_BUILD_COMMIT: local
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        ENABLE_HARDENED_RUNTIME: YES
+        # Developer ID: a stable identity, so the SMAppService registrations and the Keychain
+        # items survive updates, and the prerequisite for notarising.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        CODE_SIGNING_REQUIRED: YES
+        OTHER_CODE_SIGN_FLAGS: --timestamp
+        # Xcode otherwise injects get-task-allow (a debugger may attach). Notarisation rejects
+        # it, and this process holds the runner token and can use the machine key.
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # The runner is built or downloaded by a script phase.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+  # The privileged helper (root, SMAppService.daemon): a command-line tool embedded in the app.
+  # It shares the isolation constants, the request types, the ACL code and the signature check
+  # with the app; the rest of the app is not in it.
+  TmuxedoHelper:
+    type: tool
+    platform: macOS
+    configFiles:
+      Debug: Signing.xcconfig
+      Release: Signing.xcconfig
+    sources:
+      - path: Tmuxedo/Helper
+      - path: Tmuxedo/Model/Isolation.swift
+      - path: Tmuxedo/Model/HelperProtocol.swift
+      - path: Tmuxedo/Model/Shell.swift
+      - path: Tmuxedo/Model/FolderAccess.swift
+      - path: Tmuxedo/Model/RunnerBinary.swift
+    settings:
+      base:
+        PRODUCT_NAME: tmuxedo-helper
+        PRODUCT_BUNDLE_IDENTIFIER: dev.tmuxedo.mac.helper
+        GENERATE_INFOPLIST_FILE: YES
+        CREATE_INFOPLIST_SECTION_IN_BINARY: YES
+        SWIFT_VERSION: "5.9"
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        OTHER_CODE_SIGN_FLAGS: --timestamp
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+        SKIP_INSTALL: YES
+
+  # The test bundle compiles the MODEL sources itself rather than being hosted in the app:
+  # a hosted bundle would launch the menu-bar app with this Mac's real token, key and holder.
+  TmuxedoTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+      - path: Tmuxedo/Model
+      - path: Tmuxedo/Helper/HelperCore.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.tmuxedo.mac.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.9"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"

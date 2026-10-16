@@ -1,0 +1,4 @@
+  Grok CLI
+
+  >
+  ctrl+.:shortcuts  tab:mode

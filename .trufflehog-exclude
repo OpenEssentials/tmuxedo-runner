@@ -1,0 +1,5 @@
+# trufflehog --exclude-paths: files whose findings are known false positives, with the reason.
+# gitleaks still scans them (with value-pinned exceptions in .gitleaks.toml).
+#
+# The chat log masker's tests: made-up credentials (a URL with a password, tokens) that prove masking.
+(^|/)runner/crates/runner/src/chat/mask\.rs$

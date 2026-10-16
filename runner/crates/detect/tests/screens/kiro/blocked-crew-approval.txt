@@ -1,0 +1,4 @@
+  Tool approval
+  ▸ Approve all pending
+    Configure individually (agent monitor)
+    Exit (cancel subagents)

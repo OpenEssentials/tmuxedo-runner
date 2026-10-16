@@ -1,0 +1,83 @@
+# Kiro CLI. Format and meaning: docs/design/agent-detection.md.
+agent = "kiro"
+title = "Kiro CLI"
+revision = "2026-10-05.1"
+launch = "kiro-cli"
+names = ["kiro-cli"]
+
+# The empty composer outranks everything: Kiro leaves old menus in scrollback.
+[[signal]]
+name = "prompt"
+status = "idle"
+rank = 90
+scope = "last 4"
+when = '''line /(?i)^\s*[>›]\s*ask a question or describe a task(?:\s+(?:enter|↵))?\s*$/'''
+
+# The tool approval menu: an "esc to close" footer with navigation hints at the
+# very bottom, and one of Kiro's option menus shown whole (every option on its
+# own line) with the cursor (> or ❯) on one of them. A menu cut by a wrap is
+# not trusted.
+[[signal]]
+name = "tool-approval"
+status = "blocked"
+rank = 80
+scope = "last 8"
+when = '''
+/(?is)(?:^|\n)\s*esc\s+to\s+close\b(?:[^\n]*\bto\s+navigate\b[^\n]*|.*\bto\s+navigate\b.*\bto\s+select\b.*\btab\s+to\s+edit|[^\n]*\benter\s+to\s+see\s+more\s+options)\s*\z/
+and (
+  line /(?i)^\s*[>❯]\s*(?:allow|always allow|deny|always deny)\s*$/
+    and line /(?i)^\s*(?:[>❯]\s*)?allow\s*$/ and line /(?i)^\s*(?:[>❯]\s*)?always allow\s*$/
+    and line /(?i)^\s*(?:[>❯]\s*)?deny\s*$/ and line /(?i)^\s*(?:[>❯]\s*)?always deny\s*$/
+  or line /(?i)^\s*[>❯]\s*(?:yes, single permission|trust, always allow in this session|no \(tab to edit\))\s*$/
+    and line /(?i)^\s*(?:[>❯]\s*)?yes, single permission\s*$/
+    and line /(?i)^\s*(?:[>❯]\s*)?trust, always allow in this session\s*$/
+    and line /(?i)^\s*(?:[>❯]\s*)?no \(tab to edit\)\s*$/
+  or line /(?i)^\s*[>❯]\s*(?:trust\b.*|entire tool)\s*$/
+    and line /(?i)^\s*(?:[>❯]\s*)?(?:trust )?entire tool(?:\s+\([^\n]*\))?(?:\s+(?:session|workspace|always))?\s*$/
+)'''
+
+# "requires approval · modify request": a ruled panel with an input line that
+# ends the screen with "esc to close".
+[[signal]]
+name = "tool-approval-edit"
+status = "blocked"
+rank = 75
+scope = "screen"
+when = '''/(?im)(?:^|\n)[ \t]*[-─]+[ \t]*\n[^\n]*requires\s+approval\s*[·.]\s*modify\s+request[ \t]*\n(?:[ \t]*\n|[^\n]*[^\s─-][^\n]*\n)*?[ \t]*[>›][ \t]*[^\n]*\n(?:[ \t]*\n|[^\n]*[^\s─-][^\n]*\n)*[ \t]*[-─]+[ \t]*\n[ \t]*esc[ \t]+to[ \t]+close[ \t]*\n?\z/'''
+
+[[signal]]
+name = "crew-approval"
+status = "blocked"
+rank = 70
+scope = "last 8"
+when = '''
+"tool approval" and "approve all pending"
+and "configure individually (agent monitor)" and "exit (cancel subagents)"'''
+
+[[signal]]
+name = "question"
+status = "blocked"
+rank = 60
+scope = "last 8"
+when = '''"to navigate" and "to submit" and "esc to cancel"'''
+
+[[signal]]
+name = "turn"
+status = "working"
+rank = 50
+scope = "last 4"
+when = '''"kiro is working" and "type to steer" and "ctrl+s to queue"'''
+
+[[signal]]
+name = "title-busy"
+status = "working"
+rank = 40
+scope = "title"
+when = '''/(?i)^[◐◓◑◒\/|\\-]\s+kiro:/'''
+
+[[signal]]
+name = "progress-busy"
+status = "working"
+rank = 30
+scope = "progress"
+when = '''/^4;3;?$/'''

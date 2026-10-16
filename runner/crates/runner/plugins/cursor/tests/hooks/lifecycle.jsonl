@@ -1,0 +1,9 @@
+{"native": {"hook_event_name": "sessionStart", "conversation_id": "0f7c-1", "session_id": "0f7c-1", "generation_id": "g1", "cursor_version": "2026.10.01-e373342", "workspace_roots": ["/w"]}, "events": ["session.started"], "status": "idle", "hold": false, "session_id": "0f7c-1"}
+{"native": {"hook_event_name": "beforeShellExecution", "conversation_id": "0f7c-1", "command": "npm install", "cwd": "/w", "sandbox": false}, "events": ["turn.started"], "status": "working", "hold": false, "releases": true, "cwd": "/w"}
+{"native": {"hook_event_name": "afterShellExecution", "conversation_id": "0f7c-1", "command": "npm install", "output": "added 3 packages"}, "events": ["prompt.resolved"], "status": "working", "hold": false, "releases": true}
+{"native": {"hook_event_name": "afterFileEdit", "conversation_id": "0f7c-1", "file_path": "/w/src/lib.rs", "edits": []}, "events": ["prompt.resolved"], "status": "working", "hold": false}
+{"native": {"hook_event_name": "postToolUse", "conversation_id": "0f7c-1", "tool_name": "Read"}, "events": ["prompt.resolved"], "status": "working", "hold": false}
+{"native": {"hook_event_name": "stop", "conversation_id": "0f7c-1", "status": "completed"}, "events": ["turn.completed"], "status": "done", "hold": false, "releases": true}
+{"native": {"hook_event_name": "sessionEnd", "conversation_id": "0f7c-1"}, "events": ["session.ended"], "hold": false, "releases": true}
+{"native": {"hook_event_name": "beforeSubmitPrompt", "conversation_id": "0f7c-1", "prompt": "x"}, "events": [], "status": null, "hold": false}
+{"native": {"hook_event_name": "PermissionRequest", "session_id": "s", "tool_name": "Bash"}, "events": [], "status": null, "hold": false}

@@ -1,0 +1,3 @@
+  ● Reading src/lib.rs
+
+  Kiro is working · type to steer · ctrl+s to queue

@@ -1,0 +1,7 @@
+{"decision": {"behavior": "allow"}, "stdout": "{\"hookSpecificOutput\":{\"decision\":{\"behavior\":\"allow\"},\"hookEventName\":\"PermissionRequest\"}}"}
+{"decision": {"behavior": "allow", "message": "ok"}, "stdout": "{\"hookSpecificOutput\":{\"decision\":{\"behavior\":\"allow\",\"message\":\"ok\"},\"hookEventName\":\"PermissionRequest\"}}"}
+{"decision": {"behavior": "deny"}, "stdout": "{\"hookSpecificOutput\":{\"decision\":{\"behavior\":\"deny\"},\"hookEventName\":\"PermissionRequest\"}}"}
+{"decision": {"behavior": "deny", "message": "not \"now\""}, "stdout": "{\"hookSpecificOutput\":{\"decision\":{\"behavior\":\"deny\",\"message\":\"not \\\"now\\\"\"},\"hookEventName\":\"PermissionRequest\"}}"}
+{"decision": {"behavior": "ask"}, "stdout": ""}
+{"decision": {}, "stdout": ""}
+{"expired": true, "stdout": ""}

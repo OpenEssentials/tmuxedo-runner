@@ -1,0 +1,6 @@
+  Run this command?
+    ls -la
+  ▶ Approve once
+    Approve for this session
+    Reject
+  ↑↓ choose · ↵ confirm

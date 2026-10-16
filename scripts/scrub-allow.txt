@@ -1,0 +1,10 @@
+# Hits of scripts/scrub.py that are not leaks, each with its reason (format in scrub.py).
+#
+# <gate> | <path glob> | <text that must appear in the matched line> | <why it is not a leak>
+
+private-ip | packages/protocol/fixtures/login-callback.json | other-host", "url": "https://idp.example/authorize | a made-up private address: the test case proves a callback to a non-loopback host is refused
+email | apps/mac/Tmuxedo/Resources/LICENSE-Sparkle.txt | Copyright (c) 2015 Orson Peters | a third-party copyright line in the bundled Sparkle licence (ed25519); licences must be reproduced verbatim
+email | runner/crates/runner/src/secrets/*.rs | session-bind | the name of an OpenSSH agent extension (PROTOCOL.agent), not an address
+email | runner/crates/runner/src/project.rs | Org/Repo.git | a remote in scp form (user git at a public host) in the normaliser's docs
+email | runner/crates/runner/src/project.rs | Org/Shop.git | a remote in scp form in the normaliser's tests
+email | runner/crates/runner/src/project.rs | https://user | a made-up user in a URL the normaliser strips, in its tests

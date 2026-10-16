@@ -1,0 +1,5 @@
+  Write to this file?
+  src/lib.rs
+
+   → Proceed (y)
+     Reject & propose changes (esc or n or p)

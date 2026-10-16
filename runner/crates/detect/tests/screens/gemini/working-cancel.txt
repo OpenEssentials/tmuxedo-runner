@@ -1,0 +1,10 @@
+ ███ GEMINI
+
+Tips for getting started:
+1. Ask questions, edit files, or run commands.
+
+⠏ Analyzing the request (esc to cancel, 4s)
+
+╭────────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                     │
+╰────────────────────────────────────────────────────────────╯

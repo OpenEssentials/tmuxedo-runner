@@ -1,0 +1,14 @@
+[package]
+name = "tmuxedo-protocol"
+description = "tmuxedo relay protocol v1: binary data frames and JSON control frames (docs/protocol.md)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+hex.workspace = true
+sha2.workspace = true

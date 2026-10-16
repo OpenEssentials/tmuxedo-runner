@@ -1,0 +1,9415 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://tmuxedo.dev/schemas/runner-api.schema.json",
+ "title": "tmuxedo runner API",
+ "methods": [
+  "agent.explain",
+  "agent.get",
+  "agent.list",
+  "agent.prompt",
+  "agent.read",
+  "agent.rename",
+  "agent.send_keys",
+  "agent.start",
+  "agent.wait",
+  "chat.close",
+  "chat.file",
+  "chat.get",
+  "chat.handoff",
+  "chat.interrupt",
+  "chat.list",
+  "chat.mode",
+  "chat.read",
+  "chat.respond",
+  "chat.send",
+  "chat.start",
+  "events.subscribe",
+  "events.wait",
+  "files.delete",
+  "files.list",
+  "files.pin",
+  "files.quota",
+  "files.read",
+  "files.request",
+  "files.share",
+  "files.stat",
+  "files.upload_abort",
+  "files.upload_complete",
+  "files.upload_init",
+  "files.upload_status",
+  "fs.delete",
+  "fs.download",
+  "fs.list",
+  "fs.mkdir",
+  "fs.read",
+  "fs.rename",
+  "fs.roots",
+  "fs.search",
+  "fs.stat",
+  "fs.undo",
+  "fs.write",
+  "git.diff",
+  "git.status",
+  "layout.apply",
+  "layout.arrange",
+  "layout.export",
+  "layout.set_split_ratio",
+  "needs.list",
+  "needs.respond",
+  "pane.clear",
+  "pane.close",
+  "pane.current",
+  "pane.focus",
+  "pane.focus_direction",
+  "pane.get",
+  "pane.list",
+  "pane.move",
+  "pane.process_info",
+  "pane.read",
+  "pane.rename",
+  "pane.report_agent",
+  "pane.report_agent_session",
+  "pane.report_metadata",
+  "pane.resize",
+  "pane.send_input",
+  "pane.send_keys",
+  "pane.send_text",
+  "pane.split",
+  "pane.swap",
+  "pane.wait_for_output",
+  "pane.zoom",
+  "ping",
+  "plugin.action.invoke",
+  "plugin.action.list",
+  "plugin.disable",
+  "plugin.enable",
+  "plugin.list",
+  "plugin.log.list",
+  "queued.deliver",
+  "server.agent_manifests",
+  "tab.close",
+  "tab.create",
+  "tab.focus",
+  "tab.get",
+  "tab.list",
+  "tab.move",
+  "tab.rename",
+  "task.cancel",
+  "task.get",
+  "task.list",
+  "task.start",
+  "workspace.close",
+  "workspace.create",
+  "workspace.focus",
+  "workspace.get",
+  "workspace.list",
+  "workspace.move",
+  "workspace.rename",
+  "worktree.create",
+  "worktree.list",
+  "worktree.open",
+  "worktree.remove"
+ ],
+ "schemas": {
+  "request": {
+   "type": "object",
+   "required": [
+    "id",
+    "method"
+   ],
+   "properties": {
+    "id": {
+     "type": "string"
+    },
+    "method": {
+     "enum": [
+      "agent.explain",
+      "agent.get",
+      "agent.list",
+      "agent.prompt",
+      "agent.read",
+      "agent.rename",
+      "agent.send_keys",
+      "agent.start",
+      "agent.wait",
+      "chat.close",
+      "chat.file",
+      "chat.get",
+      "chat.handoff",
+      "chat.interrupt",
+      "chat.list",
+      "chat.mode",
+      "chat.read",
+      "chat.respond",
+      "chat.send",
+      "chat.start",
+      "events.subscribe",
+      "events.wait",
+      "files.delete",
+      "files.list",
+      "files.pin",
+      "files.quota",
+      "files.read",
+      "files.request",
+      "files.share",
+      "files.stat",
+      "files.upload_abort",
+      "files.upload_complete",
+      "files.upload_init",
+      "files.upload_status",
+      "fs.delete",
+      "fs.download",
+      "fs.list",
+      "fs.mkdir",
+      "fs.read",
+      "fs.rename",
+      "fs.roots",
+      "fs.search",
+      "fs.stat",
+      "fs.undo",
+      "fs.write",
+      "git.diff",
+      "git.status",
+      "layout.apply",
+      "layout.arrange",
+      "layout.export",
+      "layout.set_split_ratio",
+      "needs.list",
+      "needs.respond",
+      "pane.clear",
+      "pane.close",
+      "pane.current",
+      "pane.focus",
+      "pane.focus_direction",
+      "pane.get",
+      "pane.list",
+      "pane.move",
+      "pane.process_info",
+      "pane.read",
+      "pane.rename",
+      "pane.report_agent",
+      "pane.report_agent_session",
+      "pane.report_metadata",
+      "pane.resize",
+      "pane.send_input",
+      "pane.send_keys",
+      "pane.send_text",
+      "pane.split",
+      "pane.swap",
+      "pane.wait_for_output",
+      "pane.zoom",
+      "ping",
+      "plugin.action.invoke",
+      "plugin.action.list",
+      "plugin.disable",
+      "plugin.enable",
+      "plugin.list",
+      "plugin.log.list",
+      "queued.deliver",
+      "server.agent_manifests",
+      "tab.close",
+      "tab.create",
+      "tab.focus",
+      "tab.get",
+      "tab.list",
+      "tab.move",
+      "tab.rename",
+      "workspace.close",
+      "workspace.create",
+      "workspace.focus",
+      "workspace.get",
+      "workspace.list",
+      "workspace.move",
+      "workspace.rename",
+      "worktree.create",
+      "worktree.list",
+      "worktree.open",
+      "worktree.remove",
+      "task.cancel",
+      "task.get",
+      "task.list",
+      "task.start"
+     ]
+    },
+    "params": {
+     "type": "object"
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.explain"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.explain"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "target": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "target"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.get"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.get"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "target": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "target"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.prompt"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.prompt"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "target": {
+          "type": "string"
+         },
+         "text": {
+          "type": "string"
+         },
+         "wait": {
+          "type": "object",
+          "properties": {
+           "timeout_ms": {
+            "type": "integer"
+           },
+           "until": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           }
+          },
+          "required": [
+           "timeout_ms",
+           "until"
+          ]
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "target",
+         "text"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.read"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.read"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "source": {
+          "type": "string"
+         },
+         "target": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "target"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.rename"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.rename"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "name": {
+          "type": "string"
+         },
+         "target": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "target"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.send_keys"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.send_keys"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "keys": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "target": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "target"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.start"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.start"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "kind": {
+          "type": "string"
+         },
+         "name": {
+          "type": "string"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "role": {
+          "type": "string",
+          "description": "A role id from config.roles as it is effective in the pane's folder; its model, instructions and access go before args"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "kind",
+         "name"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "agent.wait"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "agent.wait"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "target": {
+          "type": "string"
+         },
+         "timeout_ms": {
+          "type": "integer"
+         },
+         "until": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "target"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.close"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.close"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "session_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.get"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.get"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "session_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.handoff"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.handoff"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "to": {
+          "enum": [
+           "terminal",
+           "chat"
+          ]
+         },
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "stop": {
+          "type": "boolean"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "to"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.interrupt"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.interrupt"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "session_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.mode"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.mode"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "mode": {
+          "enum": [
+           "ask_first",
+           "plan_first",
+           "auto_edit",
+           "auto_approve"
+          ]
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "session_id",
+         "mode"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.read"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.read"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "from_seq": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "limit": {
+          "type": "integer",
+          "minimum": 1
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "session_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.respond"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.respond"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "need_id": {
+          "type": "string"
+         },
+         "by": {
+          "type": "string"
+         },
+         "fresh_stepup": {
+          "type": "boolean"
+         },
+         "response": {
+          "type": "object",
+          "properties": {
+           "kind": {
+            "enum": [
+             "allow_once",
+             "allow_session",
+             "deny",
+             "answers",
+             "approve_plan",
+             "keep_planning"
+            ]
+           },
+           "message": {
+            "type": "string"
+           },
+           "answers": {
+            "type": "object"
+           }
+          },
+          "required": [
+           "kind"
+          ]
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "session_id",
+         "need_id",
+         "response"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.send"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.send"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "text": {
+          "type": "string"
+         },
+         "client_msg_id": {
+          "type": "string"
+         },
+         "by": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "session_id",
+         "text"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.start"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.start"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "agent": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "mode": {
+          "enum": [
+           "ask_first",
+           "plan_first",
+           "auto_edit",
+           "auto_approve"
+          ]
+         },
+         "text": {
+          "type": "string"
+         },
+         "title": {
+          "type": "string"
+         },
+         "client_msg_id": {
+          "type": "string"
+         },
+         "by": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "events.subscribe"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "events.subscribe"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "subscriptions": {
+          "type": "array",
+          "items": {
+           "type": "object",
+           "properties": {
+            "type": {
+             "type": "string"
+            },
+            "pane_id": {
+             "type": "string"
+            }
+           },
+           "required": [
+            "type"
+           ]
+          }
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "subscriptions"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "events.wait"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "events.wait"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "match_event": {
+          "type": "object",
+          "properties": {
+           "event": {
+            "type": "string"
+           },
+           "workspace_id": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "event",
+           "workspace_id"
+          ]
+         },
+         "timeout_ms": {
+          "type": "integer"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "match_event"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.delete"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.delete"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "project": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,159}$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "dir": {
+          "enum": [
+           "inbox",
+           "outbox"
+          ]
+         },
+         "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "name"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "project": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,159}$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "dir": {
+          "enum": [
+           "inbox",
+           "outbox"
+          ]
+         }
+        },
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.pin"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.pin"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "project": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,159}$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "dir": {
+          "enum": [
+           "inbox",
+           "outbox"
+          ]
+         },
+         "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+         },
+         "pinned": {
+          "type": "boolean"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "name"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.quota"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.quota"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.read"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.read"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "project": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,159}$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "xfer": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{8,64}$"
+         },
+         "n": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "dir": {
+          "enum": [
+           "inbox",
+           "outbox"
+          ]
+         },
+         "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+         },
+         "offset": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "length": {
+          "type": "integer",
+          "minimum": 0
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "xfer",
+         "name"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.request"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.request"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "project": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,159}$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "what": {
+          "type": "string",
+          "maxLength": 2000
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "what"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.share"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.share"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "project": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,159}$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096
+         },
+         "note": {
+          "type": "string",
+          "maxLength": 2000
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "path"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.stat"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.stat"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "project": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,159}$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "dir": {
+          "enum": [
+           "inbox",
+           "outbox"
+          ]
+         },
+         "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "name"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.upload_abort"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.upload_abort"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "upload_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{8,64}$"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "upload_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.upload_complete"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.upload_complete"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "upload_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{8,64}$"
+         },
+         "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "upload_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.upload_init"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.upload_init"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "project": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]{0,159}$"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "upload_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{8,64}$"
+         },
+         "name": {
+          "type": "string"
+         },
+         "size": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "chunk_size": {
+          "type": "integer",
+          "minimum": 262144,
+          "maximum": 16777216
+         },
+         "chunk_hashes": {
+          "type": "array",
+          "items": {
+           "type": "string",
+           "pattern": "^[0-9a-f]{64}$"
+          }
+         },
+         "by": {
+          "type": "string"
+         },
+         "source": {
+          "enum": [
+           "web",
+           "app",
+           "cli"
+          ]
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "upload_id",
+         "name",
+         "size",
+         "chunk_size"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "files.upload_status"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "files.upload_status"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "upload_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{8,64}$"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "upload_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "layout.apply"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "layout.apply"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "object",
+          "properties": {
+           "direction": {
+            "type": "string"
+           },
+           "first": {
+            "type": "object",
+            "properties": {
+             "cwd": {
+              "type": "string"
+             },
+             "type": {
+              "type": "string"
+             }
+            },
+            "required": [
+             "cwd",
+             "type"
+            ]
+           },
+           "ratio": {
+            "type": "number"
+           },
+           "second": {
+            "type": "object",
+            "properties": {
+             "direction": {
+              "type": "string"
+             },
+             "first": {
+              "type": "object",
+              "properties": {
+               "type": {
+                "type": "string"
+               }
+              },
+              "required": [
+               "type"
+              ]
+             },
+             "ratio": {
+              "type": "number"
+             },
+             "second": {
+              "type": "object",
+              "properties": {
+               "label": {
+                "type": "string"
+               },
+               "type": {
+                "type": "string"
+               }
+              },
+              "required": [
+               "label",
+               "type"
+              ]
+             },
+             "type": {
+              "type": "string"
+             }
+            },
+            "required": [
+             "direction",
+             "first",
+             "ratio",
+             "second",
+             "type"
+            ]
+           },
+           "type": {
+            "type": "string"
+           },
+           "pane_id": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "type"
+          ]
+         },
+         "tab_label": {
+          "type": "string"
+         },
+         "workspace_id": {
+          "type": "string"
+         },
+         "tab_id": {
+          "type": "string"
+         },
+         "close_unnamed": {
+          "type": "boolean"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "layout.arrange"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "layout.arrange"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "tab_id": {
+          "type": "string"
+         },
+         "root": {
+          "$ref": "#/$defs/layout_node"
+         },
+         "pattern": {
+          "enum": [
+           "even",
+           "single",
+           "side_by_side",
+           "stacked",
+           "main_side",
+           "columns",
+           "rows",
+           "main_stack",
+           "main_top",
+           "main_wall",
+           "focus_sidebar",
+           "2_over_1",
+           "3_over_1",
+           "1_over_3",
+           "3_over_2",
+           "2_over_3",
+           "4_over_2",
+           "4_over_3",
+           "grid_2x2",
+           "grid_3x2",
+           "grid_2x3",
+           "grid_4x2",
+           "agent_wall"
+          ]
+         },
+         "extras": {
+          "enum": [
+           "refuse",
+           "new_tab"
+          ]
+         },
+         "expect_rev": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "focus": {
+          "type": "string"
+         },
+         "area": {
+          "type": "object",
+          "properties": {
+           "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+           },
+           "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+           }
+          },
+          "required": [
+           "width",
+           "height"
+          ]
+         },
+         "dry_run": {
+          "type": "boolean"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "tab_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "layout.export"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "layout.export"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         },
+         "tab_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "layout.set_split_ratio"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "layout.set_split_ratio"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "path": {
+          "type": "array"
+         },
+         "ratio": {
+          "type": "number"
+         },
+         "tab_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "path",
+         "ratio"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.clear"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.clear"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.close"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.close"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.current"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.current"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.focus"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.focus"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.focus_direction"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.focus_direction"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "direction": {
+          "enum": [
+           "left",
+           "right",
+           "up",
+           "down"
+          ]
+         },
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "direction"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.get"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.get"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.move"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.move"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "destination": {
+          "type": "object",
+          "properties": {
+           "label": {
+            "type": "string"
+           },
+           "type": {
+            "type": "string"
+           },
+           "split": {
+            "type": "string"
+           },
+           "tab_id": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "type"
+          ]
+         },
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.process_info"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.process_info"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.read"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.read"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         },
+         "source": {
+          "type": "string"
+         },
+         "lines": {
+          "type": "integer"
+         },
+         "before": {
+          "description": "source history: the page ends right before this line index (default: the newest line)",
+          "type": "integer",
+          "minimum": 0
+         },
+         "format": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.rename"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.rename"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "label": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "description": "Cleaned by the shared name rules (docs/protocol.md \"Names\"); null or a name that cleans to nothing restores the default name (a pane: none)."
+         },
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.report_agent"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.report_agent"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "agent": {
+          "type": "string"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "source": {
+          "type": "string"
+         },
+         "state": {
+          "enum": [
+           "working",
+           "blocked",
+           "done",
+           "idle",
+           "unknown"
+          ]
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "agent",
+         "source",
+         "state"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.report_agent_session"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.report_agent_session"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "agent": {
+          "type": "string"
+         },
+         "agent_session_id": {
+          "type": "string"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "source": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "agent",
+         "source"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.report_metadata"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.report_metadata"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "display_agent": {
+          "type": "string"
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "source": {
+          "type": "string"
+         },
+         "state_labels": {
+          "type": "object",
+          "properties": {
+           "working": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "working"
+          ]
+         },
+         "title": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "source"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.resize"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.resize"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "cols": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "rows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+         },
+         "amount": {
+          "type": "number"
+         },
+         "direction": {
+          "enum": [
+           "left",
+           "right",
+           "up",
+           "down"
+          ]
+         }
+        },
+        "additionalProperties": true,
+        "anyOf": [
+         {
+          "required": [
+           "direction"
+          ]
+         },
+         {
+          "required": [
+           "cols",
+           "rows"
+          ]
+         }
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.send_input"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.send_input"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "keys": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "text": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.send_keys"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.send_keys"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "keys": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.send_text"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.send_text"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         },
+         "text": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "text"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.split"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.split"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "direction": {
+          "enum": [
+           "right",
+           "down",
+           "h",
+           "v"
+          ]
+         },
+         "target_pane_id": {
+          "type": "string"
+         },
+         "focus": {
+          "type": "boolean"
+         },
+         "ratio": {
+          "type": "number"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "direction"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.swap"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.swap"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "source_pane_id": {
+          "type": "string"
+         },
+         "target_pane_id": {
+          "type": "string"
+         },
+         "direction": {
+          "type": "string"
+         },
+         "pane_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.wait_for_output"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.wait_for_output"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "match": {
+          "type": "object",
+          "properties": {
+           "type": {
+            "enum": [
+             "substring",
+             "regex"
+            ]
+           },
+           "value": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "type",
+           "value"
+          ]
+         },
+         "pane_id": {
+          "type": "string"
+         },
+         "source": {
+          "type": "string"
+         },
+         "timeout_ms": {
+          "type": "integer"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "pane.zoom"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "pane.zoom"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane_id": {
+          "type": "string"
+         },
+         "mode": {
+          "enum": [
+           "toggle",
+           "on",
+           "off"
+          ]
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "ping"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "ping"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "plugin.action.invoke"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "plugin.action.invoke"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "action_id": {
+          "type": "string"
+         },
+         "context": {
+          "type": "object",
+          "properties": {
+           "invocation_source": {
+            "type": "string"
+           },
+           "workspace_id": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "invocation_source",
+           "workspace_id"
+          ]
+         },
+         "plugin_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "action_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "plugin.action.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "plugin.action.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "plugin_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "plugin.disable"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "plugin.disable"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "plugin_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "plugin_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "plugin.enable"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "plugin.enable"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "plugin_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "plugin_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "plugin.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "plugin.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "plugin_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "plugin.log.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "plugin.log.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "limit": {
+          "type": "integer"
+         },
+         "plugin_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "server.agent_manifests"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "server.agent_manifests"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "tab.close"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "tab.close"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "tab_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "tab.create"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "tab.create"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "workspace_id": {
+          "type": "string"
+         },
+         "focus": {
+          "type": "boolean"
+         },
+         "label": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "tab.focus"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "tab.focus"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "tab_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "tab.get"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "tab.get"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "tab_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "tab.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "tab.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "workspace_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "tab.move"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "tab.move"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "insert_index": {
+          "type": "integer"
+         },
+         "tab_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "insert_index"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "tab.rename"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "tab.rename"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "label": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "description": "Cleaned by the shared name rules (docs/protocol.md \"Names\"); null or a name that cleans to nothing restores the default name (a pane: none)."
+         },
+         "tab_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "label"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "workspace.close"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "workspace.close"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "workspace_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "workspace.create"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "workspace.create"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "cwd": {
+          "type": "string"
+         },
+         "focus": {
+          "type": "boolean"
+         },
+         "label": {
+          "type": "string"
+         },
+         "env": {
+          "type": "object",
+          "properties": {
+           "HOME": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "HOME"
+          ]
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "workspace.focus"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "workspace.focus"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "workspace_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "workspace.get"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "workspace.get"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "workspace_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "workspace.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "workspace.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "workspace.move"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "workspace.move"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "insert_index": {
+          "type": "integer"
+         },
+         "workspace_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "insert_index"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "workspace.rename"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "workspace.rename"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "label": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "description": "Cleaned by the shared name rules (docs/protocol.md \"Names\"); null or a name that cleans to nothing restores the default name (a pane: none)."
+         },
+         "workspace_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "label"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "worktree.create"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "worktree.create"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "branch": {
+          "type": "string"
+         },
+         "focus": {
+          "type": "boolean"
+         },
+         "workspace_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "worktree.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "worktree.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "workspace_id": {
+          "type": "string"
+         },
+         "cwd": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "worktree.open"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "worktree.open"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "branch": {
+          "type": "string"
+         },
+         "workspace_id": {
+          "type": "string"
+         },
+         "label": {
+          "type": "string"
+         },
+         "path": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "anyOf": [
+         {
+          "required": [
+           "path"
+          ]
+         },
+         {
+          "required": [
+           "branch"
+          ]
+         }
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "worktree.remove"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "worktree.remove"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "force": {
+          "type": "boolean"
+         },
+         "workspace_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "workspace_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "chat.file"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "chat.file"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "session_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "session_id",
+         "path"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "needs.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "needs.list"
+       },
+       "params": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "needs.respond"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "needs.respond"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "itemId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_.:-]+$"
+         },
+         "paneId": {
+          "type": "string",
+          "maxLength": 255
+         },
+         "chatId": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "responseId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[a-z][a-z0-9_.-]*$"
+         },
+         "text": {
+          "type": "string",
+          "maxLength": 2000
+         },
+         "optionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "answers": {
+          "type": "object"
+         },
+         "by": {
+          "type": "string",
+          "maxLength": 120
+         },
+         "fresh_stepup": {
+          "type": "boolean"
+         }
+        },
+        "required": [
+         "itemId",
+         "responseId"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.roots"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.roots"
+       },
+       "params": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096
+         },
+         "cursor": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 257
+         },
+         "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "path"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.stat"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.stat"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "path"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.download"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.download"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+         },
+         "xfer": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{8,64}$"
+         },
+         "n": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "offset": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "length": {
+          "type": "integer",
+          "minimum": 0
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "path",
+         "xfer"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.read"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.read"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "path"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.search"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.search"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+         },
+         "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "query"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.delete"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.delete"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+         },
+         "base": {
+          "type": "string",
+          "pattern": "^v1\\.[0-9a-f]{64}\\.[0-9]+\\.[0-9]+$"
+         },
+         "op_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "a retry with the same op_id gets the first answer"
+         },
+         "control": {
+          "type": "boolean",
+          "description": "set by web only (the gateway strips it from client sockets); required true"
+         },
+         "stepup_at": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "set by web only: the caller's last step-up, ms since the epoch; at most 15 minutes old"
+         },
+         "by": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "set by web only: who, for the machine's journal"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "path",
+         "op_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.mkdir"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.mkdir"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+         },
+         "op_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "a retry with the same op_id gets the first answer"
+         },
+         "control": {
+          "type": "boolean",
+          "description": "set by web only (the gateway strips it from client sockets); required true"
+         },
+         "stepup_at": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "set by web only: the caller's last step-up, ms since the epoch; at most 15 minutes old"
+         },
+         "by": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "set by web only: who, for the machine's journal"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "path",
+         "op_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.rename"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.rename"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "from": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+         },
+         "to": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+         },
+         "base": {
+          "type": "string",
+          "pattern": "^v1\\.[0-9a-f]{64}\\.[0-9]+\\.[0-9]+$"
+         },
+         "op_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "a retry with the same op_id gets the first answer"
+         },
+         "control": {
+          "type": "boolean",
+          "description": "set by web only (the gateway strips it from client sockets); required true"
+         },
+         "stepup_at": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "set by web only: the caller's last step-up, ms since the epoch; at most 15 minutes old"
+         },
+         "by": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "set by web only: who, for the machine's journal"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "from",
+         "to",
+         "op_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.undo"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.undo"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "undoId": {
+          "type": "string",
+          "pattern": "^u[0-9a-f]{16}$"
+         },
+         "op_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "a retry with the same op_id gets the first answer"
+         },
+         "control": {
+          "type": "boolean",
+          "description": "set by web only (the gateway strips it from client sockets); required true"
+         },
+         "stepup_at": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "set by web only: the caller's last step-up, ms since the epoch; at most 15 minutes old"
+         },
+         "by": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "set by web only: who, for the machine's journal"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "undoId",
+         "op_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "fs.write"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "fs.write"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "root": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$"
+         },
+         "path": {
+          "type": "string",
+          "maxLength": 4096,
+          "minLength": 1
+         },
+         "text": {
+          "type": "string",
+          "maxLength": 524288
+         },
+         "base": {
+          "type": "string",
+          "pattern": "^v1\\.[0-9a-f]{64}\\.[0-9]+\\.[0-9]+$"
+         },
+         "create": {
+          "type": "boolean"
+         },
+         "op_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "a retry with the same op_id gets the first answer"
+         },
+         "control": {
+          "type": "boolean",
+          "description": "set by web only (the gateway strips it from client sockets); required true"
+         },
+         "stepup_at": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "set by web only: the caller's last step-up, ms since the epoch; at most 15 minutes old"
+         },
+         "by": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "set by web only: who, for the machine's journal"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "root",
+         "path",
+         "text",
+         "op_id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "git.status"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "git.status"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         }
+        },
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "git.diff"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "git.diff"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "path"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "queued.deliver"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "queued.deliver"
+       },
+       "params": {
+        "type": "object",
+        "required": [
+         "id",
+         "sealed"
+        ],
+        "properties": {
+         "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{8,64}$"
+         },
+         "sealed": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 98304
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "task.cancel"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "task.cancel"
+       },
+       "params": {
+        "type": "object",
+        "required": [
+         "task_id"
+        ],
+        "properties": {
+         "task_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "task.get"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "task.get"
+       },
+       "params": {
+        "type": "object",
+        "required": [
+         "task_id"
+        ],
+        "properties": {
+         "task_id": {
+          "type": "string"
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "task.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "task.list"
+       },
+       "params": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "task.start"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "task.start"
+       },
+       "params": {
+        "type": "object",
+        "required": [
+         "task_id",
+         "kind",
+         "cwd",
+         "roots",
+         "labels"
+        ],
+        "properties": {
+         "task_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+         },
+         "kind": {
+          "enum": [
+           "command",
+           "agent"
+          ]
+         },
+         "labels": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "cwd": {
+          "type": "string"
+         },
+         "roots": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "argv": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "allowed_commands": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "agent": {
+          "type": "string"
+         },
+         "allowed_agents": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "mode": {
+          "enum": [
+           "ask_first",
+           "plan_first",
+           "auto_edit"
+          ]
+         },
+         "text": {
+          "type": "string"
+         },
+         "label": {
+          "type": "string"
+         },
+         "timeout_ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 86400000
+         }
+        },
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   ]
+  },
+  "success_response": {
+   "type": "object",
+   "required": [
+    "id",
+    "result"
+   ],
+   "properties": {
+    "id": {
+     "type": "string"
+    },
+    "result": {
+     "oneOf": [
+      {
+       "type": "object",
+       "properties": {
+        "explain": {
+         "$ref": "#/$defs/explain"
+        },
+        "type": {
+         "const": "agent_explain"
+        }
+       },
+       "required": [
+        "explain",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "agent": {
+         "$ref": "#/$defs/agent"
+        },
+        "type": {
+         "const": "agent_info"
+        }
+       },
+       "required": [
+        "agent",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "agents": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/agent"
+         }
+        },
+        "type": {
+         "const": "agent_list"
+        }
+       },
+       "required": [
+        "agents",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "manifests": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "agent": {
+            "type": "string"
+           },
+           "revision": {
+            "type": "string"
+           },
+           "signals": {
+            "type": "integer"
+           },
+           "source": {
+            "type": "string"
+           },
+           "title": {
+            "type": "string"
+           },
+           "warning": {
+            "type": [
+             "string",
+             "null"
+            ]
+           }
+          },
+          "required": [
+           "agent",
+           "revision",
+           "signals",
+           "source",
+           "title",
+           "warning"
+          ]
+         }
+        },
+        "type": {
+         "const": "agent_manifest_status"
+        }
+       },
+       "required": [
+        "manifests",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "agent": {
+         "$ref": "#/$defs/agent"
+        },
+        "type": {
+         "const": "agent_prompted"
+        }
+       },
+       "required": [
+        "agent",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "agent": {
+         "$ref": "#/$defs/agent"
+        },
+        "argv": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "type": {
+         "const": "agent_started"
+        }
+       },
+       "required": [
+        "agent",
+        "argv",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "events": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "seq": {
+            "type": "integer",
+            "minimum": 1
+           },
+           "type": {
+            "type": "string"
+           },
+           "at": {
+            "type": "string"
+           },
+           "sessionId": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "seq",
+           "type",
+           "at",
+           "sessionId"
+          ]
+         }
+        },
+        "firstSeq": {
+         "type": "integer"
+        },
+        "lastSeq": {
+         "type": "integer"
+        },
+        "gap": {
+         "type": "boolean"
+        },
+        "type": {
+         "const": "chat_events"
+        }
+       },
+       "required": [
+        "events",
+        "firstSeq",
+        "gap",
+        "lastSeq",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "paneId": {
+         "type": "string"
+        },
+        "session": {
+         "$ref": "#/$defs/chat_session"
+        },
+        "type": {
+         "const": "chat_handoff"
+        }
+       },
+       "required": [
+        "paneId",
+        "session",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "session": {
+         "$ref": "#/$defs/chat_session"
+        },
+        "needs": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "id",
+           "kind",
+           "risk",
+           "options",
+           "title",
+           "expiresAt"
+          ]
+         }
+        },
+        "sent": {},
+        "type": {
+         "const": "chat_info"
+        }
+       },
+       "required": [
+        "session",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "interrupted": {
+         "type": "boolean"
+        },
+        "type": {
+         "const": "chat_interrupt"
+        }
+       },
+       "required": [
+        "interrupted",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "sessions": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/chat_session"
+         }
+        },
+        "type": {
+         "const": "chat_list"
+        }
+       },
+       "required": [
+        "sessions",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "mode": {
+         "type": "string"
+        },
+        "applies": {
+         "enum": [
+          "after_turn",
+          "next_message"
+         ]
+        },
+        "type": {
+         "const": "chat_mode"
+        }
+       },
+       "required": [
+        "applies",
+        "mode",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "outcome": {
+         "enum": [
+          "accepted",
+          "stale"
+         ]
+        },
+        "type": {
+         "const": "chat_respond"
+        }
+       },
+       "required": [
+        "outcome",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "seq": {
+         "type": "integer"
+        },
+        "queued": {
+         "type": "boolean"
+        },
+        "duplicate": {
+         "type": "boolean"
+        },
+        "type": {
+         "const": "chat_sent"
+        }
+       },
+       "required": [
+        "seq",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "layout": {
+         "$ref": "#/$defs/layout"
+        },
+        "type": {
+         "const": "layout_apply"
+        },
+        "closed": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        }
+       },
+       "required": [
+        "layout",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "layout": {
+         "$ref": "#/$defs/layout"
+        },
+        "type": {
+         "const": "layout_arrange"
+        },
+        "pattern": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "opened": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "extras": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "extras_tab": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "below_readable": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "dry_run": {
+         "type": "boolean"
+        },
+        "undo": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "type": "object",
+           "properties": {
+            "root": {
+             "$ref": "#/$defs/layout_node"
+            },
+            "rev": {
+             "type": "integer"
+            }
+           },
+           "required": [
+            "root",
+            "rev"
+           ]
+          }
+         ]
+        }
+       },
+       "required": [
+        "layout",
+        "type",
+        "opened",
+        "extras",
+        "extras_tab",
+        "dry_run",
+        "undo"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "layout": {
+         "$ref": "#/$defs/layout"
+        },
+        "type": {
+         "const": "layout_export"
+        }
+       },
+       "required": [
+        "layout",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "layout": {
+         "$ref": "#/$defs/layout"
+        },
+        "type": {
+         "const": "layout_split_ratio_set"
+        }
+       },
+       "required": [
+        "layout",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "ok"
+        }
+       },
+       "required": [
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "matched_line": {
+         "type": "string"
+        },
+        "pane_id": {
+         "type": "string"
+        },
+        "read": {
+         "$ref": "#/$defs/read"
+        },
+        "revision": {
+         "type": "integer"
+        },
+        "type": {
+         "const": "output_matched"
+        }
+       },
+       "required": [
+        "matched_line",
+        "pane_id",
+        "read",
+        "revision",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "pane": {
+         "$ref": "#/$defs/pane"
+        },
+        "type": {
+         "const": "pane_current"
+        }
+       },
+       "required": [
+        "pane",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "focus": {
+         "$ref": "#/$defs/focus"
+        },
+        "type": {
+         "const": "pane_focus_direction"
+        }
+       },
+       "required": [
+        "focus",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "pane": {
+         "$ref": "#/$defs/pane"
+        },
+        "type": {
+         "const": "pane_info"
+        }
+       },
+       "required": [
+        "pane",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "panes": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/pane"
+         }
+        },
+        "type": {
+         "const": "pane_list"
+        }
+       },
+       "required": [
+        "panes",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "move_result": {
+         "type": "object",
+         "properties": {
+          "changed": {
+           "type": "boolean"
+          },
+          "closed_tab_id": {
+           "type": [
+            "null",
+            "string"
+           ]
+          },
+          "closed_workspace_id": {
+           "type": [
+            "null",
+            "string"
+           ]
+          },
+          "created_tab": {
+           "type": [
+            "null",
+            "object"
+           ],
+           "properties": {
+            "agent_status": {
+             "type": "string"
+            },
+            "focused": {
+             "type": "boolean"
+            },
+            "label": {
+             "type": "string"
+            },
+            "number": {
+             "type": "integer"
+            },
+            "pane_count": {
+             "type": "integer"
+            },
+            "tab_id": {
+             "type": "string"
+            },
+            "workspace_id": {
+             "type": "string"
+            }
+           },
+           "required": [
+            "agent_status",
+            "focused",
+            "label",
+            "number",
+            "pane_count",
+            "tab_id",
+            "workspace_id"
+           ]
+          },
+          "created_workspace": {
+           "type": [
+            "null",
+            "object"
+           ],
+           "properties": {
+            "active_tab_id": {
+             "type": "string"
+            },
+            "agent_status": {
+             "type": "string"
+            },
+            "focused": {
+             "type": "boolean"
+            },
+            "label": {
+             "type": "string"
+            },
+            "number": {
+             "type": "integer"
+            },
+            "pane_count": {
+             "type": "integer"
+            },
+            "tab_count": {
+             "type": "integer"
+            },
+            "workspace_id": {
+             "type": "string"
+            },
+            "worktree": {
+             "type": [
+              "string",
+              "null"
+             ]
+            }
+           },
+           "required": [
+            "active_tab_id",
+            "agent_status",
+            "focused",
+            "label",
+            "number",
+            "pane_count",
+            "tab_count",
+            "workspace_id",
+            "worktree"
+           ]
+          },
+          "focused_pane_id": {
+           "type": "string"
+          },
+          "pane": {
+           "$ref": "#/$defs/pane"
+          },
+          "previous_pane_id": {
+           "type": "string"
+          },
+          "previous_tab_id": {
+           "type": "string"
+          },
+          "previous_workspace_id": {
+           "type": "string"
+          },
+          "source_layout": {
+           "type": [
+            "null",
+            "object"
+           ],
+           "properties": {
+            "area": {
+             "type": "object",
+             "properties": {
+              "height": {
+               "type": "integer"
+              },
+              "width": {
+               "type": "integer"
+              },
+              "x": {
+               "type": "integer"
+              },
+              "y": {
+               "type": "integer"
+              }
+             },
+             "required": [
+              "height",
+              "width",
+              "x",
+              "y"
+             ]
+            },
+            "focused_pane_id": {
+             "type": "string"
+            },
+            "panes": {
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "focused": {
+                "type": "boolean"
+               },
+               "pane_id": {
+                "type": "string"
+               },
+               "rect": {
+                "type": "object",
+                "properties": {
+                 "height": {
+                  "type": "integer"
+                 },
+                 "width": {
+                  "type": "integer"
+                 },
+                 "x": {
+                  "type": "integer"
+                 },
+                 "y": {
+                  "type": "integer"
+                 }
+                },
+                "required": [
+                 "height",
+                 "width",
+                 "x",
+                 "y"
+                ]
+               }
+              },
+              "required": [
+               "focused",
+               "pane_id",
+               "rect"
+              ]
+             }
+            },
+            "splits": {
+             "type": "array"
+            },
+            "tab_id": {
+             "type": "string"
+            },
+            "workspace_id": {
+             "type": "string"
+            },
+            "zoomed": {
+             "type": "boolean"
+            }
+           },
+           "required": [
+            "area",
+            "focused_pane_id",
+            "panes",
+            "splits",
+            "tab_id",
+            "workspace_id",
+            "zoomed"
+           ]
+          },
+          "target_layout": {
+           "type": "object",
+           "properties": {
+            "area": {
+             "type": "object",
+             "properties": {
+              "height": {
+               "type": "integer"
+              },
+              "width": {
+               "type": "integer"
+              },
+              "x": {
+               "type": "integer"
+              },
+              "y": {
+               "type": "integer"
+              }
+             },
+             "required": [
+              "height",
+              "width",
+              "x",
+              "y"
+             ]
+            },
+            "focused_pane_id": {
+             "type": "string"
+            },
+            "panes": {
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "focused": {
+                "type": "boolean"
+               },
+               "pane_id": {
+                "type": "string"
+               },
+               "rect": {
+                "type": "object",
+                "properties": {
+                 "height": {
+                  "type": "integer"
+                 },
+                 "width": {
+                  "type": "integer"
+                 },
+                 "x": {
+                  "type": "integer"
+                 },
+                 "y": {
+                  "type": "integer"
+                 }
+                },
+                "required": [
+                 "height",
+                 "width",
+                 "x",
+                 "y"
+                ]
+               }
+              },
+              "required": [
+               "focused",
+               "pane_id",
+               "rect"
+              ]
+             }
+            },
+            "splits": {
+             "type": "array",
+             "items": {
+              "type": "object",
+              "properties": {
+               "direction": {
+                "type": "string"
+               },
+               "id": {
+                "type": "string"
+               },
+               "ratio": {
+                "type": "number"
+               },
+               "rect": {
+                "type": "object",
+                "properties": {
+                 "height": {
+                  "type": "integer"
+                 },
+                 "width": {
+                  "type": "integer"
+                 },
+                 "x": {
+                  "type": "integer"
+                 },
+                 "y": {
+                  "type": "integer"
+                 }
+                },
+                "required": [
+                 "height",
+                 "width",
+                 "x",
+                 "y"
+                ]
+               }
+              },
+              "required": [
+               "direction",
+               "id",
+               "ratio",
+               "rect"
+              ]
+             }
+            },
+            "tab_id": {
+             "type": "string"
+            },
+            "workspace_id": {
+             "type": "string"
+            },
+            "zoomed": {
+             "type": "boolean"
+            }
+           },
+           "required": [
+            "area",
+            "focused_pane_id",
+            "panes",
+            "splits",
+            "tab_id",
+            "workspace_id",
+            "zoomed"
+           ]
+          }
+         },
+         "required": [
+          "changed",
+          "closed_tab_id",
+          "closed_workspace_id",
+          "created_tab",
+          "created_workspace",
+          "focused_pane_id",
+          "pane",
+          "previous_pane_id",
+          "previous_tab_id",
+          "previous_workspace_id",
+          "source_layout",
+          "target_layout"
+         ]
+        },
+        "type": {
+         "const": "pane_move"
+        }
+       },
+       "required": [
+        "move_result",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "process_info": {
+         "$ref": "#/$defs/process_info"
+        },
+        "type": {
+         "const": "pane_process_info"
+        }
+       },
+       "required": [
+        "process_info",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "read": {
+         "$ref": "#/$defs/read"
+        },
+        "type": {
+         "const": "pane_read"
+        }
+       },
+       "required": [
+        "read",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "resize": {
+         "type": "object",
+         "properties": {
+          "changed": {
+           "type": "boolean"
+          },
+          "focused_pane_id": {
+           "type": "string"
+          },
+          "layout": {
+           "$ref": "#/$defs/layout"
+          },
+          "pane_id": {
+           "type": "string"
+          },
+          "reason": {
+           "type": [
+            "null",
+            "string"
+           ]
+          }
+         },
+         "required": [
+          "changed",
+          "focused_pane_id",
+          "layout",
+          "pane_id",
+          "reason"
+         ]
+        },
+        "type": {
+         "const": "pane_resize"
+        }
+       },
+       "required": [
+        "resize",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "swap": {
+         "type": "object",
+         "properties": {
+          "changed": {
+           "type": "boolean"
+          },
+          "focused_pane_id": {
+           "type": "string"
+          },
+          "layout": {
+           "$ref": "#/$defs/layout"
+          },
+          "reason": {
+           "type": [
+            "null",
+            "string"
+           ]
+          },
+          "source_pane_id": {
+           "type": "string"
+          },
+          "target_pane_id": {
+           "type": [
+            "null",
+            "string"
+           ]
+          }
+         },
+         "required": [
+          "changed",
+          "focused_pane_id",
+          "layout",
+          "reason",
+          "source_pane_id",
+          "target_pane_id"
+         ]
+        },
+        "type": {
+         "const": "pane_swap"
+        }
+       },
+       "required": [
+        "swap",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_zoom"
+        },
+        "zoom": {
+         "type": "object",
+         "properties": {
+          "changed": {
+           "type": "boolean"
+          },
+          "focus_changed": {
+           "type": "boolean"
+          },
+          "focused_pane_id": {
+           "type": "string"
+          },
+          "layout": {
+           "$ref": "#/$defs/layout"
+          },
+          "pane_id": {
+           "type": "string"
+          },
+          "reason": {
+           "type": [
+            "null",
+            "string"
+           ]
+          },
+          "zoom_changed": {
+           "type": "boolean"
+          },
+          "zoomed": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "changed",
+          "focus_changed",
+          "focused_pane_id",
+          "layout",
+          "pane_id",
+          "reason",
+          "zoom_changed",
+          "zoomed"
+         ]
+        }
+       },
+       "required": [
+        "type",
+        "zoom"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "action": {
+         "type": "object",
+         "properties": {
+          "action_id": {
+           "type": "string"
+          },
+          "command": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "contexts": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "description": {
+           "type": "string"
+          },
+          "platforms": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "plugin_id": {
+           "type": "string"
+          },
+          "title": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "action_id",
+          "command",
+          "contexts",
+          "description",
+          "platforms",
+          "plugin_id",
+          "title"
+         ]
+        },
+        "context": {
+         "type": "object",
+         "properties": {
+          "invocation_source": {
+           "type": "string"
+          },
+          "workspace_id": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "invocation_source",
+          "workspace_id"
+         ]
+        },
+        "log": {
+         "type": "object",
+         "properties": {
+          "action_id": {
+           "type": "string"
+          },
+          "command": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "finished_unix_ms": {
+           "type": "integer"
+          },
+          "log_id": {
+           "type": "string"
+          },
+          "plugin_id": {
+           "type": "string"
+          },
+          "started_unix_ms": {
+           "type": "integer"
+          },
+          "status": {
+           "type": "string"
+          },
+          "stdout": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "action_id",
+          "command",
+          "finished_unix_ms",
+          "log_id",
+          "plugin_id",
+          "started_unix_ms",
+          "status",
+          "stdout"
+         ]
+        },
+        "type": {
+         "const": "plugin_action_invoked"
+        }
+       },
+       "required": [
+        "action",
+        "context",
+        "log",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "actions": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "action_id": {
+            "type": "string"
+           },
+           "command": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "contexts": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "description": {
+            "type": "string"
+           },
+           "platforms": {
+            "type": "array",
+            "items": {
+             "type": "string"
+            }
+           },
+           "plugin_id": {
+            "type": "string"
+           },
+           "title": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "action_id",
+           "command",
+           "contexts",
+           "description",
+           "platforms",
+           "plugin_id",
+           "title"
+          ]
+         }
+        },
+        "type": {
+         "const": "plugin_action_list"
+        }
+       },
+       "required": [
+        "actions",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "plugin": {
+         "$ref": "#/$defs/plugin"
+        },
+        "type": {
+         "const": "plugin_disabled"
+        }
+       },
+       "required": [
+        "plugin",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "plugin": {
+         "$ref": "#/$defs/plugin"
+        },
+        "type": {
+         "const": "plugin_enabled"
+        }
+       },
+       "required": [
+        "plugin",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "plugins": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/plugin"
+         }
+        },
+        "type": {
+         "const": "plugin_list"
+        }
+       },
+       "required": [
+        "plugins",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "logs": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "command": {
+            "type": "array"
+           },
+           "event": {
+            "type": "string"
+           },
+           "finished_unix_ms": {
+            "type": "integer"
+           },
+           "log_id": {
+            "type": "string"
+           },
+           "plugin_id": {
+            "type": "string"
+           },
+           "started_unix_ms": {
+            "type": "integer"
+           },
+           "status": {
+            "type": "string"
+           }
+          },
+          "required": [
+           "command",
+           "event",
+           "finished_unix_ms",
+           "log_id",
+           "plugin_id",
+           "started_unix_ms",
+           "status"
+          ]
+         }
+        },
+        "type": {
+         "const": "plugin_log_list"
+        }
+       },
+       "required": [
+        "logs",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "capabilities": {
+         "type": [
+          "object",
+          "null"
+         ]
+        },
+        "protocol": {
+         "type": "integer"
+        },
+        "type": {
+         "const": "pong"
+        },
+        "version": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "capabilities",
+        "protocol",
+        "type",
+        "version"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "subscription_started"
+        }
+       },
+       "required": [
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "root_pane": {
+         "$ref": "#/$defs/pane"
+        },
+        "tab": {
+         "$ref": "#/$defs/tab"
+        },
+        "type": {
+         "const": "tab_created"
+        }
+       },
+       "required": [
+        "root_pane",
+        "tab",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "tab": {
+         "$ref": "#/$defs/tab"
+        },
+        "type": {
+         "const": "tab_info"
+        }
+       },
+       "required": [
+        "tab",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "tabs": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/tab"
+         }
+        },
+        "type": {
+         "const": "tab_list"
+        }
+       },
+       "required": [
+        "tabs",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "event": {
+         "type": "object",
+         "properties": {
+          "data": {
+           "type": "object",
+           "properties": {
+            "tab": {
+             "$ref": "#/$defs/tab"
+            },
+            "type": {
+             "const": "tab_created"
+            }
+           },
+           "required": [
+            "tab",
+            "type"
+           ]
+          },
+          "event": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "data",
+          "event"
+         ]
+        },
+        "type": {
+         "const": "wait_matched"
+        }
+       },
+       "required": [
+        "event",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "root_pane": {
+         "$ref": "#/$defs/pane"
+        },
+        "tab": {
+         "$ref": "#/$defs/tab"
+        },
+        "type": {
+         "const": "workspace_created"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        }
+       },
+       "required": [
+        "root_pane",
+        "tab",
+        "type",
+        "workspace"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "workspace_info"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        }
+       },
+       "required": [
+        "type",
+        "workspace"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "workspace_list"
+        },
+        "workspaces": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/workspace"
+         }
+        }
+       },
+       "required": [
+        "type",
+        "workspaces"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "root_pane": {
+         "$ref": "#/$defs/pane"
+        },
+        "tab": {
+         "$ref": "#/$defs/tab"
+        },
+        "type": {
+         "const": "worktree_created"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        },
+        "worktree": {
+         "$ref": "#/$defs/worktree"
+        }
+       },
+       "required": [
+        "root_pane",
+        "tab",
+        "type",
+        "workspace",
+        "worktree"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "source": {
+         "type": "object",
+         "properties": {
+          "repo_key": {
+           "type": "string"
+          },
+          "repo_name": {
+           "type": "string"
+          },
+          "repo_root": {
+           "type": "string"
+          },
+          "source_checkout_path": {
+           "type": "string"
+          },
+          "source_workspace_id": {
+           "type": "string"
+          }
+         },
+         "required": [
+          "repo_key",
+          "repo_name",
+          "repo_root",
+          "source_checkout_path",
+          "source_workspace_id"
+         ]
+        },
+        "type": {
+         "const": "worktree_list"
+        },
+        "worktrees": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/worktree"
+         }
+        }
+       },
+       "required": [
+        "source",
+        "type",
+        "worktrees"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "already_open": {
+         "type": "boolean"
+        },
+        "root_pane": {
+         "$ref": "#/$defs/pane"
+        },
+        "tab": {
+         "$ref": "#/$defs/tab"
+        },
+        "type": {
+         "const": "worktree_opened"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        },
+        "worktree": {
+         "$ref": "#/$defs/worktree"
+        }
+       },
+       "required": [
+        "already_open",
+        "root_pane",
+        "tab",
+        "type",
+        "workspace",
+        "worktree"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "forced": {
+         "type": "boolean"
+        },
+        "path": {
+         "type": "string"
+        },
+        "type": {
+         "const": "worktree_removed"
+        },
+        "workspace_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "forced",
+        "path",
+        "type",
+        "workspace_id"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "path": {
+         "type": "string"
+        },
+        "absPath": {
+         "type": "string"
+        },
+        "mime": {
+         "type": "string"
+        },
+        "size": {
+         "type": "integer"
+        },
+        "mtime": {
+         "type": "integer"
+        },
+        "text": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "data": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "truncated": {
+         "type": "boolean"
+        },
+        "binary": {
+         "type": "boolean"
+        },
+        "changes": {
+         "type": "object",
+         "properties": {
+          "kind": {
+           "enum": [
+            "new",
+            "tool",
+            "git",
+            "none"
+           ]
+          }
+         },
+         "required": [
+          "kind"
+         ]
+        },
+        "type": {
+         "const": "chat_file"
+        }
+       },
+       "required": [
+        "path",
+        "mime",
+        "size",
+        "truncated",
+        "binary",
+        "changes",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "project": {
+         "type": "string"
+        },
+        "path": {
+         "type": "string"
+        },
+        "files": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/file_entry"
+         }
+        },
+        "type": {
+         "const": "files_list"
+        }
+       },
+       "required": [
+        "project",
+        "path",
+        "files",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "name": {
+         "type": "string"
+        },
+        "dir": {
+         "enum": [
+          "inbox",
+          "outbox"
+         ]
+        },
+        "path": {
+         "type": "string"
+        },
+        "size": {
+         "type": "integer"
+        },
+        "mtime": {
+         "type": "integer"
+        },
+        "pinned": {
+         "type": "boolean"
+        },
+        "expiresAt": {
+         "type": "integer"
+        },
+        "source": {
+         "type": "string"
+        },
+        "sha256": {
+         "type": "string",
+         "pattern": "^[0-9a-f]{64}$"
+        },
+        "note": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "originalName": {
+         "type": "string"
+        },
+        "type": {
+         "const": "files_stat"
+        }
+       },
+       "required": [
+        "name",
+        "dir",
+        "path",
+        "size",
+        "mtime",
+        "pinned",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "name": {
+         "type": "string"
+        },
+        "type": {
+         "const": "files_deleted"
+        }
+       },
+       "required": [
+        "name",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "name": {
+         "type": "string"
+        },
+        "pinned": {
+         "type": "boolean"
+        },
+        "type": {
+         "const": "files_pinned"
+        }
+       },
+       "required": [
+        "name",
+        "pinned",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "usedBytes": {
+         "type": "integer"
+        },
+        "quotaBytes": {
+         "type": "integer"
+        },
+        "maxFileBytes": {
+         "type": "integer"
+        },
+        "freeBytes": {
+         "type": "integer"
+        },
+        "totalBytes": {
+         "type": "integer"
+        },
+        "floorBytes": {
+         "type": "integer"
+        },
+        "level": {
+         "enum": [
+          "ok",
+          "low",
+          "critical",
+          "alert"
+         ]
+        },
+        "uploadsAllowed": {
+         "type": "boolean"
+        },
+        "root": {
+         "type": "string"
+        },
+        "type": {
+         "const": "files_quota"
+        }
+       },
+       "required": [
+        "usedBytes",
+        "quotaBytes",
+        "maxFileBytes",
+        "freeBytes",
+        "totalBytes",
+        "floorBytes",
+        "level",
+        "uploadsAllowed",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "project": {
+         "type": "string"
+        },
+        "name": {
+         "type": "string"
+        },
+        "path": {
+         "type": "string"
+        },
+        "size": {
+         "type": "integer"
+        },
+        "sha256": {
+         "type": "string",
+         "pattern": "^[0-9a-f]{64}$"
+        },
+        "type": {
+         "const": "files_shared"
+        }
+       },
+       "required": [
+        "project",
+        "name",
+        "path",
+        "size",
+        "sha256",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "project": {
+         "type": "string"
+        },
+        "requestId": {
+         "type": "string"
+        },
+        "inbox": {
+         "type": "string"
+        },
+        "type": {
+         "const": "files_requested"
+        }
+       },
+       "required": [
+        "project",
+        "requestId",
+        "inbox",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "uploadId": {
+         "type": "string",
+         "pattern": "^[A-Za-z0-9_-]{8,64}$"
+        },
+        "project": {
+         "type": "string"
+        },
+        "name": {
+         "type": "string"
+        },
+        "size": {
+         "type": "integer"
+        },
+        "chunkSize": {
+         "type": "integer"
+        },
+        "chunkCount": {
+         "type": "integer"
+        },
+        "received": {
+         "type": "array",
+         "items": {
+          "type": "integer"
+         }
+        },
+        "expiresAt": {
+         "type": "integer"
+        },
+        "type": {
+         "const": "upload_init"
+        }
+       },
+       "required": [
+        "uploadId",
+        "project",
+        "name",
+        "size",
+        "chunkSize",
+        "chunkCount",
+        "received",
+        "expiresAt",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "uploadId": {
+         "type": "string",
+         "pattern": "^[A-Za-z0-9_-]{8,64}$"
+        },
+        "project": {
+         "type": "string"
+        },
+        "name": {
+         "type": "string"
+        },
+        "size": {
+         "type": "integer"
+        },
+        "chunkSize": {
+         "type": "integer"
+        },
+        "chunkCount": {
+         "type": "integer"
+        },
+        "received": {
+         "type": "array",
+         "items": {
+          "type": "integer"
+         }
+        },
+        "expiresAt": {
+         "type": "integer"
+        },
+        "done": {
+         "type": [
+          "object",
+          "null"
+         ]
+        },
+        "type": {
+         "const": "upload_status"
+        }
+       },
+       "required": [
+        "uploadId",
+        "size",
+        "chunkSize",
+        "chunkCount",
+        "received",
+        "expiresAt",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "path": {
+         "type": "string"
+        },
+        "name": {
+         "type": "string"
+        },
+        "project": {
+         "type": "string"
+        },
+        "sha256": {
+         "type": "string",
+         "pattern": "^[0-9a-f]{64}$"
+        },
+        "size": {
+         "type": "integer"
+        },
+        "type": {
+         "const": "upload_complete"
+        }
+       },
+       "required": [
+        "path",
+        "name",
+        "project",
+        "sha256",
+        "size",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "upload_aborted"
+        }
+       },
+       "required": [
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "size": {
+         "type": "integer"
+        },
+        "offset": {
+         "type": "integer"
+        },
+        "bytes": {
+         "type": "integer"
+        },
+        "eof": {
+         "type": "boolean"
+        },
+        "mtime": {
+         "type": "integer"
+        },
+        "type": {
+         "const": "files_read"
+        }
+       },
+       "required": [
+        "size",
+        "offset",
+        "bytes",
+        "eof",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "needs_list"
+        },
+        "items": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "required": [
+           "id",
+           "paneId",
+           "plugin",
+           "kind",
+           "title",
+           "risk",
+           "responses",
+           "answerVia",
+           "source",
+           "createdAt"
+          ]
+         }
+        }
+       },
+       "required": [
+        "items",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "needs_respond"
+        },
+        "outcome": {
+         "enum": [
+          "accepted",
+          "stale",
+          "unknown"
+         ]
+        }
+       },
+       "required": [
+        "outcome",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "roots": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]+$"
+           },
+           "kind": {
+            "enum": [
+             "workspace",
+             "project",
+             "files",
+             "extra"
+            ]
+           },
+           "label": {
+            "type": "string"
+           },
+           "writable": {
+            "type": "boolean"
+           },
+           "place": {
+            "type": "object",
+            "properties": {
+             "root": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+$"
+             },
+             "path": {
+              "type": "string"
+             }
+            },
+            "required": [
+             "root",
+             "path"
+            ]
+           }
+          },
+          "required": [
+           "id",
+           "kind",
+           "label",
+           "writable"
+          ]
+         }
+        },
+        "refused": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "label": {
+            "type": "string"
+           },
+           "kind": {
+            "type": "string"
+           },
+           "why": {
+            "enum": [
+             "too_broad",
+             "unreachable",
+             "gone"
+            ]
+           }
+          },
+          "required": [
+           "label",
+           "kind",
+           "why"
+          ]
+         }
+        },
+        "canWrite": {
+         "type": "boolean"
+        },
+        "why": {
+         "type": "string"
+        },
+        "limits": {
+         "type": "object"
+        },
+        "type": {
+         "const": "fs_roots"
+        }
+       },
+       "required": [
+        "roots",
+        "refused",
+        "canWrite",
+        "limits",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "root": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 64,
+         "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "path": {
+         "type": "string"
+        },
+        "entries": {
+         "type": "array",
+         "maxItems": 500,
+         "items": {
+          "type": "object",
+          "properties": {
+           "name": {
+            "type": "string"
+           },
+           "kind": {
+            "enum": [
+             "file",
+             "dir",
+             "link",
+             "other"
+            ]
+           },
+           "size": {
+            "type": "integer",
+            "minimum": 0
+           },
+           "mtimeMs": {
+            "type": "integer",
+            "minimum": 0
+           },
+           "mime": {
+            "type": "string"
+           },
+           "ignored": {
+            "type": "boolean"
+           }
+          },
+          "required": [
+           "name",
+           "kind",
+           "size",
+           "mtimeMs"
+          ]
+         }
+        },
+        "hidden": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "skipped": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "partial": {
+         "type": "boolean"
+        },
+        "next": {
+         "type": "string"
+        },
+        "type": {
+         "const": "fs_list"
+        }
+       },
+       "required": [
+        "root",
+        "path",
+        "entries",
+        "hidden",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "entry": {
+         "type": "object",
+         "properties": {
+          "name": {
+           "type": "string"
+          },
+          "kind": {
+           "enum": [
+            "file",
+            "dir",
+            "link",
+            "other"
+           ]
+          },
+          "size": {
+           "type": "integer",
+           "minimum": 0
+          },
+          "mtimeMs": {
+           "type": "integer",
+           "minimum": 0
+          },
+          "mime": {
+           "type": "string"
+          },
+          "ignored": {
+           "type": "boolean"
+          }
+         },
+         "required": [
+          "name",
+          "kind",
+          "size",
+          "mtimeMs"
+         ]
+        },
+        "version": {
+         "type": "string",
+         "pattern": "^v1\\.[0-9a-f]{64}\\.[0-9]+\\.[0-9]+$"
+        },
+        "editable": {
+         "type": "boolean"
+        },
+        "why": {
+         "enum": [
+          "too_large",
+          "binary",
+          "not_utf8",
+          "masked",
+          "read_only_root",
+          "truncated"
+         ]
+        },
+        "type": {
+         "const": "fs_stat"
+        }
+       },
+       "required": [
+        "entry",
+        "editable",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "root": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 64,
+         "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "path": {
+         "type": "string"
+        },
+        "name": {
+         "type": "string"
+        },
+        "mime": {
+         "type": "string"
+        },
+        "size": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "mtimeMs": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "version": {
+         "type": "string",
+         "pattern": "^v1\\.[0-9a-f]{64}\\.[0-9]+\\.[0-9]+$"
+        },
+        "kind": {
+         "enum": [
+          "text",
+          "image",
+          "binary"
+         ]
+        },
+        "text": {
+         "type": "string"
+        },
+        "truncated": {
+         "type": "boolean"
+        },
+        "masked": {
+         "type": "boolean"
+        },
+        "eol": {
+         "enum": [
+          "lf",
+          "crlf",
+          "mixed"
+         ]
+        },
+        "bom": {
+         "type": "boolean"
+        },
+        "finalNewline": {
+         "type": "boolean"
+        },
+        "editable": {
+         "type": "boolean"
+        },
+        "why": {
+         "enum": [
+          "too_large",
+          "binary",
+          "not_utf8",
+          "masked",
+          "read_only_root",
+          "truncated"
+         ]
+        },
+        "type": {
+         "const": "fs_file"
+        }
+       },
+       "required": [
+        "root",
+        "path",
+        "name",
+        "mime",
+        "size",
+        "mtimeMs",
+        "kind",
+        "truncated",
+        "masked",
+        "eol",
+        "bom",
+        "finalNewline",
+        "editable",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "matches": {
+         "type": "array",
+         "maxItems": 50,
+         "items": {
+          "type": "object",
+          "properties": {
+           "path": {
+            "type": "string"
+           },
+           "kind": {
+            "enum": [
+             "file",
+             "dir"
+            ]
+           }
+          },
+          "required": [
+           "path",
+           "kind"
+          ]
+         }
+        },
+        "partial": {
+         "type": "boolean"
+        },
+        "hidden": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "type": {
+         "const": "fs_found"
+        }
+       },
+       "required": [
+        "matches",
+        "partial",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "git_status"
+        },
+        "repo": {
+         "type": "string"
+        },
+        "branch": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "head": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "files": {
+         "type": "array",
+         "maxItems": 1000,
+         "items": {
+          "type": "object",
+          "properties": {
+           "path": {
+            "type": "string"
+           },
+           "status": {
+            "enum": [
+             "M",
+             "A",
+             "D",
+             "?",
+             "U",
+             "T"
+            ]
+           },
+           "add": {
+            "type": [
+             "integer",
+             "null"
+            ],
+            "minimum": 0
+           },
+           "del": {
+            "type": [
+             "integer",
+             "null"
+            ],
+            "minimum": 0
+           },
+           "binary": {
+            "type": "boolean"
+           },
+           "why": {
+            "enum": [
+             null,
+             "name",
+             "link",
+             "special",
+             "too_large",
+             "gone"
+            ]
+           }
+          },
+          "required": [
+           "path",
+           "status",
+           "binary"
+          ]
+         }
+        },
+        "add": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "del": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "hidden": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "truncated": {
+         "type": "boolean"
+        }
+       },
+       "required": [
+        "type",
+        "repo",
+        "files",
+        "hidden",
+        "truncated"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "git_diff"
+        },
+        "path": {
+         "type": "string"
+        },
+        "status": {
+         "enum": [
+          "M",
+          "A",
+          "D",
+          "?",
+          "U",
+          "T"
+         ]
+        },
+        "binary": {
+         "type": "boolean"
+        },
+        "patch": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "truncated": {
+         "type": "boolean"
+        },
+        "lines": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "large": {
+         "type": "boolean"
+        },
+        "why": {
+         "enum": [
+          null,
+          "name",
+          "link",
+          "special",
+          "too_large",
+          "gone"
+         ]
+        }
+       },
+       "required": [
+        "type",
+        "path",
+        "status",
+        "binary",
+        "patch",
+        "truncated"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "task": {
+         "$ref": "#/$defs/task"
+        },
+        "type": {
+         "const": "task_info"
+        }
+       },
+       "required": [
+        "task",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "tasks": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/task"
+         }
+        },
+        "type": {
+         "const": "task_list"
+        }
+       },
+       "required": [
+        "tasks",
+        "type"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "error_response": {
+   "type": "object",
+   "required": [
+    "id",
+    "error"
+   ],
+   "properties": {
+    "id": {
+     "type": "string"
+    },
+    "error": {
+     "type": "object",
+     "required": [
+      "code",
+      "message"
+     ],
+     "properties": {
+      "code": {
+       "type": "string"
+      },
+      "message": {
+       "type": "string"
+      }
+     }
+    }
+   }
+  },
+  "event": {
+   "type": "object",
+   "required": [
+    "event",
+    "data"
+   ],
+   "oneOf": [
+    {
+     "properties": {
+      "event": {
+       "const": "workspace_created"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "workspace_created"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        },
+        "workspace_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "workspace"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "workspace_focused"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "workspace_focused"
+        },
+        "workspace_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "workspace_renamed"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "workspace_renamed"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "workspace_id",
+        "label"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "workspace_moved"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "workspace_moved"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "insert_index": {
+         "type": "integer"
+        },
+        "workspaces": {
+         "type": "array"
+        }
+       },
+       "required": [
+        "type",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "workspace_closed"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "workspace_closed"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        }
+       },
+       "required": [
+        "type",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "tab_created"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "tab_created"
+        },
+        "tab": {
+         "$ref": "#/$defs/tab"
+        }
+       },
+       "required": [
+        "type",
+        "tab"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "tab_focused"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "tab_focused"
+        },
+        "tab_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "tab_id",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "tab_renamed"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "tab_renamed"
+        },
+        "tab_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "label": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "tab_id",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "tab_moved"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "tab_moved"
+        },
+        "tab_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "insert_index": {
+         "type": "integer"
+        },
+        "tabs": {
+         "type": "array"
+        }
+       },
+       "required": [
+        "type",
+        "tab_id",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "tab_closed"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "tab_closed"
+        },
+        "tab_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "tab_id",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane_created"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_created"
+        },
+        "pane": {
+         "$ref": "#/$defs/pane"
+        }
+       },
+       "required": [
+        "type",
+        "pane"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane_updated"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_updated"
+        },
+        "pane": {
+         "$ref": "#/$defs/pane"
+        }
+       },
+       "required": [
+        "type",
+        "pane"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane_focused"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_focused"
+        },
+        "pane_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "pane_id",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane_moved"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_moved"
+        },
+        "pane_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane_exited"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_exited"
+        },
+        "pane_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "pane_id",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane_closed"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_closed"
+        },
+        "pane_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "type",
+        "pane_id",
+        "workspace_id"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane_agent_detected"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_agent_detected"
+        },
+        "pane_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "agent": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "released": {
+         "type": "boolean"
+        }
+       },
+       "required": [
+        "type",
+        "pane_id",
+        "workspace_id",
+        "agent",
+        "released"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane_agent_status_changed"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "pane_agent_status_changed"
+        },
+        "pane_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "agent_status": {
+         "$ref": "#/$defs/agent_status"
+        },
+        "agent": {
+         "type": [
+          "string",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "type",
+        "pane_id",
+        "workspace_id",
+        "agent_status"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "layout_updated"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "layout_updated"
+        },
+        "layout": {
+         "$ref": "#/$defs/layout"
+        }
+       },
+       "required": [
+        "type",
+        "layout"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "worktree_created"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "worktree_created"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        },
+        "worktree": {
+         "$ref": "#/$defs/worktree"
+        }
+       },
+       "required": [
+        "type",
+        "workspace",
+        "worktree"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "worktree_opened"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "worktree_opened"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        },
+        "worktree": {
+         "$ref": "#/$defs/worktree"
+        },
+        "already_open": {
+         "type": "boolean"
+        }
+       },
+       "required": [
+        "type",
+        "workspace",
+        "worktree",
+        "already_open"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "worktree_removed"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "worktree_removed"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "workspace": {
+         "$ref": "#/$defs/workspace"
+        },
+        "worktree": {
+         "$ref": "#/$defs/worktree"
+        },
+        "forced": {
+         "type": "boolean"
+        }
+       },
+       "required": [
+        "type",
+        "workspace_id",
+        "worktree",
+        "forced"
+       ]
+      }
+     },
+     "required": [
+      "event",
+      "data"
+     ]
+    }
+   ]
+  },
+  "subscription_event": {
+   "type": "object",
+   "required": [
+    "event",
+    "data"
+   ],
+   "oneOf": [
+    {
+     "properties": {
+      "event": {
+       "const": "pane.agent_status_changed"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "pane_id": {
+         "type": "string"
+        },
+        "workspace_id": {
+         "type": "string"
+        },
+        "agent_status": {
+         "$ref": "#/$defs/agent_status"
+        },
+        "agent": {
+         "type": [
+          "string",
+          "null"
+         ]
+        }
+       },
+       "required": [
+        "pane_id",
+        "workspace_id",
+        "agent_status"
+       ]
+      }
+     }
+    },
+    {
+     "properties": {
+      "event": {
+       "const": "pane.output_matched"
+      },
+      "data": {
+       "type": "object",
+       "properties": {
+        "pane_id": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "pane_id"
+       ]
+      }
+     }
+    }
+   ]
+  }
+ },
+ "$defs": {
+  "read": {
+   "type": "object",
+   "properties": {
+    "format": {
+     "type": "string"
+    },
+    "history": {
+     "description": "source history only: which lines this page holds (first .. first+count), the oldest the pane still has (start), one past the newest (end), the pane's line limit, and whether older lines exist (more)",
+     "type": "object",
+     "properties": {
+      "first": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "count": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "start": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "end": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "limit": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "more": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "first",
+      "count",
+      "start",
+      "end",
+      "limit",
+      "more"
+     ]
+    },
+    "pane_id": {
+     "type": "string"
+    },
+    "revision": {
+     "type": "integer"
+    },
+    "source": {
+     "type": "string"
+    },
+    "tab_id": {
+     "type": "string"
+    },
+    "text": {
+     "type": "string"
+    },
+    "truncated": {
+     "type": "boolean"
+    },
+    "workspace_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "format",
+    "pane_id",
+    "revision",
+    "source",
+    "tab_id",
+    "text",
+    "truncated",
+    "workspace_id"
+   ]
+  },
+  "agent": {
+   "type": "object",
+   "properties": {
+    "agent": {
+     "type": "string"
+    },
+    "agent_session": {
+     "type": "object",
+     "properties": {
+      "agent": {
+       "type": "string"
+      },
+      "kind": {
+       "type": "string"
+      },
+      "source": {
+       "type": "string"
+      },
+      "value": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "agent",
+      "kind",
+      "source",
+      "value"
+     ]
+    },
+    "agent_status": {
+     "type": "string"
+    },
+    "completion_seq": {
+     "type": [
+      "integer",
+      "null"
+     ]
+    },
+    "cwd": {
+     "type": "string"
+    },
+    "display_agent": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "focused": {
+     "type": "boolean"
+    },
+    "interactive_ready": {
+     "type": "boolean"
+    },
+    "label": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "launch_pending": {
+     "type": "boolean"
+    },
+    "name": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "pane_id": {
+     "type": "string"
+    },
+    "revision": {
+     "type": "integer"
+    },
+    "screen_detection_skipped": {
+     "type": "boolean"
+    },
+    "state_change_seq": {
+     "type": "integer"
+    },
+    "state_labels": {
+     "type": "object",
+     "properties": {}
+    },
+    "tab_id": {
+     "type": "string"
+    },
+    "terminal_id": {
+     "type": "string"
+    },
+    "terminal_title": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "terminal_title_stripped": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "title": {
+     "type": "string"
+    },
+    "tokens": {
+     "type": "object",
+     "properties": {}
+    },
+    "workspace_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "agent",
+    "agent_status",
+    "completion_seq",
+    "cwd",
+    "display_agent",
+    "focused",
+    "interactive_ready",
+    "label",
+    "launch_pending",
+    "name",
+    "pane_id",
+    "revision",
+    "screen_detection_skipped",
+    "state_change_seq",
+    "state_labels",
+    "tab_id",
+    "terminal_id",
+    "terminal_title",
+    "terminal_title_stripped",
+    "title",
+    "tokens",
+    "workspace_id"
+   ]
+  },
+  "pane": {
+   "type": "object",
+   "properties": {
+    "agent": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "agent_session": {
+     "type": "object",
+     "properties": {
+      "agent": {
+       "type": "string"
+      },
+      "kind": {
+       "type": "string"
+      },
+      "source": {
+       "type": "string"
+      },
+      "value": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "agent",
+      "kind",
+      "source",
+      "value"
+     ]
+    },
+    "agent_status": {
+     "$ref": "#/$defs/agent_status"
+    },
+    "cwd": {
+     "type": "string"
+    },
+    "display_agent": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "focused": {
+     "type": "boolean"
+    },
+    "label": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "pane_id": {
+     "type": "string"
+    },
+    "revision": {
+     "type": "integer"
+    },
+    "state_labels": {
+     "type": "object",
+     "properties": {
+      "working": {
+       "type": "string"
+      }
+     }
+    },
+    "tab_id": {
+     "type": "string"
+    },
+    "terminal_id": {
+     "type": "string"
+    },
+    "terminal_title": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "terminal_title_stripped": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "title": {
+     "type": "string"
+    },
+    "tokens": {
+     "type": "object",
+     "properties": {}
+    },
+    "workspace_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "agent",
+    "agent_status",
+    "cwd",
+    "display_agent",
+    "focused",
+    "label",
+    "pane_id",
+    "revision",
+    "state_labels",
+    "tab_id",
+    "terminal_id",
+    "terminal_title",
+    "terminal_title_stripped",
+    "title",
+    "tokens",
+    "workspace_id"
+   ]
+  },
+  "explain": {
+   "type": "object",
+   "properties": {
+    "agent": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "aimux": {
+     "type": "object",
+     "properties": {
+      "effective_status": {
+       "type": "string"
+      },
+      "heuristic": {
+       "type": "string"
+      },
+      "process_kind": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "reported": {
+       "type": [
+        "null",
+        "object"
+       ],
+       "properties": {
+        "source": {
+         "type": "string"
+        },
+        "status": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "source",
+        "status"
+       ]
+      },
+      "screen": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "source": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "effective_status",
+      "heuristic",
+      "process_kind",
+      "reported",
+      "screen",
+      "source"
+     ]
+    },
+    "default": {
+     "type": "boolean"
+    },
+    "revision": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "signal": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "signals": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "matched": {
+        "type": "boolean"
+       },
+       "name": {
+        "type": "string"
+       },
+       "rank": {
+        "type": "integer"
+       },
+       "scope": {
+        "type": "string"
+       },
+       "scope_bytes": {
+        "type": "integer"
+       },
+       "scope_preview": {
+        "type": "string"
+       },
+       "status": {
+        "type": "string"
+       },
+       "when": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "matched",
+       "name",
+       "rank",
+       "scope",
+       "scope_bytes",
+       "scope_preview",
+       "status",
+       "when"
+      ]
+     }
+    },
+    "source": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "status": {
+     "type": "string"
+    },
+    "tmuxedo": {
+     "type": "object",
+     "properties": {
+      "effective_status": {
+       "type": "string"
+      },
+      "heuristic": {
+       "type": "string"
+      },
+      "process_kind": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "reported": {
+       "type": [
+        "null",
+        "object"
+       ],
+       "properties": {
+        "source": {
+         "type": "string"
+        },
+        "status": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "source",
+        "status"
+       ]
+      },
+      "screen": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "source": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "effective_status",
+      "heuristic",
+      "process_kind",
+      "reported",
+      "screen",
+      "source"
+     ]
+    },
+    "warning": {
+     "type": [
+      "string",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "agent",
+    "aimux",
+    "default",
+    "revision",
+    "signal",
+    "signals",
+    "source",
+    "status",
+    "tmuxedo",
+    "warning"
+   ]
+  },
+  "tab": {
+   "type": "object",
+   "properties": {
+    "agent_status": {
+     "$ref": "#/$defs/agent_status"
+    },
+    "focused": {
+     "type": "boolean"
+    },
+    "label": {
+     "type": "string"
+    },
+    "number": {
+     "type": "integer"
+    },
+    "pane_count": {
+     "type": "integer"
+    },
+    "tab_id": {
+     "type": "string"
+    },
+    "workspace_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "agent_status",
+    "focused",
+    "label",
+    "number",
+    "pane_count",
+    "tab_id",
+    "workspace_id"
+   ]
+  },
+  "workspace": {
+   "type": "object",
+   "properties": {
+    "active_tab_id": {
+     "type": "string"
+    },
+    "agent_status": {
+     "$ref": "#/$defs/agent_status"
+    },
+    "focused": {
+     "type": "boolean"
+    },
+    "label": {
+     "type": "string"
+    },
+    "number": {
+     "type": "integer"
+    },
+    "pane_count": {
+     "type": "integer"
+    },
+    "tab_count": {
+     "type": "integer"
+    },
+    "workspace_id": {
+     "type": "string"
+    },
+    "worktree": {
+     "oneOf": [
+      {
+       "$ref": "#/$defs/worktree"
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   },
+   "required": [
+    "active_tab_id",
+    "agent_status",
+    "focused",
+    "label",
+    "number",
+    "pane_count",
+    "tab_count",
+    "workspace_id",
+    "worktree"
+   ]
+  },
+  "layout": {
+   "type": "object",
+   "properties": {
+    "focused_pane_id": {
+     "type": "string"
+    },
+    "root": {
+     "$ref": "#/$defs/layout_node"
+    },
+    "tab_id": {
+     "type": "string"
+    },
+    "workspace_id": {
+     "type": "string"
+    },
+    "zoomed": {
+     "type": "boolean"
+    },
+    "area": {
+     "type": "object",
+     "properties": {
+      "height": {
+       "type": "integer"
+      },
+      "width": {
+       "type": "integer"
+      },
+      "x": {
+       "type": "integer"
+      },
+      "y": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "height",
+      "width",
+      "x",
+      "y"
+     ]
+    },
+    "panes": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "focused": {
+        "type": "boolean"
+       },
+       "pane_id": {
+        "type": "string"
+       },
+       "rect": {
+        "type": "object",
+        "properties": {
+         "height": {
+          "type": "integer"
+         },
+         "width": {
+          "type": "integer"
+         },
+         "x": {
+          "type": "integer"
+         },
+         "y": {
+          "type": "integer"
+         }
+        },
+        "required": [
+         "height",
+         "width",
+         "x",
+         "y"
+        ]
+       }
+      },
+      "required": [
+       "focused",
+       "pane_id",
+       "rect"
+      ]
+     }
+    },
+    "splits": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "direction": {
+        "type": "string"
+       },
+       "id": {
+        "type": "string"
+       },
+       "ratio": {
+        "type": "number"
+       },
+       "rect": {
+        "type": "object",
+        "properties": {
+         "height": {
+          "type": "integer"
+         },
+         "width": {
+          "type": "integer"
+         },
+         "x": {
+          "type": "integer"
+         },
+         "y": {
+          "type": "integer"
+         }
+        },
+        "required": [
+         "height",
+         "width",
+         "x",
+         "y"
+        ]
+       }
+      },
+      "required": [
+       "direction",
+       "id",
+       "ratio",
+       "rect"
+      ]
+     }
+    },
+    "pattern": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "focused_pane_id",
+    "tab_id",
+    "workspace_id",
+    "zoomed"
+   ]
+  },
+  "process_info": {
+   "type": "object",
+   "properties": {
+    "foreground_process_group_id": {
+     "type": [
+      "integer",
+      "null"
+     ]
+    },
+    "foreground_processes": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "argv": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "argv0": {
+        "type": "string"
+       },
+       "cmdline": {
+        "type": "string"
+       },
+       "cwd": {
+        "type": "string"
+       },
+       "name": {
+        "type": "string"
+       },
+       "pid": {
+        "type": "integer"
+       }
+      },
+      "required": [
+       "argv",
+       "argv0",
+       "cmdline",
+       "cwd",
+       "name",
+       "pid"
+      ]
+     }
+    },
+    "pane_id": {
+     "type": "string"
+    },
+    "shell_pid": {
+     "type": [
+      "integer",
+      "null"
+     ]
+    },
+    "tty": {
+     "type": [
+      "null",
+      "string"
+     ]
+    }
+   },
+   "required": [
+    "foreground_process_group_id",
+    "foreground_processes",
+    "pane_id",
+    "shell_pid",
+    "tty"
+   ]
+  },
+  "plugin": {
+   "type": "object",
+   "properties": {
+    "actions": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "command": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "contexts": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "description": {
+        "type": "string"
+       },
+       "id": {
+        "type": "string"
+       },
+       "platforms": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "title": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "command",
+       "contexts",
+       "description",
+       "id",
+       "platforms",
+       "title"
+      ]
+     }
+    },
+    "agent": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "build": {
+     "type": "array"
+    },
+    "capabilities": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "contract": {
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "enabled": {
+     "type": "boolean"
+    },
+    "events": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "command": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "on": {
+        "type": "string"
+       }
+      },
+      "required": [
+       "command",
+       "on"
+      ]
+     }
+    },
+    "link_handlers": {
+     "type": "array"
+    },
+    "manifest_path": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "panes": {
+     "type": "array"
+    },
+    "platforms": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "plugin_id": {
+     "type": "string"
+    },
+    "plugin_root": {
+     "type": "string"
+    },
+    "source": {
+     "type": "object",
+     "properties": {
+      "kind": {
+       "type": "string"
+      },
+      "managed_path": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "kind",
+      "managed_path"
+     ]
+    },
+    "startup": {
+     "type": "array"
+    },
+    "tier": {
+     "type": "string"
+    },
+    "version": {
+     "type": "string"
+    },
+    "warnings": {
+     "type": "array"
+    }
+   },
+   "required": [
+    "actions",
+    "agent",
+    "build",
+    "capabilities",
+    "contract",
+    "description",
+    "enabled",
+    "events",
+    "link_handlers",
+    "manifest_path",
+    "name",
+    "panes",
+    "platforms",
+    "plugin_id",
+    "plugin_root",
+    "source",
+    "startup",
+    "tier",
+    "version",
+    "warnings"
+   ]
+  },
+  "focus": {
+   "type": "object",
+   "properties": {
+    "changed": {
+     "type": "boolean"
+    },
+    "focused_pane_id": {
+     "type": "string"
+    },
+    "layout": {
+     "$ref": "#/$defs/layout"
+    },
+    "reason": {
+     "type": [
+      "null",
+      "string"
+     ]
+    },
+    "source_pane_id": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "changed",
+    "focused_pane_id",
+    "layout",
+    "reason",
+    "source_pane_id"
+   ]
+  },
+  "worktree": {
+   "type": "object",
+   "properties": {
+    "checkout_path": {
+     "type": "string"
+    },
+    "is_linked_worktree": {
+     "type": "boolean"
+    },
+    "repo_key": {
+     "type": "string"
+    },
+    "repo_name": {
+     "type": "string"
+    },
+    "repo_root": {
+     "type": "string"
+    },
+    "branch": {
+     "type": "string"
+    },
+    "is_bare": {
+     "type": "boolean"
+    },
+    "is_detached": {
+     "type": "boolean"
+    },
+    "is_prunable": {
+     "type": "boolean"
+    },
+    "label": {
+     "type": "string"
+    },
+    "open_workspace_id": {
+     "type": "string"
+    },
+    "path": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "is_linked_worktree"
+   ]
+  },
+  "layout_node": {
+   "oneOf": [
+    {
+     "type": "object",
+     "required": [
+      "type",
+      "pane_id"
+     ],
+     "properties": {
+      "type": {
+       "const": "pane"
+      },
+      "pane_id": {
+       "type": "string"
+      },
+      "cwd": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "label": {
+       "type": [
+        "string",
+        "null"
+       ]
+      },
+      "command": {
+       "type": [
+        "array",
+        "null"
+       ],
+       "items": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    {
+     "type": "object",
+     "required": [
+      "type",
+      "direction",
+      "ratio",
+      "first",
+      "second"
+     ],
+     "properties": {
+      "type": {
+       "const": "split"
+      },
+      "direction": {
+       "enum": [
+        "right",
+        "down"
+       ]
+      },
+      "ratio": {
+       "type": "number"
+      },
+      "first": {
+       "$ref": "#/$defs/layout_node"
+      },
+      "second": {
+       "$ref": "#/$defs/layout_node"
+      }
+     }
+    }
+   ]
+  },
+  "agent_status": {
+   "enum": [
+    "working",
+    "blocked",
+    "done",
+    "idle",
+    "unknown"
+   ]
+  },
+  "chat_session": {
+   "type": "object",
+   "description": "An agent chat session (docs/protocol.md \"Agent chat\").",
+   "properties": {
+    "id": {
+     "type": "string",
+     "minLength": 8,
+     "maxLength": 64,
+     "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "plugin": {
+     "type": "string"
+    },
+    "cwd": {
+     "type": "string"
+    },
+    "mode": {
+     "type": "string"
+    },
+    "login": {
+     "enum": [
+      "api_key",
+      "cloud",
+      "subscription",
+      ""
+     ]
+    },
+    "title": {
+     "type": "string"
+    },
+    "status": {
+     "enum": [
+      "idle",
+      "working",
+      "needs_you",
+      "parked",
+      "terminal",
+      "closed"
+     ]
+    },
+    "createdAt": {
+     "type": "string"
+    },
+    "lastAt": {
+     "type": "string"
+    },
+    "preview": {
+     "type": "string"
+    },
+    "previewBy": {
+     "enum": [
+      "agent",
+      "you"
+     ]
+    },
+    "firstSeq": {
+     "type": "integer"
+    },
+    "lastSeq": {
+     "type": "integer"
+    },
+    "needs": {
+     "type": "integer"
+    },
+    "queued": {
+     "type": "integer"
+    },
+    "paneId": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "vendorSessionId": {
+     "type": "string"
+    },
+    "model": {
+     "type": [
+      "string",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "id",
+    "plugin",
+    "cwd",
+    "mode",
+    "status",
+    "firstSeq",
+    "lastSeq",
+    "needs",
+    "vendorSessionId"
+   ]
+  },
+  "file_entry": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "dir": {
+     "enum": [
+      "inbox",
+      "outbox"
+     ]
+    },
+    "path": {
+     "type": "string"
+    },
+    "size": {
+     "type": "integer"
+    },
+    "mtime": {
+     "type": "integer"
+    },
+    "pinned": {
+     "type": "boolean"
+    },
+    "expiresAt": {
+     "type": "integer"
+    },
+    "source": {
+     "type": "string"
+    },
+    "sha256": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{64}$"
+    },
+    "note": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "originalName": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "name",
+    "dir",
+    "path",
+    "size",
+    "mtime",
+    "pinned"
+   ]
+  },
+  "task": {
+   "type": "object",
+   "required": [
+    "task_id",
+    "kind",
+    "label",
+    "cwd",
+    "status",
+    "reason_code",
+    "reason",
+    "exit_code",
+    "signal",
+    "output",
+    "output_truncated",
+    "pane_id",
+    "session_id",
+    "started_at",
+    "ended_at"
+   ],
+   "properties": {
+    "task_id": {
+     "type": "string"
+    },
+    "kind": {
+     "enum": [
+      "command",
+      "agent"
+     ]
+    },
+    "label": {
+     "type": "string"
+    },
+    "cwd": {
+     "type": "string"
+    },
+    "status": {
+     "enum": [
+      "running",
+      "done",
+      "failed",
+      "cancelled",
+      "timed_out"
+     ]
+    },
+    "reason_code": {
+     "enum": [
+      null,
+      "exit_status",
+      "spawn_failed",
+      "timeout",
+      "permission_needed",
+      "taken_over",
+      "closed",
+      "lost"
+     ]
+    },
+    "reason": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "exit_code": {
+     "type": [
+      "integer",
+      "null"
+     ]
+    },
+    "signal": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "output": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "output_truncated": {
+     "type": "boolean"
+    },
+    "pane_id": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "session_id": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "started_at": {
+     "type": "string"
+    },
+    "ended_at": {
+     "type": [
+      "string",
+      "null"
+     ]
+    }
+   }
+  }
+ },
+ "$comment": "tmuxedo's runner API: requests and responses on the runner's local socket and in gateway req/res frames, and the events.subscribe stream. See runner/api/README.md."
+}

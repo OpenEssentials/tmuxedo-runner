@@ -1,0 +1,65 @@
+# Devin CLI. Format and meaning: docs/design/agent-detection.md.
+# Its footer changes with the state; an approval footer ("approve once" …
+# "esc cancel") overrides the others.
+agent = "devin"
+title = "Devin CLI"
+revision = "2026-10-05.1"
+launch = "devin"
+names = ["devin-cli", "devin cli"]
+
+[[signal]]
+name = "trust"
+status = "blocked"
+rank = 70
+scope = "last 8"
+when = '''"do you trust the authors of this directory?" and "with untrusted content." and "yes, trust "'''
+
+[[signal]]
+name = "approval"
+status = "blocked"
+rank = 60
+scope = "last 8"
+when = '''"approve once" and "select" and "confirm" and "esc cancel"'''
+
+[[signal]]
+name = "tools"
+status = "working"
+rank = 50
+scope = "last 8"
+when = '''"running tools" and "esc to interrupt" and not ("approve once" and "esc cancel")'''
+
+[[signal]]
+name = "guide"
+status = "working"
+rank = 40
+scope = "last 6"
+when = '''"guide devin while it works" and not ("approve once" and "esc cancel")'''
+
+[[signal]]
+name = "shell-read"
+status = "working"
+rank = 30
+scope = "last 8"
+when = '''"reading shell " and "timeout:" and not ("approve once" and "esc cancel")'''
+
+[[signal]]
+name = "welcome"
+status = "idle"
+rank = 20
+scope = "last 8"
+when = '''
+"ask devin to build" and "features, fix bugs" and "your code" and line /^\s*❭ Ask Devin to build/
+and not ("approve once" and "esc cancel")
+and not ("running tools" and "esc to interrupt")
+and not "guide devin while it works"'''
+
+[[signal]]
+name = "prompt"
+status = "idle"
+rank = 10
+scope = "last 6"
+when = '''
+"context:" and line /^\s*❭/
+and not ("approve once" and "esc cancel")
+and not ("running tools" and "esc to interrupt")
+and not "guide devin while it works"'''

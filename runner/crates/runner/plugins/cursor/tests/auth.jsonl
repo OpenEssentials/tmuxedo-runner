@@ -1,0 +1,6 @@
+{"screen": "Not logged in. Run `agent login` first.", "rule": "not_logged_in", "state": "expired"}
+{"screen": "Not logged in. Run `cursor-agent login` first.", "rule": "not_logged_in", "state": "expired"}
+{"screen": "  Run this command?\n  $ npm install", "rule": null}
+{"screen": "Logging in...\n\nIf your browser didn't open, click this link to log in:\nhttps://cursor.com/loginDeepControl?challenge=Zm9vYmFy&uuid=8c1b9a4e-2f5d-4b7a-9f2e-0c1d2e3f4a5b&mode=login&redirectTarget=cli&supportsSelectedTeamLogin=true\n\nPress q to show a QR code to log in from another device", "lift": {"id": "login_link", "url": "https://cursor.com/loginDeepControl?challenge=Zm9vYmFy&uuid=8c1b9a4e-2f5d-4b7a-9f2e-0c1d2e3f4a5b&mode=login&redirectTarget=cli&supportsSelectedTeamLogin=true", "code": null}}
+{"screen": "visit https://cursor.com/docs/cli for help", "lift": null}
+{"screen": "http://cursor.com/loginDeepControl?uuid=x", "lift": null}

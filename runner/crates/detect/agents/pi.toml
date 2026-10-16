@@ -1,0 +1,26 @@
+# Pi. Format and meaning: docs/design/agent-detection.md.
+agent = "pi"
+title = "Pi"
+revision = "2026-10-05.1"
+launch = "pi"
+
+[process]
+scripts = [
+  "node_modules/@earendil-works/pi-coding-agent/dist/cli.js",
+  "node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js",
+]
+
+[[signal]]
+name = "working"
+status = "working"
+rank = 10
+scope = "screen"
+when = '''"Working..." or line /^[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] Working$/'''
+
+# The working border drawn above the editor.
+[[signal]]
+name = "border"
+status = "working"
+rank = 10
+scope = "last 12"
+when = '''line /^── [⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] Working ─+$/'''

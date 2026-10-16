@@ -1,0 +1,119 @@
+# Release on a `v*` tag: four runner binaries (static Linux musl and native
+# macOS, x86_64 and aarch64), one CycloneDX SBOM per binary, SHA256SUMS,
+# install.sh and manifest.json, published as a GitHub Release with GitHub
+# artifact attestations (SLSA build provenance).
+#
+# Only the built-in GITHUB_TOKEN and the workflow's OIDC token (id-token:
+# write, for the attestations) are used; no other secrets. Actions are pinned
+# by commit SHA (the tag is in the comment).
+#
+# Verify a release: see "Verifying a release" in the README.
+name: release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  CARGO_TERM_COLOR: never
+jobs:
+  build-linux:
+    # Both Linux targets are static musl builds through cargo-zigbuild, the
+    # same recipe as runner/Dockerfile.downloads.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: tools (Rust, zig, cargo-zigbuild, cargo-cyclonedx; pinned)
+        run: sh .github/scripts/install-release-tools.sh linux
+      - name: x86_64-unknown-linux-musl
+        env:
+          TMUXEDO_VERSION: ${{ github.ref_name }}
+        run: sh .github/scripts/build-release.sh x86_64-unknown-linux-musl linux-x86_64
+      - name: aarch64-unknown-linux-musl
+        env:
+          TMUXEDO_VERSION: ${{ github.ref_name }}
+        run: sh .github/scripts/build-release.sh aarch64-unknown-linux-musl linux-aarch64
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-linux
+          path: dist/
+          if-no-files-found: error
+
+  build-macos:
+    # Native builds, one per architecture.
+    strategy:
+      matrix:
+        include:
+          - runner: macos-15-intel # Intel (macos-13 is retired on GitHub-hosted runners)
+            target: x86_64-apple-darwin
+            key: darwin-x86_64
+          - runner: macos-latest # Apple Silicon
+            target: aarch64-apple-darwin
+            key: darwin-aarch64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: tools (Rust, cargo-cyclonedx; pinned)
+        run: sh .github/scripts/install-release-tools.sh macos
+      - name: ${{ matrix.target }}
+        env:
+          TMUXEDO_VERSION: ${{ github.ref_name }}
+        run: sh .github/scripts/build-release.sh "${{ matrix.target }}" "${{ matrix.key }}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-${{ matrix.key }}
+          path: dist/
+          if-no-files-found: error
+
+  # ── Signing: NOT YET (S2) ────────────────────────────────────────────────
+  # Placeholder. Signing comes with S2: a job here that `needs: [build-linux,
+  # build-macos]`, runs in a protected environment (`environment: release-signing`,
+  # required reviewers), signs manifest.json / SHA256SUMS with the release key,
+  # and uploads the signatures for the publish job. Until then releases carry
+  # SHA-256 sums and GitHub attestations only; the runner does not verify a
+  # signature yet.
+  # ─────────────────────────────────────────────────────────────────────────
+
+  publish:
+    needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release
+      id-token: write # OIDC token for the attestations
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+      - name: install.sh, manifest.json, SHA256SUMS
+        env:
+          TMUXEDO_VERSION: ${{ github.ref_name }}
+        run: sh .github/scripts/finish-release.sh
+      - name: attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/tmuxedo-runner-*
+            dist/install.sh
+            dist/manifest.json
+            dist/SHA256SUMS
+      - name: GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" \
+            --notes "tmuxedo runner $TAG. Verify with \`sha256sum -c SHA256SUMS\` and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\` (see the README)."

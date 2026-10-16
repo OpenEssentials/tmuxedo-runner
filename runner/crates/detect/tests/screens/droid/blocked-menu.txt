@@ -1,0 +1,4 @@
+  Select model
+  > Opus
+    Sonnet
+  ↑/↓ navigate · enter select · esc cancel

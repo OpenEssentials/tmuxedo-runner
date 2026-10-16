@@ -1,0 +1,50 @@
+{
+  "note": "Pane history marks (docs/protocol.md \"Pane history\", decision 0009). Hand-written; checked by packages/protocol/test/history.test.ts and runner/crates/emu/tests/history.rs (history_osc_matches_the_shared_fixture). Change both sides or neither.",
+  "marks": [
+    {
+      "name": "typical",
+      "mark": { "start": 0, "first": 1200, "end": 3400, "limit": 50000 },
+      "osc": "\u001b]777;tmuxedo-history;start=0;first=1200;end=3400;limit=50000\u0007"
+    },
+    {
+      "name": "empty-history",
+      "mark": { "start": 7, "first": 7, "end": 7, "limit": 20000 },
+      "osc": "\u001b]777;tmuxedo-history;start=7;first=7;end=7;limit=20000\u0007"
+    },
+    {
+      "name": "large-indices",
+      "mark": { "start": 9007199254000, "first": 9007199254100, "end": 9007199254999, "limit": 1000000 },
+      "osc": "\u001b]777;tmuxedo-history;start=9007199254000;first=9007199254100;end=9007199254999;limit=1000000\u0007"
+    }
+  ],
+  "rejected": [
+    { "name": "not-ours", "data": "notify;Build;done" },
+    { "name": "missing-field", "data": "tmuxedo-history;start=0;first=1;end=2" },
+    { "name": "negative", "data": "tmuxedo-history;start=-1;first=1;end=2;limit=3" },
+    { "name": "not-a-number", "data": "tmuxedo-history;start=a;first=1;end=2;limit=3" },
+    { "name": "first-after-end", "data": "tmuxedo-history;start=0;first=9;end=2;limit=3" },
+    { "name": "first-before-start", "data": "tmuxedo-history;start=5;first=1;end=9;limit=3" }
+  ],
+  "pages": [
+    {
+      "name": "ansi-page",
+      "result": {
+        "type": "pane_read",
+        "read": {
+          "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1", "source": "history", "format": "ansi",
+          "text": "\u001b[0;32mrow\u001b[m 1\r\nrow 2\r\n", "revision": 4096, "truncated": true,
+          "history": { "first": 10, "count": 2, "start": 0, "end": 900, "limit": 50000, "more": true }
+        }
+      },
+      "page": { "text": "\u001b[0;32mrow\u001b[m 1\r\nrow 2\r\n", "first": 10, "count": 2, "start": 0, "end": 900, "limit": 50000, "more": true }
+    },
+    {
+      "name": "older-runner-no-history",
+      "result": {
+        "type": "pane_read",
+        "read": { "pane_id": "w1:p1", "workspace_id": "w1", "tab_id": "w1:t1", "source": "history", "format": "text", "text": "$ ", "revision": 1, "truncated": false }
+      },
+      "page": null
+    }
+  ]
+}

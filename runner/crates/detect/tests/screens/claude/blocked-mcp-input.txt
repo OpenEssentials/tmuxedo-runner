@@ -1,0 +1,9 @@
+────────────────────────────────────────────────────────────────────────
+ MCP server "tracker" requests your input
+
+ Which project should the issue go to?
+
+ ❯ Accept
+   Decline
+
+ Esc to cancel

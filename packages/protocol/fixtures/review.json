@@ -1,0 +1,36 @@
+{
+  "comment": "Review and ship's git.* contract (docs/design/away-and-review.md §4.2, §5). packages/protocol/src/review.ts and runner/crates/protocol/src/review.rs are both held to these rows.",
+  "feature": "review",
+  "methods": {
+    "read": ["git.status", "git.diff"],
+    "mutating": ["git.commit", "git.push", "git.discard"]
+  },
+  "limits": {
+    "sessionId": 128,
+    "statusFiles": 1000,
+    "patchBytes": 524288,
+    "largeLines": 2000
+  },
+  "params": {
+    "valid": [
+      { "method": "git.status", "params": { "pane": "w1:p1" } },
+      { "method": "git.status", "params": { "chat": "c_01HZX.a-b" } },
+      { "method": "git.diff", "params": { "pane": "w1:p1", "path": "src/lib.rs" } },
+      { "method": "git.diff", "params": { "chat": "c1", "path": "with space/ünï.md", "extra": true } }
+    ],
+    "invalid": [
+      { "method": "git.status", "params": {}, "code": "invalid_params" },
+      { "method": "git.status", "params": { "pane": "w1:p1", "chat": "c1" }, "code": "invalid_params" },
+      { "method": "git.status", "params": { "pane": "" }, "code": "invalid_params" },
+      { "method": "git.status", "params": { "pane": "w1/p1" }, "code": "invalid_params" },
+      { "method": "git.status", "params": { "pane": 7 }, "code": "invalid_params" },
+      { "method": "git.status", "params": [], "code": "invalid_params" },
+      { "method": "git.diff", "params": { "pane": "w1:p1" }, "code": "invalid_params" },
+      { "method": "git.diff", "params": { "pane": "w1:p1", "path": "../etc/passwd" }, "code": "invalid_path" },
+      { "method": "git.diff", "params": { "pane": "w1:p1", "path": "/etc/passwd" }, "code": "invalid_path" },
+      { "method": "git.diff", "params": { "pane": "w1:p1", "path": "a//b" }, "code": "invalid_path" },
+      { "method": "git.diff", "params": { "pane": "w1:p1", "path": "" }, "code": "invalid_path" },
+      { "method": "git.commit", "params": { "pane": "w1:p1" }, "code": "invalid_params" }
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+  Run npm test?
+  Allow once
+  Allow for this session
+  Deny

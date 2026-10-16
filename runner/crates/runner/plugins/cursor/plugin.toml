@@ -1,0 +1,185 @@
+# Cursor CLI plugin (`agent` / `cursor-agent`; docs/design/plugin-cursor.md,
+# decision 0003). Built in: embedded in the runner binary. `tmuxedo plugin
+# test cursor` and `cargo test` run its fixtures; the weekly real-CLI smoke
+# job (.github/workflows/agent-cli-smoke.yml) runs it against the pinned CLI.
+schema = 1
+id = "cursor"
+name = "Cursor"
+version = "1.0.0"
+contract = ">=1.0, <2"
+publisher = "tmuxedo"
+description = "Cursor's CLI agent: status hooks through a generated plugin dir, sign-in links to your device, login health, prompts answered from your phone (opt-in), resume."
+capabilities = ["launch.wrap", "hooks.receive", "auth.probe_file", "screen.read", "generate.files", "ui.surfaces", "prompt.keystroke", "usage.report"]
+
+[agent]
+# The process is node (`exec -a agent node … cursor-agent/versions/<v>/index.js`):
+# tmuxedo-detect names it by the script (tests/processes.jsonl).
+labels = ["cursor"]
+binaries = ["agent", "cursor-agent"]
+version_cmd = ["cursor-agent", "--version"]
+detect_manifest = "builtin:cursor"
+tested = ">=2026.10.01"
+
+# `agent` is a generic name: the shim adds tmuxedo's flags only when the real
+# binary is Cursor's, and never to subcommands that take no session flags.
+# NO_OPEN_BROWSER: Cursor ignores $BROWSER and prints the sign-in link
+# instead; the runner lifts it to the user's device (auth.lift).
+[launch]
+shim = "agent"
+aliases = ["cursor-agent"]
+prepend = ["--plugin-dir", "{gen:cursor-plugin}"]
+hosted_prepend = ["--disable-auto-update"]
+env = { NO_OPEN_BROWSER = "1" }
+target_contains = "cursor-agent"
+passthrough = ["login", "logout", "status", "whoami", "--version", "-v", "--help", "-h", "help",
+               "update", "upgrade", "ls", "create-chat", "mcp", "about",
+               "install-shell-integration", "uninstall-shell-integration"]
+
+# A `--plugin-dir` plugin carries the hooks (and the tmuxedo rule while the
+# skill is on); nothing is written to ~/.cursor (decision 0003 spike 3).
+[generate.cursor-plugin]
+builder = "cursor-plugin"
+file = "cursor-plugin"
+
+# Cursor's CLI fires no prompt-submit hook, so "working" starts at the first
+# tool call. The payload carries `conversation_id` (= the chat id `--resume`
+# takes) and `hook_event_name`. No hold: a hook `allow` does not approve in
+# Cursor (decision 0003 spike 4), so prompts are answered on screen.
+[hooks]
+transport = "command"
+event_field = "hook_event_name"
+session_field = "conversation_id"
+source_field = "source"
+cwd_field = "cwd"
+register = [
+  { event = "sessionStart" },
+  { event = "beforeShellExecution" },
+  { event = "afterShellExecution" },
+  { event = "afterFileEdit" },
+  { event = "postToolUse" },
+  { event = "stop" },
+  { event = "sessionEnd" },
+]
+map = [
+  { native = "sessionStart",         emit = "session.started" },
+  { native = "beforeShellExecution", emit = "turn.started" },
+  { native = "afterShellExecution",  emit = "prompt.resolved" },
+  { native = "afterFileEdit",        emit = "prompt.resolved" },
+  { native = "postToolUse",          emit = "prompt.resolved" },
+  { native = "stop",                 emit = "turn.completed" },
+  { native = "sessionEnd",           emit = "session.ended" },
+  # Helpers: Cursor documents `subagentStart` / `subagentStop` (payload
+  # `subagent_id`, `subagent_type`, `parent_conversation_id`), but the CLI has
+  # not been seen firing them (decision 0003 only saw the hooks above), so
+  # they are not registered. When they fire, add both to `register`, map them
+  # to `subagent.started` / `subagent.completed` and set
+  # `subagent = { id_field = "subagent_id", name_field = "subagent_type" }`.
+]
+
+# Keystroke answers (opt-in per user, D-12; plugin-cursor.md §4.1): the
+# prompt's screen fingerprint is taken when it appears and checked again just
+# before the key goes; a changed screen is `stale` and nothing is sent. Only
+# `y` and `n`, never Tab or Shift+Tab (they widen permissions).
+[permissions]
+mode = "keystroke"
+keys = { allow = "y", deny = "n" }
+fingerprint_lines = 6
+screen = [
+  { contains = "run this command", tool = "Shell" },
+  { contains = "write to this file?", tool = "Write" },
+  { contains = "delete this file?", tool = "Delete" },
+  { contains = "run this mcp tool?", tool = "MCP" },
+]
+
+# The Needs you policy for those dialogs (Phase 13, D-12): permissions by
+# keys are always opt-in; the "asks" signal is the hook that fires just
+# before Cursor's own "Run this command?" check.
+[keystroke]
+kinds = ["permission"]
+keys = ["y", "n"]
+default_on = false
+rows = 8
+asks = [{ event = "beforeShellExecution" }]
+
+# Chat (Phase 21 C4): `agent acp` speaks the Agent Client Protocol on stdio
+# (docs/design/agent-chat.md §2.3), through the runner's generic ACP
+# translator. Cursor's own extensions (questions, plans, todos, tasks) are a
+# later slice. No `min_agent`: no version was tested, and Cursor's versions are
+# dates, not semver. A Cursor sign-in follows web's policy like any
+# subscription (D-C4); an API key can chat.
+[chat]
+transport = "acp"
+translator = "acp"
+argv = ["{agent}", "acp"]
+modes = [{ id = "ask_first", native = "agent" }]
+logins = ["api_key"]
+login_env = { api_key = ["CURSOR_API_KEY"] }
+features = ["text_deltas", "tool_calls", "diffs", "permissions", "plan", "interrupt", "queue"]
+
+# Links (Phase 13): Cursor's sign-in pages are its own.
+[links]
+open_url = ["cursor.com", "*.cursor.com"]
+
+# Chats live under a folder keyed by the cwd: resume runs in the recorded
+# cwd (the core resume guard).
+[resume]
+argv = ["{shim}", "--resume", "{session_id}"]
+
+[auth]
+probes = [
+  { kind = "env_present", name = "CURSOR_API_KEY" },
+  { kind = "file_exists", path = "{home}/.config/cursor/auth.json", os = ["linux"] },
+  { kind = "command", argv = ["cursor-agent", "status", "--format", "json"], json_field = "isAuthenticated", interval_secs = 600 },
+]
+unprobed_reason = "keychain (not inspected)"
+screen = [
+  { id = "not_logged_in", contains = "not logged in. run `agent login`" },
+  { id = "not_logged_in", contains = "not logged in. run `cursor-agent login`" },
+]
+recover_on = ["turn.completed", "probe_changed"]
+# No localhost callback: the CLI polls, so the link can be opened on any device.
+login = { kind = "in_pane", argv = ["{shim}", "login"], label = "Sign in to Cursor" }
+lift = [
+  { id = "login_link", url = "https://cursor\\.com/loginDeepControl\\?[^\\s\"'<>]+" },
+]
+
+[[actions]]
+id = "login"
+title = "Sign in to Cursor"
+description = "Open a pane running `agent login`; the sign-in link goes to your device."
+kind = "auth.login"
+contexts = ["global", "workspace"]
+
+# The generated tmuxedo skill as a Cursor rule, carried by the plugin dir.
+[skill]
+form = "cursor-rule"
+
+# Roles and helpers (PLAN Phase 18). Cursor documents `.cursor/agents/<id>.md`,
+# but where tmuxedo may write such a file for one session is not settled (the
+# spike in docs/design/agent-team-builder.md §2.4), and its helper hooks have
+# not been seen firing. Until then a role runs on Cursor as a pane of its own,
+# never as a helper. When the spike lands: `subagents = "native"`,
+# `role_fields = ["purpose", "instructions"]`, `hosts = ["cursor"]`.
+[multi_agent]
+subagents = "none"
+
+[[ui]]
+key = "sign-in"
+kind = "banner"
+when = "auth.state in ['missing', 'expired', 'failed']"
+tone = "warning"
+text = "Cursor needs you to sign in on this machine."
+actions = [{ label = "Sign in", action = "login" }]
+
+[[ui]]
+key = "sign-in-action"
+kind = "quick_action"
+when = "auth.state in ['missing', 'expired', 'failed']"
+label = "Sign in to Cursor"
+action = "login"
+
+# AI usage (docs/design/agent-usage.md, D-U4). Cursor has no supported source
+# of a person's own usage: the plan is a monthly pool, shown on its site.
+[usage]
+modes = ["plan"]
+link = "https://cursor.com/dashboard"

@@ -1,0 +1,10 @@
+[package]
+name = "tmuxedo-schema"
+description = "tmuxedo plugin settings: the restricted JSON Schema dialect and its validator (docs/protocol.md \"Plugin settings\")"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+regex = "1"
+serde_json.workspace = true

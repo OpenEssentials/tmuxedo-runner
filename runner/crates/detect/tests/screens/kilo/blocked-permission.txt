@@ -1,0 +1,5 @@
+  △ Permission required
+  ← Edit src/lib.rs
+
+  Allow once   Allow always   Reject
+  ↑↓ select  enter confirm  esc dismiss

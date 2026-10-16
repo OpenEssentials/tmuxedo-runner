@@ -1,0 +1,6 @@
+  Cline is asking a question
+  Which package manager do you use?
+  > npm
+    pnpm
+────────────────────────────────────────────────────────────────────────
+  Plan (Tab) · Act (Shift+Tab)

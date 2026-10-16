@@ -1,0 +1,2 @@
+  ● Bash(npm test)
+    └ Running... (4s)

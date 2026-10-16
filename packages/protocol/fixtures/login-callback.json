@@ -1,0 +1,123 @@
+{
+  "note": "Login callback relay (docs/protocol.md). Hand-written; checked by packages/protocol/test/login-callback.test.ts and by the runner (login_relay.rs, frames.rs tests). Change both sides or neither.",
+  "detect": [
+    {
+      "name": "claude-code",
+      "url": "https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A54545%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&state=Qk9xbFZ1d2pCa0x3",
+      "callback": { "host": "localhost", "port": 54545, "path": "/callback", "state": "Qk9xbFZ1d2pCa0x3" }
+    },
+    {
+      "name": "codex",
+      "url": "https://auth.openai.com/oauth/authorize?response_type=code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&redirect_uri=http%3A%2F%2F127.0.0.1%3A1455%2Fauth%2Fcallback&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256&state=c0dexStateR4nd0m&scope=openid+profile+email+offline_access&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=codex_cli_rs",
+      "callback": { "host": "127.0.0.1", "port": 1455, "path": "/auth/callback", "state": "c0dexStateR4nd0m" }
+    },
+    {
+      "name": "uppercase-host-and-encoded-state",
+      "url": "https://idp.example/authorize?client_id=x&redirect_uri=http%3A%2F%2FLOCALHOST%3A8085%2F&state=a%2Bb%3Dc",
+      "callback": { "host": "localhost", "port": 8085, "path": "/", "state": "a+b=c" }
+    },
+    { "name": "plain-link", "url": "https://example.com/docs?state=x", "callback": null },
+    { "name": "remote-redirect", "url": "https://idp.example/authorize?client_id=x&redirect_uri=https%3A%2F%2Fapp.example%2Fcb&state=s", "callback": null },
+    { "name": "https-loopback", "url": "https://idp.example/authorize?client_id=x&redirect_uri=https%3A%2F%2Flocalhost%3A8443%2Fcb&state=s", "callback": null },
+    { "name": "no-port", "url": "https://idp.example/authorize?client_id=x&redirect_uri=http%3A%2F%2Flocalhost%2Fcb&state=s", "callback": null },
+    { "name": "bad-port", "url": "https://idp.example/authorize?client_id=x&redirect_uri=http%3A%2F%2Flocalhost%3A70000%2Fcb&state=s", "callback": null },
+    { "name": "other-host", "url": "https://idp.example/authorize?client_id=x&redirect_uri=http%3A%2F%2F10.0.0.1%3A8080%2Fcb&state=s", "callback": null },
+    { "name": "userinfo", "url": "https://idp.example/authorize?client_id=x&redirect_uri=http%3A%2F%2Fa%40localhost%3A8080%2Fcb&state=s", "callback": null },
+    { "name": "no-state", "url": "https://idp.example/authorize?client_id=x&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fcb", "callback": null },
+    { "name": "not-an-authorize-url", "url": "https://idp.example/page?redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fcb&state=s", "callback": null }
+  ],
+  "match": [
+    {
+      "name": "claude-ok",
+      "callback": { "host": "localhost", "port": 54545, "path": "/callback", "state": "Qk9xbFZ1d2pCa0x3" },
+      "pasted": "http://localhost:54545/callback?code=AbCdEf123&state=Qk9xbFZ1d2pCa0x3",
+      "outcome": "ok"
+    },
+    {
+      "name": "codex-ok",
+      "callback": { "host": "127.0.0.1", "port": 1455, "path": "/auth/callback", "state": "c0dexStateR4nd0m" },
+      "pasted": "http://127.0.0.1:1455/auth/callback?code=ac_xyz&scope=openid&state=c0dexStateR4nd0m",
+      "outcome": "ok"
+    },
+    {
+      "name": "case-and-fragment",
+      "callback": { "host": "localhost", "port": 54545, "path": "/callback", "state": "S" },
+      "pasted": "HTTP://LocalHost:54545/callback?state=S&code=1#done",
+      "outcome": "ok"
+    },
+    {
+      "name": "encoded-state",
+      "callback": { "host": "localhost", "port": 8085, "path": "/", "state": "a+b=c" },
+      "pasted": "http://localhost:8085/?code=1&state=a%2Bb%3Dc",
+      "outcome": "ok"
+    },
+    {
+      "name": "wrong-state",
+      "callback": { "host": "127.0.0.1", "port": 1455, "path": "/auth/callback", "state": "c0dexStateR4nd0m" },
+      "pasted": "http://127.0.0.1:1455/auth/callback?code=ac_xyz&state=other",
+      "outcome": "state_mismatch"
+    },
+    {
+      "name": "no-state",
+      "callback": { "host": "127.0.0.1", "port": 1455, "path": "/auth/callback", "state": "c0dexStateR4nd0m" },
+      "pasted": "http://127.0.0.1:1455/auth/callback?code=ac_xyz",
+      "outcome": "state_mismatch"
+    },
+    {
+      "name": "wrong-port",
+      "callback": { "host": "127.0.0.1", "port": 1455, "path": "/auth/callback", "state": "s" },
+      "pasted": "http://127.0.0.1:1456/auth/callback?code=1&state=s",
+      "outcome": "mismatch"
+    },
+    {
+      "name": "wrong-path",
+      "callback": { "host": "127.0.0.1", "port": 1455, "path": "/auth/callback", "state": "s" },
+      "pasted": "http://127.0.0.1:1455/callback?code=1&state=s",
+      "outcome": "mismatch"
+    },
+    {
+      "name": "localhost-is-not-127",
+      "callback": { "host": "127.0.0.1", "port": 1455, "path": "/auth/callback", "state": "s" },
+      "pasted": "http://localhost:1455/auth/callback?code=1&state=s",
+      "outcome": "mismatch"
+    },
+    {
+      "name": "https",
+      "callback": { "host": "localhost", "port": 54545, "path": "/callback", "state": "s" },
+      "pasted": "https://localhost:54545/callback?code=1&state=s",
+      "outcome": "mismatch"
+    },
+    {
+      "name": "junk",
+      "callback": { "host": "localhost", "port": 54545, "path": "/callback", "state": "s" },
+      "pasted": "localhost:54545/callback?code=1&state=s",
+      "outcome": "invalid_url"
+    },
+    {
+      "name": "userinfo",
+      "callback": { "host": "localhost", "port": 54545, "path": "/callback", "state": "s" },
+      "pasted": "http://me@localhost:54545/callback?code=1&state=s",
+      "outcome": "invalid_url"
+    }
+  ],
+  "clientFrames": [
+    { "name": "ok", "text": "{\"t\":\"login_callback\",\"id\":\"lc1\",\"paneId\":\"w1:p1\",\"url\":\"http://localhost:54545/callback?code=1&state=s\"}", "ok": true },
+    { "name": "no-id", "text": "{\"t\":\"login_callback\",\"paneId\":\"w1:p1\",\"url\":\"http://localhost:54545/callback?code=1&state=s\"}", "ok": false },
+    { "name": "no-pane", "text": "{\"t\":\"login_callback\",\"id\":\"lc1\",\"url\":\"http://localhost:54545/callback?code=1&state=s\"}", "ok": false },
+    { "name": "not-http", "text": "{\"t\":\"login_callback\",\"id\":\"lc1\",\"paneId\":\"w1:p1\",\"url\":\"javascript:alert(1)\"}", "ok": false },
+    { "name": "url-number", "text": "{\"t\":\"login_callback\",\"id\":\"lc1\",\"paneId\":\"w1:p1\",\"url\":5}", "ok": false }
+  ],
+  "runnerFrames": [
+    {
+      "name": "gateway-to-runner",
+      "text": "{\"t\":\"login_callback\",\"id\":\"g7\",\"paneId\":\"w1:p1\",\"url\":\"http://127.0.0.1:1455/auth/callback?code=1&state=s\"}",
+      "frame": { "id": "g7", "paneId": "w1:p1", "url": "http://127.0.0.1:1455/auth/callback?code=1&state=s" }
+    }
+  ],
+  "results": [
+    { "name": "delivered", "res": { "t": "res", "id": "g7", "result": { "ok": true, "status": 302 } } },
+    { "name": "callback-said-no", "res": { "t": "res", "id": "g7", "result": { "ok": false, "status": 400, "excerpt": "State mismatch" } } },
+    { "name": "refused", "res": { "t": "res", "id": "g7", "error": { "code": "state_mismatch", "message": "That address belongs to a different login attempt (its state does not match)." } } }
+  ],
+  "refusals": ["invalid_url", "no_pending", "mismatch", "state_mismatch", "expired", "already_used", "not_listening", "rate_limited", "not_supported", "unreachable", "timeout", "machine_offline"]
+}

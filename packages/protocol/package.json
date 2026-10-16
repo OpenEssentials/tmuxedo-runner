@@ -1,0 +1,106 @@
+{
+  "name": "@tmuxedo/protocol",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Shared wire contracts for tmuxedo: attach tickets, runner tokens, relay frames.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./frames": {
+      "types": "./dist/frames.d.ts",
+      "default": "./dist/frames.js"
+    },
+    "./glance": {
+      "types": "./dist/glance.d.ts",
+      "default": "./dist/glance.js"
+    },
+    "./login-callback": {
+      "types": "./dist/login-callback.d.ts",
+      "default": "./dist/login-callback.js"
+    },
+    "./names": {
+      "types": "./dist/names.d.ts",
+      "default": "./dist/names.js"
+    },
+    "./secrets": {
+      "types": "./dist/secrets.d.ts",
+      "default": "./dist/secrets.js"
+    },
+    "./chat": {
+      "types": "./dist/chat.d.ts",
+      "default": "./dist/chat.js"
+    },
+    "./plugins": {
+      "types": "./dist/plugins.d.ts",
+      "default": "./dist/plugins.js"
+    },
+    "./plugin-set": {
+      "types": "./dist/plugin-set.d.ts",
+      "default": "./dist/plugin-set.js"
+    },
+    "./when": {
+      "types": "./dist/when.d.ts",
+      "default": "./dist/when.js"
+    },
+    "./agents": {
+      "types": "./dist/agents.d.ts",
+      "default": "./dist/agents.js"
+    },
+    "./files": {
+      "types": "./dist/files.d.ts",
+      "default": "./dist/files.js"
+    },
+    "./fs": {
+      "types": "./dist/fs.d.ts",
+      "default": "./dist/fs.js"
+    },
+    "./review": {
+      "types": "./dist/review.d.ts",
+      "default": "./dist/review.js"
+    },
+    "./needs": {
+      "types": "./dist/needs.d.ts",
+      "default": "./dist/needs.js"
+    },
+    "./history": {
+      "types": "./dist/history.d.ts",
+      "default": "./dist/history.js"
+    },
+    "./stats": {
+      "types": "./dist/stats.d.ts",
+      "default": "./dist/stats.js"
+    },
+    "./usage": {
+      "types": "./dist/usage.d.ts",
+      "default": "./dist/usage.js"
+    },
+    "./roles": {
+      "types": "./dist/roles.d.ts",
+      "default": "./dist/roles.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "fixtures": "tsc -p tsconfig.json && node --experimental-strip-types scripts/fixtures.ts && node --experimental-strip-types scripts/glance-fixtures.ts && node --experimental-strip-types scripts/secrets-fixtures.ts && node --experimental-strip-types scripts/files-fixtures.ts && node --experimental-strip-types scripts/roles-fixtures.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

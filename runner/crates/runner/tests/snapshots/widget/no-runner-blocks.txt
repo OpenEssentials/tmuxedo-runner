@@ -1,0 +1,206 @@
+=== 1x1 (micro) ===
+x
+=== 7x2 (micro) ===
+off
+
+=== 12x1 (strip) ===
+no runner
+=== 20x1 (strip) ===
+runner not running
+=== 20x3 (tiny) ===
+tmuxedo-runner is
+not running on this
+machine
+=== 33x5 (tiny) ===
+tmuxedo-runner is not running on
+this machine
+
+
+
+=== 40x8 (small) ===
+ tmuxedo
+ ──────────────────────────────────────
+ tmuxedo-runner is not running on this
+ machine
+
+
+
+                                 q quit
+=== 44x30 (small, portrait) ===
+ tmuxedo
+ ──────────────────────────────────────────
+ tmuxedo-runner is not running on this
+ machine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                     q quit
+=== 80x24 (medium) ===
+ tmuxedo
+ ──────────────────────────────────────────────────────────────────────────────
+ tmuxedo-runner is not running on this machine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                         q quit
+=== 120x40 (large) ===
+ tmuxedo
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ tmuxedo-runner is not running on this machine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                 q quit
+=== 300x80 (large) ===
+ tmuxedo
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ tmuxedo-runner is not running on this machine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                                                                     q quit

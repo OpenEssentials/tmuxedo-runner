@@ -1,0 +1,3 @@
+  Reading src/lib.rs
+
+  ⬡ Reading files

@@ -1,0 +1,18 @@
+{"native": {"hook_event_name": "SessionStart", "session_id": "s-1", "cwd": "/w", "source": "startup"}, "events": ["session.started"], "status": "idle", "hold": false, "session_id": "s-1", "cwd": "/w"}
+{"native": {"hook_event_name": "UserPromptSubmit", "session_id": "s-1", "prompt": "x"}, "events": ["turn.started"], "status": "working", "hold": false, "releases": true}
+{"native": {"hook_event_name": "PermissionRequest", "session_id": "s-1", "tool_name": "Bash", "tool_input": {"command": "ls"}, "permission_suggestions": [{"type": "addRules"}]}, "events": ["prompt.permission"], "status": "blocked", "hold": true, "prompt": {"tool": "Bash", "input": {"command": "ls"}, "suggestions": [{"type": "addRules"}]}}
+{"native": {"hook_event_name": "PermissionRequest", "session_id": "s-1", "tool_name": "Write", "tool_input": {"file_path": "/x"}}, "events": ["prompt.permission"], "status": "blocked", "hold": true, "prompt": {"tool": "Write", "input": {"file_path": "/x"}}}
+{"native": {"hook_event_name": "PostToolUse", "session_id": "s-1", "tool_name": "Bash"}, "events": ["prompt.resolved"], "status": "working", "hold": false, "releases": true}
+{"native": {"hook_event_name": "PostToolUseFailure", "session_id": "s-1"}, "events": ["prompt.resolved"], "status": "working", "releases": true}
+{"native": {"hook_event_name": "PermissionDenied", "session_id": "s-1"}, "events": ["prompt.resolved"], "status": "working", "releases": true}
+{"native": {"hook_event_name": "Notification", "session_id": "s-1", "notification_type": "permission_prompt"}, "events": ["attention.blocked"], "status": "blocked", "releases": false}
+{"native": {"hook_event_name": "Notification", "session_id": "s-1", "notification_type": "elicitation_dialog"}, "events": ["attention.blocked"], "status": "blocked"}
+{"native": {"hook_event_name": "Notification", "session_id": "s-1", "notification_type": "idle_prompt"}, "events": ["attention.idle"], "status": "idle"}
+{"native": {"hook_event_name": "Notification", "session_id": "s-1", "notification_type": "auth_success"}, "events": [], "status": null}
+{"native": {"hook_event_name": "Stop", "session_id": "s-1"}, "events": ["turn.completed"], "status": "done", "releases": true}
+{"native": {"hook_event_name": "StopFailure", "session_id": "s-1", "error_type": "rate_limit"}, "events": ["turn.failed"], "status": "idle", "releases": false, "auth_error": false}
+{"native": {"hook_event_name": "StopFailure", "session_id": "s-1", "error_type": "authentication_failed"}, "events": ["turn.failed"], "status": "idle", "auth_error": true}
+{"native": {"hook_event_name": "SessionEnd", "session_id": "s-1"}, "events": ["session.ended"], "status": null, "releases": true}
+{"native": {"hook_event_name": "PreToolUse", "session_id": "s-1", "tool_name": "Bash"}, "events": [], "status": null, "hold": false}
+{"native": {"hook_event_name": "SubagentStart", "session_id": "s-1", "agent_id": "a1", "agent_type": "Explore"}, "events": ["subagent.started"], "status": null, "hold": false, "releases": false}
+{"native": {"hook_event_name": "SubagentStop", "session_id": "s-1", "agent_id": "a1", "agent_type": "Explore"}, "events": ["subagent.completed"], "status": null, "hold": false, "releases": false}

@@ -1,0 +1,5 @@
+  Run this command?
+    npm publish
+  ❯ Yes
+    No
+  Enter to select · Esc to cancel

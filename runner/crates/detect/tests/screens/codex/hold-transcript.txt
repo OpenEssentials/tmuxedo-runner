@@ -1,0 +1,7 @@
+› explain the parser
+
+• The parser is a recursive-descent parser over tokens.
+
+  T R A N S C R I P T
+  ↑/↓ to scroll   pgup/pgdn to page   home/end to jump
+  q to quit   esc to edit prev

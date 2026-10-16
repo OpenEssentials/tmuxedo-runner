@@ -1,0 +1,3 @@
+  ┃  Thinking...
+  ┃
+  esc to interrupt

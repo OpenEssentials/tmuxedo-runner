@@ -1,0 +1,10 @@
+{"screen": "■ Your access token could not be refreshed because your refresh token was already used. Please log out and sign in again.", "rule": "refresh_reused", "state": "failed"}
+{"screen": "■ Your access token could not be refreshed because your refresh token has expired. Please log out and sign in again.", "rule": "refresh_expired", "state": "expired"}
+{"screen": "Your access token could not be refreshed because your refresh token was revoked. Please log out and sign in again.", "rule": "refresh_revoked", "state": "failed"}
+{"screen": "Please log out and sign in again.", "rule": "sign_in_again", "state": "expired"}
+{"screen": "Not logged in. Run `codex login` first.", "rule": "not_logged_in", "state": "expired"}
+{"screen": "› run the tests\n\n• Working (3s • esc to interrupt)", "rule": null}
+{"screen": "Follow these steps to sign in with ChatGPT using device code authorization:\n\n1. Open this link in your browser and sign in to your account\n   https://auth.openai.com/codex/device\n\n2. Enter this one-time code (expires in 15 minutes)\n   EEYJ-1J3G7\n\nContinue only if you started this login in Codex.", "lift": {"id": "device_code", "url": "https://auth.openai.com/codex/device", "code": "EEYJ-1J3G7"}}
+{"screen": "1. Open this link in your browser and sign in to your account\n   https://auth.openai.com/codex/device\n\n2. Enter this one-time code (expires in 15 minutes)", "lift": {"id": "device_code", "url": "https://auth.openai.com/codex/device", "code": null}}
+{"screen": "see https://auth.openai.com/codex/devices-and-more for help", "lift": null}
+{"screen": "Open https://evil.example/auth.openai.com/codex/device please", "lift": null}

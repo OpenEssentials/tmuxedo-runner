@@ -1,0 +1,24 @@
+{"id":1,"result":{"userAgent":"codex_cli_rs/0.170.0"}}
+{"id":2,"result":{"thread":{"id":"thr_01"},"model":"gpt-test"}}
+{"method":"thread/started","params":{"thread":{"id":"thr_01"}}}
+{"id":3,"result":{"turn":{"id":"turn_01","status":"inProgress","items":[]}}}
+{"method":"turn/started","params":{"threadId":"thr_01","turn":{"id":"turn_01","status":"inProgress"}}}
+{"method":"item/started","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"reasoning","id":"rs_1"}}}
+{"method":"item/reasoning/summaryTextDelta","params":{"itemId":"rs_1","delta":"Looking"}}
+{"method":"item/completed","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"reasoning","id":"rs_1","summary":["Looking at the tests."],"content":[]}}}
+{"method":"item/started","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"commandExecution","id":"cmd_1","command":"cargo test","cwd":"/work","status":"inProgress"}}}
+{"id":40,"method":"item/commandExecution/requestApproval","params":{"threadId":"thr_01","turnId":"turn_01","itemId":"cmd_1","reason":"needs the network"}}
+{"method":"item/commandExecution/outputDelta","params":{"threadId":"thr_01","turnId":"turn_01","itemId":"cmd_1","delta":"running 2 tests\n"}}
+{"method":"item/commandExecution/outputDelta","params":{"threadId":"thr_01","turnId":"turn_01","itemId":"cmd_1","delta":"test result: FAILED\n"}}
+{"method":"item/completed","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"commandExecution","id":"cmd_1","command":"cargo test","cwd":"/work","status":"failed","aggregatedOutput":"running 2 tests\ntest result: FAILED\n","exitCode":101,"durationMs":4200}}}
+{"method":"item/started","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"fileChange","id":"fc_1","status":"inProgress","changes":[{"path":"/work/src/lib.rs","kind":{"type":"update"},"diff":"@@ -1 +1 @@\n-old\n+new\n"},{"path":"/work/NOTES.md","kind":{"type":"add"},"diff":"+notes\n"}]}}}
+{"id":41,"method":"item/fileChange/requestApproval","params":{"threadId":"thr_01","turnId":"turn_01","itemId":"fc_1"}}
+{"method":"item/completed","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"fileChange","id":"fc_1","status":"completed","changes":[{"path":"/work/src/lib.rs","kind":{"type":"update"}},{"path":"/work/NOTES.md","kind":{"type":"add"}}]}}}
+{"method":"item/started","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"mcpToolCall","id":"mcp_1","server":"tracker","tool":"create_issue","arguments":{"title":"Fix the test"},"status":"inProgress"}}}
+{"method":"item/completed","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"mcpToolCall","id":"mcp_1","server":"tracker","tool":"create_issue","arguments":{"title":"Fix the test"},"status":"completed","result":{"content":[{"type":"text","text":"created #7"}]}}}}
+{"method":"item/started","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"agentMessage","id":"msg_1","text":""}}}
+{"method":"item/agentMessage/delta","params":{"threadId":"thr_01","turnId":"turn_01","itemId":"msg_1","delta":"Fixed "}}
+{"method":"item/agentMessage/delta","params":{"threadId":"thr_01","turnId":"turn_01","itemId":"msg_1","delta":"it."}}
+{"method":"item/completed","params":{"threadId":"thr_01","turnId":"turn_01","item":{"type":"agentMessage","id":"msg_1","text":"Fixed it."}}}
+{"method":"thread/tokenUsage/updated","params":{"threadId":"thr_01","tokenUsage":{"total":{"inputTokens":1200,"outputTokens":80}}}}
+{"method":"turn/completed","params":{"threadId":"thr_01","turn":{"id":"turn_01","status":"completed","usage":{"inputTokens":1200,"outputTokens":80}}}}

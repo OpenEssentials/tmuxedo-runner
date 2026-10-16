@@ -1,0 +1,3 @@
+ ● Started 2 agents.
+
+ ◎ Waiting for background agents · 2 running

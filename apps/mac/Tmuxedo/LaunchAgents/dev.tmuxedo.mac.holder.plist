@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The tmuxedo terminal holder, as its own LaunchAgent (docs/design/mac-pairing.md §1).
+
+  Registered by the app with SMAppService.agent(plistName:), from
+  Contents/Library/LaunchAgents/ inside the app bundle. launchd runs the bundled
+  runner binary in its `holder` role; the app never parents it, so quitting the
+  app or installing an update leaves every terminal running. `--wait` stands by
+  while an older holder (an install.sh one) still serves sessions, then takes over.
+
+  KeepAlive restarts it if it ever exits; the app restarts it on purpose only
+  when the holder's own code changed (HolderPolicy).
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>dev.tmuxedo.mac.holder</string>
+	<key>BundleProgram</key>
+	<string>Contents/Helpers/tmuxedo-runner</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>tmuxedo-runner</string>
+		<string>holder</string>
+		<string>--wait</string>
+	</array>
+	<key>AssociatedBundleIdentifiers</key>
+	<array>
+		<string>dev.tmuxedo.mac</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>ProcessType</key>
+	<string>Interactive</string>
+</dict>
+</plist>

@@ -1,0 +1,3 @@
+  Kiro CLI
+
+  > ask a question or describe a task ↵

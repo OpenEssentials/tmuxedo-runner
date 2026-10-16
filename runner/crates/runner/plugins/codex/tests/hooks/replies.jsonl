@@ -1,0 +1,4 @@
+{"decision": {"behavior": "allow"}, "stdout": "{\"hookSpecificOutput\":{\"decision\":{\"behavior\":\"allow\"},\"hookEventName\":\"PermissionRequest\"}}"}
+{"decision": {"behavior": "deny", "message": "not from the phone"}, "stdout": "{\"hookSpecificOutput\":{\"decision\":{\"behavior\":\"deny\",\"message\":\"not from the phone\"},\"hookEventName\":\"PermissionRequest\"}}"}
+{"decision": {}, "stdout": ""}
+{"expired": true, "stdout": ""}

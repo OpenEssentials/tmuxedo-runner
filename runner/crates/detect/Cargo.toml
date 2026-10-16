@@ -1,0 +1,22 @@
+[package]
+name = "tmuxedo-detect"
+description = "Which coding agent runs in a terminal pane, and whether it is working, blocked or idle"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+regex = "1"
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+libc = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"
+tempfile = { workspace = true }
+tmuxedo-emu = { workspace = true }
+
+[lints.rust]
+# Set by cargo-llvm-cov (tests skipped under coverage instrumentation say why).
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage)", "cfg(coverage_nightly)"] }

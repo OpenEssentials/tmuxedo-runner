@@ -1,0 +1,7 @@
+  █▀▀█ █▀▀█ █▀▀ █▀▀▄ █▀▀ █▀▀█ █▀▀▄ █▀▀
+  opencode v1.18.34
+
+  ┃  Ask anything...
+  ┃
+  ┃  Build  Claude Sonnet 4.5 Anthropic
+                              tab switch agent  ctrl+p commands

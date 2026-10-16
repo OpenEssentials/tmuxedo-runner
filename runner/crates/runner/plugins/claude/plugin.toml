@@ -1,0 +1,221 @@
+# Claude Code plugin (docs/design/plugin-claude.md). Built in: embedded in the
+# runner binary. Every row here reproduces plugins.md §4 exactly; the baseline
+# fixtures (tests/claude_baseline.rs) and `tmuxedo plugin test` prove it.
+schema = 1
+id = "claude"
+name = "Claude Code"
+version = "1.0.0"
+contract = ">=1.0, <2"
+publisher = "tmuxedo"
+description = "Anthropic's Claude Code CLI: hooks for status and permission prompts, login health, resume."
+capabilities = ["launch.wrap", "hooks.receive", "prompt.hold", "auth.probe_file", "screen.read", "generate.files", "ui.surfaces", "prompt.keystroke", "usage.report"]
+
+[agent]
+labels = ["claude"]                      # §4 row 1 (process detection: tmuxedo-detect)
+binaries = ["claude"]
+version_cmd = ["claude", "--version"]    # row 12: hello.runner.claudeVersion
+detect_manifest = "builtin:claude"       # row 2: runner/crates/detect/agents/claude.toml
+tested = ">=2.1.250"
+
+[env]
+scrub = ["CLAUDECODE", "CLAUDE_PID", "CLAUDE_EFFORT", "AI_AGENT", "CLAUDE_CODE_*"]   # row 17 (holder: scrubbed_env_key)
+
+[launch]                                 # row 4: the PATH shim
+shim = "claude"
+# {skill.argv...} is empty unless web turned the generated tmuxedo skill on
+# (config.plugins) and this Claude understands --plugin-dir (skill.min_agent).
+prepend = ["{settings.launch.args...}", "--settings", "{gen:hook-settings}", "{skill.argv...}"]
+
+[generate.hook-settings]                 # row 5: the generated --settings file
+builder = "hook-settings"
+file = "claude-settings.json"
+
+[hooks]                                  # rows 6-10
+transport = "command"
+event_field = "hook_event_name"
+session_field = "session_id"
+cwd_field = "cwd"
+source_field = "source"
+# Helpers (sub-agents in Claude's own process): where their hooks name them.
+subagent = { id_field = "agent_id", name_field = "agent_type" }
+register = [
+  { event = "SessionStart" },
+  { event = "UserPromptSubmit" },
+  { event = "PermissionRequest", timeout = 600, matcher = "*" },
+  { event = "PostToolUse", matcher = "*" },
+  { event = "PostToolUseFailure", matcher = "*" },
+  { event = "PermissionDenied", matcher = "*" },
+  { event = "Notification" },
+  { event = "Stop" },
+  { event = "StopFailure" },
+  { event = "SubagentStart" },
+  { event = "SubagentStop" },
+  { event = "SessionEnd" },
+]
+map = [
+  { native = "SessionStart",       emit = "session.started" },
+  { native = "UserPromptSubmit",   emit = "turn.started" },
+  { native = "PermissionRequest",  emit = "prompt.permission", hold = true },
+  { native = "PostToolUse",        emit = "prompt.resolved" },
+  { native = "PostToolUseFailure", emit = "prompt.resolved" },
+  { native = "PermissionDenied",   emit = "prompt.resolved" },
+  { native = "Notification", when = { notification_type = ["permission_prompt", "elicitation_dialog"] }, emit = "attention.blocked", reason = "dialog" },
+  { native = "Notification", when = { notification_type = ["idle_prompt"] }, emit = "attention.idle" },
+  { native = "Stop",               emit = "turn.completed" },
+  { native = "StopFailure",        emit = "turn.failed", error_field = "error_type" },
+  # Not a status change of the pane: the helper list on the agent (Agent.children).
+  { native = "SubagentStart",      emit = "subagent.started" },
+  { native = "SubagentStop",       emit = "subagent.completed" },
+  { native = "SessionEnd",         emit = "session.ended" },
+]
+
+[permissions]                            # row 10
+mode = "hook_hold"
+hold_secs = 540                          # the host enforces < the 600 s hook timeout
+prompt = { tool = "tool_name", input = "tool_input", suggestions = "permission_suggestions" }
+
+[permissions.reply]                      # printed by the hook; a "{message}" leaf is dropped when there is none
+allow = '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","message":"{message}"}}}'
+deny  = '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"deny","message":"{message}"}}}'
+
+[resume]                                 # row 14 (the cwd guard stays core)
+argv = ["{shim}", "--resume", "{session_id}"]
+
+# Claude never persists "trust this folder" for $HOME (2.1.289: session
+# only), and `--resume <id>` finds a session from any folder: resume
+# $HOME sessions in the default working folder (~/work) instead.
+leave_home = true
+
+# Files (Phase 15): in a pane with a files folder, Claude reads it without asking
+# and is told that uploads are data, not instructions (src/files/mod.rs).
+[launch.files]
+add_dir = "--add-dir"
+instructions = "--append-system-prompt-file"
+
+[auth]                                   # row 11 (claude_auth.rs)
+probes = [
+  { kind = "env_present", name = "ANTHROPIC_API_KEY" },
+  { kind = "file_exists", path = "{home}/.claude/.credentials.json", os = ["linux"] },
+]
+unprobed_reason = "keychain (not inspected)"
+screen = [
+  { id = "login_expired", contains = "login expired" },
+  { id = "run_login",     contains = "please run /login" },
+  # "Your organization has disabled Claude subscription access for Claude Code":
+  # signed in, but that account's organization turned Claude Code off. Web, the
+  # app and the TUI show what to do for reason `org_disabled` (ask the owner,
+  # sign in with another account, or use an API key).
+  { id = "org_disabled",  contains = "disabled claude subscription access", state = "failed" },
+]
+failure_errors = ["authentication_failed", "oauth_org_not_allowed", "account_on_hold"]
+recover_on = ["turn.completed", "probe_changed"]
+login = { kind = "in_pane", argv = ["{shim}", "/login"], label = "Sign in to Claude" }
+
+# Agent chat (docs/design/agent-chat.md §8.2, D-C3): `claude -p` in its
+# documented stream-json mode, multi-turn on stdin, decisions through the
+# same hooks as the terminal: PermissionRequest is held (permissions and
+# ExitPlanMode plans), PreToolUse on AskUserQuestion is held and answered
+# with `updatedInput.answers`. The binary is the unmodified CLI.
+[chat]
+transport = "stream-json"
+translator = "builtin:claude"
+argv = ["{agent}", "-p", "--input-format", "stream-json", "--output-format", "stream-json",
+        "--verbose", "--include-partial-messages", "--settings", "{gen:chat-settings}",
+        "{settings.launch.args...}"]
+new_session = ["--session-id", "{session_id}"]
+resume = ["--resume", "{session_id}"]
+mode_flag = "--permission-mode"
+modes = [
+  { id = "ask_first", native = "default" },
+  { id = "plan_first", native = "plan" },
+  { id = "auto_edit", native = "acceptEdits" },
+  # Auto-approve (opt-in, step-up, an admin may forbid it): Claude's bypass mode,
+  # with the runner's guard (PreToolUse on every tool) blocking the "never" list.
+  { id = "auto_approve", native = "bypassPermissions" },
+]
+# Subscription (claude.ai) logins are not listed: chat on them follows web's
+# policy (admins only by default, D-C4 as changed 2026-10-06).
+logins = ["api_key", "cloud"]
+login_env = { api_key = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"], cloud = ["CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX"] }
+features = ["text_deltas", "tool_calls", "diffs", "permissions", "questions", "plan", "interrupt", "queue",
+            "mode_switch", "subagents", "usage"]
+hooks = [{ event = "PreToolUse", matcher = "AskUserQuestion", timeout = 600 }]
+holds = [
+  { event = "PermissionRequest", item = "permission" },
+  { event = "PreToolUse", tool = "AskUserQuestion", item = "question" },
+]
+
+# Needs you (PLAN Phase 13, D-12). Permission prompts are answered through
+# the held hook, never by keys. A question Claude asks on its own screen (a
+# numbered choice, an MCP elicitation) may be answered from a phone by typing
+# into the pane: only the keys listed here, only while the screen's prompt
+# region (the last `rows` lines) still matches what was shown when it opened.
+# On by default for questions; the person can turn it off per plugin.
+[keystroke]
+kinds = ["question"]
+keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "Escape"]
+reply = true
+default_on = true
+rows = 12
+# Only a question Claude says it is asking (an MCP elicitation). A permission
+# dialog (its hook hold expired) or a wait read from the screen: never by keys.
+asks = [{ event = "Notification", field = "notification_type", values = ["elicitation_dialog"] }]
+
+# Links (not-yet-thought-of.md #1): an open_url from Claude to these hosts is
+# verified; anything else (another process in the pane, another host) shows
+# as an unverified link. Only `login` hosts get the login callback relay.
+[links]
+open_url = ["claude.ai", "*.claude.ai", "claude.com", "*.claude.com", "anthropic.com", "*.anthropic.com"]
+login = ["claude.ai", "claude.com", "console.anthropic.com", "platform.claude.com"]
+
+[[actions]]
+id = "login"
+title = "Sign in to Claude"
+description = "Open a pane running `claude /login`; the browser step goes to your device."
+kind = "auth.login"
+contexts = ["global", "workspace"]
+
+# The generated tmuxedo skill (src/skill.rs): a Claude Code plugin dir with one
+# skill, loaded for the session only (`--plugin-dir`, Claude Code 2.1.x).
+[skill]
+form = "claude-code-plugin"
+argv = ["--plugin-dir", "{gen:skill}"]
+min_agent = "2.1.0"
+
+# Surfaces (plugins.md §6). The login badge and banner stay web's own, from
+# the AgentAuth projection; the plugin adds a one-tap "Sign in" where actions
+# are offered (pane menu, action sheet, TUI palette) while a login is needed.
+# Roles and helpers (PLAN Phase 18; docs/design/agent-team-builder.md §2.4, §7).
+# Claude Code starts helpers in its own process from `agents/<id>.md` files:
+# the role's purpose is the description, its instructions the body, and model
+# and tools are frontmatter. A field ending in "?" exists only on some
+# versions. What is not listed here applies to the whole pane, and the role
+# editor says so. Claude has no setting that caps helpers.
+[multi_agent]
+subagents = "native"
+role_fields = ["purpose", "instructions", "model", "tools", "access", "mcp?", "skills?"]
+hosts = ["claude"]
+
+[[ui]]
+key = "sign-in"
+kind = "quick_action"
+when = "auth.state in ['missing', 'expired', 'failed']"
+label = "Sign in to Claude"
+action = "login"
+
+# AI usage (docs/design/agent-usage.md, D-U2). Claude Code runs one status-line
+# command and gives it JSON on stdin; the generated settings name tmuxedo's
+# (`hook --statusline`), which records the numbers below and then runs the
+# person's own status line with the same stdin, printing its output unchanged.
+# `rate_limits` is there only on a claude.ai plan, after the first reply.
+[usage]
+modes = ["plan"]
+
+[[usage.sources]]
+kind = "statusline"
+windows = [
+  { at = "rate_limits.five_hour", pct = "used_percentage", resets = "resets_at", id = "5h", mins = 300 },
+  { at = "rate_limits.seven_day", pct = "used_percentage", resets = "resets_at", id = "7d", mins = 10080 },
+]
+context = { pct = "context_window.used_percentage", size = "context_window.context_window_size" }
+model = "model.display_name"

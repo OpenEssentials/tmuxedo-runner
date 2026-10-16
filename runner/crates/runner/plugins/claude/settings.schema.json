@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "Claude Code",
+  "properties": {
+    "args": {
+      "type": "array",
+      "title": "Launch arguments",
+      "description": "Added to every Claude Code start in a tmuxedo pane, in this order.",
+      "items": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "default": [],
+      "x-argv": true
+    },
+    "model": {
+      "type": "string",
+      "title": "Model",
+      "description": "The model Claude Code starts with (--model). Empty leaves Claude Code's own choice.",
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:\\[\\]-]*$"
+    },
+    "skipPermissions": {
+      "type": "boolean",
+      "title": "Never ask for permission",
+      "description": "Starts Claude Code with --dangerously-skip-permissions.",
+      "default": false,
+      "x-dangerous": "Claude runs commands and changes files without asking. Use it only in a place you can throw away."
+    },
+    "extras": {
+      "type": "boolean",
+      "title": "Load tmuxedo extras",
+      "description": "The tmuxedo skill and the items you enable here. Off starts the agent with only what you set up yourself.",
+      "default": true,
+      "x-scope": [
+        "user",
+        "machine"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

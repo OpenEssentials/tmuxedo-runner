@@ -1,0 +1,5 @@
+  Do you trust the authors of this directory?
+  Devin can run commands here, which is risky with untrusted content.
+
+  ❯ Yes, trust this directory
+    No, exit

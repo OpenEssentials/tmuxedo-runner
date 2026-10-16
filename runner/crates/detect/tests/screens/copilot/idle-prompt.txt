@@ -1,0 +1,8 @@
+ Welcome to GitHub Copilot CLI
+ Version 0.0.380
+
+ ~/project [⎇ main]                                   claude-sonnet-4.5 (1x)
+ ────────────────────────────────────────────────────────────────────────────
+ >  Enter @ to mention files or / for commands
+ ────────────────────────────────────────────────────────────────────────────
+ Ctrl+c Exit · Ctrl+r Expand recent

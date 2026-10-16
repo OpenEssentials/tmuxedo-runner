@@ -1,0 +1,54 @@
+# Cursor CLI. Format and meaning: docs/design/agent-detection.md.
+# The process is node, started as `exec -a <agent|cursor-agent> node … index.js`
+# from ~/.local/share/cursor-agent/versions/<version>/.
+agent = "cursor"
+title = "Cursor CLI"
+revision = "2026-10-05.1"
+launch = "cursor-agent"
+names = ["cursor-agent"]
+
+[process]
+scripts = ["cursor-agent/versions/*/index.js"]
+
+[[signal]]
+name = "write-approval"
+status = "blocked"
+rank = 50
+scope = "last 8"
+when = '''
+"write to this file?" and "proceed (y)"
+and ("reject & propose changes" or "esc or n or p" or "add write(")'''
+
+[[signal]]
+name = "approval"
+status = "blocked"
+rank = 40
+scope = "screen"
+when = '''
+"waiting for approval" and "run this command?" and ("run (once) (y)" or "skip (esc or n)")
+or "(y) (enter)"
+or line /(?i)^\s*allow .*\(y\)/
+or "keep (n)"
+or "skip (esc or n)"
+or line /(?i)^\s*(?:→\s*)?run .*\(y\)/'''
+
+[[signal]]
+name = "turn"
+status = "working"
+rank = 30
+scope = "last 6"
+when = '''"ctrl+c to stop"'''
+
+[[signal]]
+name = "background"
+status = "working"
+rank = 20
+scope = "last 5"
+when = '''line /(?i)\b[1-9][0-9]*\s+background\s+tasks?\b/'''
+
+[[signal]]
+name = "spinner"
+status = "working"
+rank = 10
+scope = "last 8"
+when = '''line /^\s*(?:⬡|⬢|[\x{2800}-\x{28FF}]+)\s+\p{Alphabetic}+\w*ing\b/'''

@@ -1,0 +1,2 @@
+  Tips for getting started:
+> Type your message or @path/to/file

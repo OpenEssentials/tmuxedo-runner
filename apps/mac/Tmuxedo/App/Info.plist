@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>tmuxedo</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!-- Which build this is: `release` only from a release lane; a Motorcade build counts as
+	     `motorcade` because its lane writes SUFeedURL. See BuildInfo.swift. -->
+	<key>TMXBuildChannel</key>
+	<string>$(TMX_BUILD_CHANNEL)</string>
+	<key>TMXBuildCommit</key>
+	<string>$(TMX_BUILD_COMMIT)</string>
+	<!-- Sparkle: the release pipeline writes SUFeedURL and SUPublicEDKey into this plist
+	     when it builds (README.md). Neither is committed: a
+	     build without them does not update (FeedSource.none). -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<!-- Hourly, Sparkle's minimum. The check is one small public request. -->
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<!-- Menu-bar only: no Dock icon until a window is open. -->
+	<key>LSUIElement</key>
+	<true/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.developer-tools</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright 2026 the tmuxedo authors</string>
+	<key>NSMainNibFile</key>
+	<string></string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<!-- Uses only the operating system's own encryption (HTTPS, WebSockets over TLS, CryptoKit
+	     signatures with the Secure Enclave). Not distributed through the App Store. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+</dict>
+</plist>

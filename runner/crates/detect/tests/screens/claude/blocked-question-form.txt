@@ -1,0 +1,12 @@
+● I have a question before I start.
+
+────────────────────────────────────────────────────────────────────────
+ ☐ Database
+
+ Which database should the service use?
+
+ ❯ 1. Postgres
+   2. SQLite
+   3. Type something.
+
+ Enter to select · ↑/↓ to navigate · Esc to cancel

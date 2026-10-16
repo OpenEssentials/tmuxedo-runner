@@ -1,0 +1,114 @@
+# Grok CLI. Format and meaning: docs/design/agent-detection.md.
+agent = "grok"
+title = "Grok CLI"
+revision = "2026-10-05.1"
+launch = "grok"
+names = ["grok-build"]
+
+[[signal]]
+name = "title-action"
+status = "blocked"
+rank = 150
+scope = "title"
+when = '''"Action Required"'''
+
+[[signal]]
+name = "options"
+status = "blocked"
+rank = 140
+scope = "screen"
+when = '''line /^\s*┃\s+[0-9a-z]+\s+\([●○]\)\s/'''
+
+[[signal]]
+name = "permission-hints"
+status = "blocked"
+rank = 139
+scope = "last 2"
+when = '''":select" and "ctrl+o:yolo" and "ctrl+c:cancel"'''
+
+[[signal]]
+name = "question-hints"
+status = "blocked"
+rank = 138
+scope = "last 2"
+when = '''"tab:scrollback" and "shift+x:dismiss"'''
+
+[[signal]]
+name = "scope-picker"
+status = "blocked"
+rank = 137
+scope = "screen"
+when = '''"yes, proceed" and "no, reject" and ("use ← → to choose permission whitelist scope" or "←/→:scope")'''
+
+# The background-work chip in the top line: "· 2 │".
+[[signal]]
+name = "chip"
+status = "working"
+rank = 130
+scope = "first 1"
+when = '''line /[⋅:⸬⁙.·]\s+[1-9][0-9]*\s+│/'''
+
+[[signal]]
+name = "background"
+status = "working"
+rank = 129
+scope = "last 12"
+when = '''line /^\s*[○◎◉]\s+[1-9][0-9]*\s+(?:commands?|monitors?|loops?|subagents?)(?:\s+·\s+[1-9][0-9]*\s+(?:commands?|monitors?|loops?|subagents?))*\s+still running(?:\s+·\s+send a message to interrupt)?\s*$/'''
+
+[[signal]]
+name = "spinner"
+status = "working"
+rank = 128
+scope = "screen"
+when = '''line /^\s*[\x{2801}-\x{28FF}]\s.*\[stop\]\s*$/'''
+
+[[signal]]
+name = "cancel-hints"
+status = "working"
+rank = 127
+scope = "last 2"
+when = '''"ctrl+.:shortcuts" and ("esc:cancel" or "ctrl+c:cancel")'''
+
+[[signal]]
+name = "progress-busy"
+status = "working"
+rank = 126
+scope = "progress"
+when = '''/^4;1;-1$/'''
+
+[[signal]]
+name = "tool"
+status = "working"
+rank = 125
+scope = "screen"
+when = '''
+"ctrl+c:cancel" and "ctrl+enter:interject" and "waiting"
+or line /^\s*[\x{2801}-\x{28FF}]\s+(?:Run|Read|Search|List)\b/'''
+
+[[signal]]
+name = "title-idle"
+status = "idle"
+rank = 120
+scope = "title"
+when = '''/(?:^| - )grok$/ and not /[\x{2800}-\x{28FF}]/'''
+
+[[signal]]
+name = "title-busy"
+status = "working"
+rank = 110
+scope = "title"
+when = '''/(?:^|\s)[\x{2801}-\x{28FF}](?:\s|$)/'''
+
+[[signal]]
+name = "progress-idle"
+status = "idle"
+rank = 100
+scope = "progress"
+when = '''/^4;0;0$/'''
+
+[[signal]]
+name = "hints-idle"
+status = "idle"
+rank = 10
+scope = "last 2"
+when = '''"ctrl+.:shortcuts" and not "esc:cancel" and not "ctrl+c:cancel"'''

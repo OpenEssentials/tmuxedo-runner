@@ -1,0 +1,13 @@
+› run the migrations
+
+• I need to run a command to apply them.
+
+  Allow command?
+
+  $ npm run migrate
+
+  › 1. Yes, proceed (y)
+    2. Yes, and don't ask again for this command (a)
+    3. No, and tell Codex what to do differently (esc)
+
+  Press enter to confirm or esc to cancel

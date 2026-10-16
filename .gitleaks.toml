@@ -1,0 +1,19 @@
+# gitleaks: the default rules, plus the false positives below, each with its reason and pinned to
+# its file AND the exact value or text (so a real secret in the same file is still found).
+title = "tmuxedo-runner"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "The chat log masker's tests (runner/crates/runner/src/chat/mask.rs, #[cfg(test)]): made-up keys whose only purpose is to prove they are masked"
+condition = "AND"
+paths = ['''(^|/)runner/crates/runner/src/chat/mask\.rs$''']
+regexes = ['''^AKIAABCDEFGHIJKLMNOP$''', '''^tok-0123456789$''']
+
+[[allowlists]]
+description = "A Swift type after `key:` (P256.Signing.PrivateKey), not a value"
+condition = "AND"
+paths = ['''(^|/)apps/mac/Tmuxedo/Model/MachineKey\.swift$''']
+regexTarget = "line"
+regexes = ['''key: P256\.Signing\.PrivateKey''']

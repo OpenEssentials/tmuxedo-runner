@@ -1,0 +1,4 @@
+{"screen": "  Waiting for approval...\n\n  Run this command?\n  $ npm install\n\n   → Run (once) (y)\n     Add Shell(npm) to allowlist (tab)\n     Skip (esc or n)", "tool": "Shell", "fingerprint": "Run this command? | $ npm install | → Run (once) (y) | Add Shell(npm) to allowlist (tab) | Skip (esc or n)"}
+{"screen": "  Waiting for approval...\n\n  Run this command?\n  $ rm -rf build\n\n   → Run (once) (y)\n     Skip (esc or n)", "tool": "Shell", "fingerprint": "Run this command? | $ rm -rf build | → Run (once) (y) | Skip (esc or n)"}
+{"screen": "  Write to this file?\n  src/lib.rs\n\n   → Proceed (y)\n     Reject & propose changes (esc or n or p)", "tool": "Write", "fingerprint": "Write to this file? | src/lib.rs | → Proceed (y) | Reject & propose changes (esc or n or p)"}
+{"screen": "  Reading src/lib.rs\n\n  ⬢ Generating.\n\n   ctrl+c to stop", "tool": null}

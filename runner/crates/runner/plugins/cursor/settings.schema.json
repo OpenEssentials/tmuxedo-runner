@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "Cursor Agent",
+  "properties": {
+    "args": {
+      "type": "array",
+      "title": "Launch arguments",
+      "description": "Added to every Cursor Agent start in a tmuxedo pane, in this order.",
+      "items": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "default": [],
+      "x-argv": true
+    },
+    "model": {
+      "type": "string",
+      "title": "Model",
+      "description": "The model Cursor Agent starts with (--model). Empty leaves Cursor's own choice.",
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:\\[\\]-]*$"
+    },
+    "force": {
+      "type": "boolean",
+      "title": "Never ask before commands",
+      "description": "Starts Cursor Agent with --force.",
+      "default": false,
+      "x-dangerous": "Cursor runs commands without asking unless you denied them yourself. Use it only in a place you can throw away."
+    },
+    "extras": {
+      "type": "boolean",
+      "title": "Load tmuxedo extras",
+      "description": "The tmuxedo skill and the items you enable here. Off starts the agent with only what you set up yourself.",
+      "default": true,
+      "x-scope": [
+        "user",
+        "machine"
+      ]
+    },
+    "keystroke": {
+      "type": "boolean",
+      "title": "Answer on-screen questions by typing",
+      "description": "tmuxedo types your answer into the pane when the agent asks on screen.",
+      "default": false,
+      "x-scope": [
+        "user",
+        "machine"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

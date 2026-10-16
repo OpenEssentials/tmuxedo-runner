@@ -1,0 +1,51 @@
+[package]
+name = "tmuxedo-runner"
+description = "tmuxedo runner: holder, runner daemon, enrolment, hook shim, service install, self-update"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "tmuxedo-runner"
+path = "src/main.rs"
+
+[dependencies]
+tmuxedo-protocol.workspace = true
+tmuxedo-schema.workspace = true
+tmuxedo-emu.workspace = true
+tmuxedo-holder.workspace = true
+tmuxedo-detect.workspace = true
+regex = "1"
+ring = "0.17"
+serde.workspace = true
+serde_json.workspace = true
+libc.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+futures-util.workspace = true
+rustls.workspace = true
+webpki-roots.workspace = true
+ureq.workspace = true
+clap.workspace = true
+toml.workspace = true
+sha2.workspace = true
+hex.workspace = true
+base64.workspace = true
+getrandom.workspace = true
+zeroize = "1"
+# NFKC for the jail's name folding (already in the tree through the URL parser).
+icu_normalizer = { version = "2", default-features = false, features = ["compiled_data"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+ratatui.workspace = true
+# Cell widths for the chat screen's wrapping (already in the tree through ratatui).
+unicode-width = "0.2"
+vt100.workspace = true
+# `tmuxedo plugin test` runs the scripted agent in a temporary directory.
+tempfile.workspace = true
+qrcode.workspace = true
+
+[dev-dependencies]
+jsonschema = { version = "0.58", default-features = false }
+toml.workspace = true
+portable-pty.workspace = true
+proptest = "1"

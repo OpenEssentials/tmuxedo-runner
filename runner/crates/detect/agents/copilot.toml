@@ -1,0 +1,30 @@
+# GitHub Copilot CLI. Format and meaning: docs/design/agent-detection.md.
+agent = "copilot"
+title = "GitHub Copilot CLI"
+revision = "2026-10-05.1"
+launch = "copilot"
+names = ["github-copilot", "ghcs"]
+
+# A selection or confirmation with both an Esc and an Enter hint.
+[[signal]]
+name = "approval"
+status = "blocked"
+rank = 30
+scope = "screen"
+when = '''
+("esc to cancel" or "esc cancel")
+and ("enter to select" or "enter to confirm" or "enter to submit" or "enter accept")'''
+
+[[signal]]
+name = "background-agents"
+status = "working"
+rank = 20
+scope = "last 6"
+when = '''line /^\s*◎\s+Waiting for background agents(?:\s|·|$)/'''
+
+[[signal]]
+name = "turn"
+status = "working"
+rank = 10
+scope = "screen"
+when = '''"esc to cancel" or "esc cancel" or "esc again to cancel" or "esc interrupt"'''

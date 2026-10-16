@@ -1,0 +1,14 @@
+tmuxedo for Mac and the tmuxedo runner
+Copyright 2026 the tmuxedo authors
+
+This product, and the tmuxedo runner it bundles (the `tmuxedo-runner` binary
+in Contents/Helpers: the runner, the terminal holder and the command-line
+interface), are licensed under the Apache License, Version 2.0 (see
+LICENSE-runner.txt, or https://www.apache.org/licenses/LICENSE-2.0).
+
+Source: https://github.com/OpenEssentials/tmuxedo-runner
+
+This product bundles Sparkle (Contents/Frameworks/Sparkle.framework,
+https://sparkle-project.org), copyright the Sparkle authors, under the MIT
+licence, with code from bsdiff, sais-lite and ed25519 under their own
+permissive licences: the full texts are in LICENSE-Sparkle.txt.

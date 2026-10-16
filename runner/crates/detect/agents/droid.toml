@@ -1,0 +1,28 @@
+# Factory Droid. Format and meaning: docs/design/agent-detection.md.
+agent = "droid"
+title = "Droid"
+revision = "2026-10-05.1"
+launch = "droid"
+
+[[signal]]
+name = "execute-approval"
+status = "blocked"
+rank = 40
+scope = "screen"
+when = '''
+"enter to select" and "esc to cancel" and "↑↓ to navigate"
+and ("> yes, allow" or "> no, cancel")'''
+
+[[signal]]
+name = "menu"
+status = "blocked"
+rank = 30
+scope = "last 8"
+when = '''"enter select" and "esc cancel" and ("↑/↓ navigate" or "↑↓ navigate")'''
+
+[[signal]]
+name = "stop"
+status = "working"
+rank = 10
+scope = "screen"
+when = '''"esc to stop"'''

@@ -1,0 +1,10 @@
+› fix the failing test
+
+• Ran cargo test
+  └ test parser::split ... FAILED
+
+• Working (34s • esc to interrupt)
+
+›
+
+  ? for shortcuts                                         93% context left

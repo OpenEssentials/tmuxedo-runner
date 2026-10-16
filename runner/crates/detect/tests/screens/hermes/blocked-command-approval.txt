@@ -1,0 +1,5 @@
+  ⚠ Dangerous command
+  rm -rf /tmp/build
+  ▸ 1. Allow once
+    2. Deny
+  ↑/↓ to select · enter to confirm

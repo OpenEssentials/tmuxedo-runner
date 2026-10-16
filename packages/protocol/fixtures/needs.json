@@ -1,0 +1,180 @@
+{
+  "note": "Needs you on the wire (docs/protocol.md \"Needs you\", PLAN Phase 13). Hand-written; checked by packages/protocol/test/needs.test.ts and runner/crates/protocol/tests/needs.rs (the runner serialises every `items.valid` item byte-for-byte and refuses every `items.junk` one). Change both sides or neither.",
+  "items": {
+    "valid": {
+      "permission_hook": {
+        "id": "p-6f1c2a9b", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "Run npm test",
+        "detail": { "tool": "Bash", "input": { "command": "npm test", "description": "Run the tests" }, "suggestions": [] },
+        "risk": "normal",
+        "responses": [
+          { "id": "approve", "kind": "approve", "label": "Approve", "requires": "stepup" },
+          { "id": "deny", "kind": "deny", "label": "Deny", "requires": "stepup" }
+        ],
+        "answerVia": "hook", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z", "expiresAt": "2026-10-08T10:09:00.000Z"
+      },
+      "permission_high": {
+        "id": "p-0b7d33e1", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "Run git push origin main",
+        "detail": { "tool": "Bash", "input": { "command": "git push origin main" } },
+        "risk": "high", "riskClass": "git_push", "why": "Pushes to a remote",
+        "responses": [
+          { "id": "approve", "kind": "approve", "label": "Approve", "requires": "stepup" },
+          { "id": "deny", "kind": "deny", "label": "Deny", "requires": "stepup" }
+        ],
+        "answerVia": "hook", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z", "expiresAt": "2026-10-08T10:09:00.000Z"
+      },
+      "question_keystroke": {
+        "id": "q-41aa90c2", "paneId": "w1:p2", "plugin": "claude", "kind": "question", "title": "Which colour should the button be?",
+        "detail": { "text": "Which colour should the button be?" },
+        "risk": "normal",
+        "responses": [
+          { "id": "choose", "kind": "choose", "label": "Choose", "requires": "stepup",
+            "options": [ { "id": "1", "label": "Red" }, { "id": "2", "label": "Blue" }, { "id": "3", "label": "Green" } ] },
+          { "id": "reply", "kind": "reply", "label": "Reply", "requires": "stepup" },
+          { "id": "cancel", "kind": "deny", "label": "Cancel", "requires": "stepup" },
+          { "id": "open", "kind": "open", "label": "Open terminal", "requires": "none" }
+        ],
+        "answerVia": "keystroke", "fingerprint": "9b4c0a8f2e1d7c6b5a4938271605f4e3d2c1b0a99887766554433221100ffeed",
+        "source": "hook", "createdAt": "2026-10-08T10:01:00.000Z"
+      },
+      "question_screen_only": {
+        "id": "s-77de0c11", "paneId": "w2:p1", "plugin": "codex", "kind": "question", "title": "Codex is waiting for an answer",
+        "risk": "normal",
+        "responses": [ { "id": "open", "kind": "open", "label": "Open terminal", "requires": "none" } ],
+        "answerVia": "none", "source": "screen", "createdAt": "2026-10-08T10:02:00.000Z"
+      },
+      "login_action": {
+        "id": "l-claude", "paneId": "", "plugin": "claude", "kind": "login", "title": "Sign in to Claude",
+        "detail": { "message": "login expired" },
+        "risk": "normal",
+        "responses": [
+          { "id": "login", "kind": "action", "label": "Sign in", "requires": "control", "actionId": "login" },
+          { "id": "dismiss", "kind": "dismiss", "label": "Not now", "requires": "none" }
+        ],
+        "answerVia": "action", "source": "core", "createdAt": "2026-10-08T10:03:00.000Z"
+      },
+      "chat_session": {
+        "id": "n-5c2b", "paneId": "", "chatId": "c-abcdefgh12", "plugin": "claude", "kind": "permission", "title": "Edit src/app.ts",
+        "detail": { "tool": "Edit" },
+        "risk": "normal",
+        "responses": [
+          { "id": "allow_once", "kind": "approve", "label": "Allow once", "requires": "stepup" },
+          { "id": "deny", "kind": "deny", "label": "Deny", "requires": "stepup" },
+          { "id": "open", "kind": "open", "label": "Open chat", "requires": "none" }
+        ],
+        "answerVia": "session", "source": "chat", "createdAt": "2026-10-08T10:04:00.000Z", "expiresAt": "2026-10-08T10:13:00.000Z"
+      },
+      "reported": {
+        "id": "r-1", "paneId": "w1:p3", "plugin": "claude", "kind": "question", "title": "Claude is waiting",
+        "risk": "normal",
+        "responses": [ { "id": "open", "kind": "open", "label": "Open terminal", "requires": "none" } ],
+        "answerVia": "none", "source": "report", "createdAt": "2026-10-08T10:05:00.000Z"
+      },
+      "file_request": {
+        "id": "file-Rq7c1d2e3f4a", "paneId": "w1:p1", "plugin": "claude", "kind": "file", "title": "Claude wants a file: the logo as SVG",
+        "detail": { "text": "the logo as SVG", "upload": { "project": "github.com_example_site", "requestId": "Rq7c1d2e3f4a" } },
+        "risk": "normal",
+        "responses": [
+          { "id": "upload", "kind": "upload", "label": "Upload a file", "requires": "none" },
+          { "id": "dismiss", "kind": "dismiss", "label": "Not now", "requires": "none" }
+        ],
+        "answerVia": "upload", "source": "core", "createdAt": "2026-10-08T10:06:00.000Z", "expiresAt": "2026-10-09T10:06:00.000Z"
+      }
+    },
+    "junk": [
+      { "why": "not an object", "item": "x" },
+      { "why": "bad id", "item": { "id": "has space", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "t", "risk": "normal", "responses": [], "answerVia": "none", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "unknown kind", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "bribe", "title": "t", "risk": "normal", "responses": [], "answerVia": "none", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "empty title", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "", "risk": "normal", "responses": [], "answerVia": "none", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "bad risk", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "t", "risk": "low", "responses": [], "answerVia": "none", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "keystroke without a fingerprint", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "question", "title": "t", "risk": "normal", "responses": [], "answerVia": "keystroke", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "session without a chat", "item": { "id": "a", "paneId": "", "plugin": "claude", "kind": "permission", "title": "t", "risk": "normal", "responses": [], "answerVia": "session", "source": "chat", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "a report that can be approved", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "t", "risk": "normal", "responses": [ { "id": "approve", "kind": "approve", "label": "Approve", "requires": "stepup" } ], "answerVia": "hook", "source": "report", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "choose without options", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "question", "title": "t", "risk": "normal", "responses": [ { "id": "choose", "kind": "choose", "label": "Choose", "requires": "stepup" } ], "answerVia": "none", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "action without an action id", "item": { "id": "a", "paneId": "", "plugin": "claude", "kind": "login", "title": "t", "risk": "normal", "responses": [ { "id": "login", "kind": "action", "label": "Sign in", "requires": "control" } ], "answerVia": "action", "source": "core", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "duplicate response ids", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "t", "risk": "normal", "responses": [ { "id": "approve", "kind": "approve", "label": "A", "requires": "stepup" }, { "id": "approve", "kind": "deny", "label": "D", "requires": "stepup" } ], "answerVia": "hook", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "unknown requires", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "t", "risk": "normal", "responses": [ { "id": "approve", "kind": "approve", "label": "A", "requires": "nothing" } ], "answerVia": "hook", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "bad fingerprint", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "question", "title": "t", "risk": "normal", "responses": [], "answerVia": "keystroke", "fingerprint": "abc", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "bad plugin id", "item": { "id": "a", "paneId": "w1:p1", "plugin": "Claude!", "kind": "permission", "title": "t", "risk": "normal", "responses": [], "answerVia": "none", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "a file request not answered by an upload", "item": { "id": "file-a1b2c3d4", "paneId": "w1:p1", "plugin": "claude", "kind": "file", "title": "t", "detail": { "upload": { "project": "p", "requestId": "a1b2c3d4" } }, "risk": "normal", "responses": [], "answerVia": "none", "source": "core", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "an upload answer on another kind", "item": { "id": "file-a1b2c3d4", "paneId": "w1:p1", "plugin": "claude", "kind": "question", "title": "t", "detail": { "upload": { "project": "p", "requestId": "a1b2c3d4" } }, "risk": "normal", "responses": [], "answerVia": "upload", "source": "core", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "a file request without its request id", "item": { "id": "file-a1b2c3d4", "paneId": "w1:p1", "plugin": "claude", "kind": "file", "title": "t", "detail": { "upload": { "project": "p" } }, "risk": "normal", "responses": [], "answerVia": "upload", "source": "core", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "a file request with a bad request id", "item": { "id": "file-a1b2c3d4", "paneId": "w1:p1", "plugin": "claude", "kind": "file", "title": "t", "detail": { "upload": { "project": "p", "requestId": "no spaces allowed" } }, "risk": "normal", "responses": [], "answerVia": "upload", "source": "core", "createdAt": "2026-10-08T10:00:00.000Z" } },
+      { "why": "an upload response outside a file request", "item": { "id": "a", "paneId": "w1:p1", "plugin": "claude", "kind": "question", "title": "t", "risk": "normal", "responses": [ { "id": "upload", "kind": "upload", "label": "Upload", "requires": "none" } ], "answerVia": "none", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" } }
+    ]
+  },
+  "frame": {
+    "in": { "t": "needs", "paneId": "w1:p1", "items": [
+      { "id": "p-6f1c2a9b", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "Run npm test", "risk": "normal", "responses": [ { "id": "approve", "kind": "approve", "label": "Approve", "requires": "stepup" }, { "id": "deny", "kind": "deny", "label": "Deny", "requires": "stepup" } ], "answerVia": "hook", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" },
+      { "id": "p-6f1c2a9b", "paneId": "w1:p1", "plugin": "claude", "kind": "permission", "title": "Same id again", "risk": "normal", "responses": [], "answerVia": "hook", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" },
+      { "id": "other-pane", "paneId": "w9:p9", "plugin": "claude", "kind": "permission", "title": "Another pane's", "risk": "normal", "responses": [], "answerVia": "hook", "source": "hook", "createdAt": "2026-10-08T10:00:00.000Z" },
+      { "id": "junk", "kind": "nope" }
+    ] },
+    "out_ids": ["p-6f1c2a9b"]
+  },
+  "respond": {
+    "valid": [
+      { "itemId": "p-6f1c2a9b", "paneId": "w1:p1", "responseId": "approve" },
+      { "itemId": "p-6f1c2a9b", "paneId": "w1:p1", "responseId": "deny", "text": "use pnpm instead" },
+      { "itemId": "q-41aa90c2", "paneId": "w1:p2", "responseId": "choose", "optionId": "2", "by": "iPhone" },
+      { "itemId": "q-41aa90c2", "paneId": "w1:p2", "responseId": "reply", "text": "Blue, please.\nWith a darker border." },
+      { "itemId": "n-5c2b", "chatId": "c-abcdefgh12", "responseId": "allow_once", "fresh_stepup": true }
+    ],
+    "invalid": [
+      { "why": "no item", "params": { "responseId": "approve" } },
+      { "why": "bad response id", "params": { "itemId": "a", "responseId": "Approve!" } },
+      { "why": "escape sequence in text", "params": { "itemId": "a", "responseId": "reply", "text": "hi\u001b[201~rm -rf /" } },
+      { "why": "carriage return in text", "params": { "itemId": "a", "responseId": "reply", "text": "yes\rrm -rf ~" } },
+      { "why": "C1 CSI in text", "params": { "itemId": "a", "responseId": "reply", "text": "x\u009b31m" } },
+      { "why": "bad option id", "params": { "itemId": "a", "responseId": "choose", "optionId": "1; rm" } },
+      { "why": "fresh_stepup not boolean", "params": { "itemId": "a", "responseId": "approve", "fresh_stepup": "yes" } },
+      { "why": "bad chat id", "params": { "itemId": "a", "responseId": "approve", "chatId": "x" } }
+    ]
+  },
+  "hosts": {
+    "allow": ["claude.ai", "*.claude.ai", "console.anthropic.com", "*.anthropic.com"],
+    "cases": [
+      { "host": "claude.ai", "ok": true },
+      { "host": "CLAUDE.AI", "ok": true },
+      { "host": "claude.ai.", "ok": true },
+      { "host": "www.claude.ai", "ok": true },
+      { "host": "console.anthropic.com", "ok": true },
+      { "host": "docs.anthropic.com", "ok": true },
+      { "host": "anthropic.com", "ok": false },
+      { "host": "claude-login.example", "ok": false },
+      { "host": "claude.ai.evil.example", "ok": false },
+      { "host": "evilclaude.ai", "ok": false },
+      { "host": "xn--claude-9za.ai", "ok": false },
+      { "host": "", "ok": false },
+      { "host": "claude.ai@evil.example", "ok": false },
+      { "host": "127.0.0.1", "ok": false }
+    ]
+  },
+  "categories": [
+    { "item": "permission_hook", "category": "NEEDS_APPROVE_DENY" },
+    { "item": "permission_high", "category": "NEEDS_OPEN" },
+    { "item": "question_keystroke", "category": "NEEDS_REPLY" },
+    { "item": "question_screen_only", "category": "NEEDS_OPEN" },
+    { "item": "login_action", "category": "NEEDS_OPEN" },
+    { "item": "chat_session", "category": "NEEDS_APPROVE_DENY" },
+    { "item": "reported", "category": "NEEDS_OPEN" },
+    { "item": "file_request", "category": "NEEDS_OPEN" }
+  ],
+  "notification_actions": [
+    { "item": "permission_hook", "action": "approve", "out": { "responseId": "approve" } },
+    { "item": "permission_hook", "action": "deny", "out": { "responseId": "deny" } },
+    { "item": "permission_hook", "action": "reply", "text": "x", "out": null },
+    { "item": "permission_high", "action": "approve", "out": null },
+    { "item": "permission_high", "action": "deny", "out": null },
+    { "item": "question_keystroke", "action": "reply", "text": "  Blue  ", "out": { "responseId": "reply", "text": "Blue" } },
+    { "item": "question_keystroke", "action": "reply", "text": "   ", "out": null },
+    { "item": "question_keystroke", "action": "approve", "out": null },
+    { "item": "chat_session", "action": "approve", "out": { "responseId": "allow_once" } },
+    { "item": "login_action", "action": "approve", "out": null }
+  ],
+  "open_url": [
+    { "data": { "url": "https://claude.ai/oauth/authorize?x=1", "verified": true, "plugin": "claude" }, "trust": "verified", "host": "claude.ai" },
+    { "data": { "url": "https://claude-login.example/oauth", "verified": false, "reason": "not_from_agent" }, "trust": "unverified", "host": "claude-login.example", "reason": "not_from_agent" },
+    { "data": { "url": "https://claude.ai@evil.example/x", "verified": false, "reason": "host_not_allowed" }, "trust": "unverified", "host": "evil.example", "reason": "host_not_allowed" },
+    { "data": { "url": "https://example.com/" }, "trust": "legacy", "host": "example.com" }
+  ]
+}

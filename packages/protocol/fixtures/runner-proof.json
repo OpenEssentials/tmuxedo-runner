@@ -1,0 +1,31 @@
+{
+  "comment": "docs/protocol.md Runner proof. Checked by packages/protocol/test/runner-proof.test.ts and runner/crates/runner (gateway.rs).",
+  "publicKey": {
+    "kty": "EC",
+    "crv": "P-256",
+    "x": "VMNsm9BQlrY0kNrDWvGeScuJr7fHPefc17Ct7GbRBoU",
+    "y": "BPP25_9rX0jlggKxbByGQPpX8FnJ28qftCjqVr3xyfw"
+  },
+  "nonce": "JadrTVaiuVnY6j5wAf8g_0Uem1TGsVkjQS-jDeC6Oj8",
+  "lookup": "AbCdEfGhIjKlMnOpQrStUv",
+  "input": "tmuxedo-runner-proof-v1\nJadrTVaiuVnY6j5wAf8g_0Uem1TGsVkjQS-jDeC6Oj8\nAbCdEfGhIjKlMnOpQrStUv",
+  "frames": {
+    "challenge": {
+      "t": "challenge",
+      "nonce": "JadrTVaiuVnY6j5wAf8g_0Uem1TGsVkjQS-jDeC6Oj8"
+    },
+    "proof": {
+      "t": "proof",
+      "sig": "MEQCICFDpKrWvcDUhZA6WEv25FNRkLgVXeq9O_KtyZEbBWy1AiAi8zWCKZrEYJpMKNKa5bCk_KRm4wMYf_SZMeJ-iwcxGQ"
+    }
+  },
+  "valid": [
+    "MEQCICFDpKrWvcDUhZA6WEv25FNRkLgVXeq9O_KtyZEbBWy1AiAi8zWCKZrEYJpMKNKa5bCk_KRm4wMYf_SZMeJ-iwcxGQ",
+    "6U0r_GkzprHmZJdTBrdJilMKHxLFCKw1tCIM2qcEpM9g0phWx8NddkFoQh8347xpqcgh1wRagj_79k2T2AI_Tg"
+  ],
+  "invalid": [
+    "MEUCIQCAXVxaRaoDF3LxMQ617DiYL2IvezmmhxxsyQyKr9Q-EgIgBz8Y2I7KhLaamrd0NSdHnOAh5hQ9UxJrbXjoeawWUMg",
+    "",
+    "MEQCICFDpKrWvcDUhZA6WEv25FNRkLgVXeq9O_KtyZEbBWy1AiAi8zWCKZrEYJpMKNKa5bCk_KRm4wMYf_SZMeJ-iw"
+  ]
+}

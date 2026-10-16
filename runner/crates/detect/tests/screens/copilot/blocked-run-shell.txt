@@ -1,0 +1,9 @@
+ ╭──────────────────────────────────────────────────────────╮
+ │ Run shell command                                         │
+ │ $ rm -rf dist                                            │
+ │                                                          │
+ │ Do you want to run this command?                         │
+ │ ❯ 1. Yes                                                 │
+ │   2. No, and tell Copilot what to do differently         │
+ ╰──────────────────────────────────────────────────────────╯
+  ↑↓ to navigate · Enter to select · Esc to cancel

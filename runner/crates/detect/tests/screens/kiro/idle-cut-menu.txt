@@ -1,0 +1,6 @@
+  Tool: shell (npm test)
+  > Yes, single p
+  ermission
+    Trust, always allow in this session
+    No (tab to edit)
+  esc to close · ↑↓ to navigate · enter to select · tab to edit

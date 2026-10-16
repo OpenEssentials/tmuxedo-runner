@@ -1,0 +1,6 @@
+  Tips for getting started:
+  1. Ask questions, edit files, or run commands.
+
+╭────────────────────────────────────────────────────────────╮
+│ >   Type your message or @path/to/file                     │
+╰────────────────────────────────────────────────────────────╯

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  SANDBOX OFF, AND THIS APP CAN NEVER BE SANDBOXED.
+
+	  It supervises the tmuxedo runner, whose terminals run the person's own
+	  shells, editors and coding agents across their files. That is outside
+	  what the App Sandbox permits, so this ships Developer ID signed and
+	  notarised, outside the Mac App Store.
+
+	  Hardened runtime stays ON (project.yml): notarisation requires it, and it
+	  keeps a debugger off a process that holds the runner token and can use the
+	  machine key. The bundled runner is signed with the same team and hardened
+	  runtime, and the app checks that before launching it.
+	-->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- RESTRICTED ENTITLEMENTS: they need a Developer ID provisioning profile for
+	     dev.tmuxedo.mac.
+	     NO Sign in with Apple: Apple does not offer it to Developer ID apps (its macOS
+	     capabilities table ticks the App Store only; Developer Forums threads 129263 and
+	     760861), so the Developer ID profile can never carry the Sign in with Apple entitlement
+	     and the app would not sign. The Mac pairs through the iPhone, a passkey or the link
+	     (docs/design/mac-pairing.md §2.3). PairingTests.testEntitlementsHaveNoSignInWithApple. -->
+
+	<!-- Native notifications through pushiq (platform MACOS, topic dev.tmuxedo.mac). -->
+	<key>com.apple.developer.aps-environment</key>
+	<string>production</string>
+	<!-- Pairing: the site's passkeys (RP tmuxedo.dev); the AASA lists <team>.dev.tmuxedo.mac. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:tmuxedo.dev</string>
+	</array>
+</dict>
+</plist>

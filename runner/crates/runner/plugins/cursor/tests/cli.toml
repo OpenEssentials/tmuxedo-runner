@@ -1,0 +1,9 @@
+# The scripted-agent check (plugins.md §11 step 4): the harness installs the
+# shim into a temp dir, puts `script` on PATH as Cursor's `agent` (under a
+# directory named like Cursor's install, so the shim's target check passes),
+# and runs the shim against a fake runner socket.
+script = "fake-cli.sh"
+args = ["hello world"]
+expect_argv = ["--plugin-dir", "{gen:cursor-plugin}", "hello world"]
+expect_hooks = ["sessionStart", "beforeShellExecution", "afterShellExecution", "stop", "sessionEnd"]
+expect_output = ["ENV:NO_OPEN_BROWSER=1", "FAKE DONE"]

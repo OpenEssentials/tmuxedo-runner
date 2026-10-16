@@ -1,0 +1,3 @@
+  ● Running npm test
+
+  Reading shell output (timeout: 30s)

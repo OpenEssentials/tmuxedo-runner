@@ -1,0 +1,6 @@
+  Requesting permission for: run_command
+    npm test
+
+  Do you want to proceed?
+  ❯ Yes
+    No

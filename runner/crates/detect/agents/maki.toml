@@ -1,0 +1,43 @@
+# Maki. Format and meaning: docs/design/agent-detection.md.
+# The bottom line is a status bar: " ⠋ [BUILD] …" while busy, " [BUILD] …" when not.
+agent = "maki"
+title = "Maki"
+revision = "2026-10-05.1"
+launch = "maki"
+
+[[signal]]
+name = "permission"
+status = "blocked"
+rank = 50
+scope = "screen"
+when = '''
+"permission required"
+and ("y allow" and "n deny" or "confirm allow" or "confirm deny" or "enter deny" and "esc cancel")'''
+
+[[signal]]
+name = "plan"
+status = "blocked"
+rank = 40
+scope = "screen"
+when = '''"plan complete" and "enter confirm" and ("space toggle parallel" or "edit plan")'''
+
+[[signal]]
+name = "status-busy"
+status = "working"
+rank = 30
+scope = "last 1"
+when = '''line /^(?: [\x{2800}-\x{28FF}]){1,2} \[(?:BUILD|PLAN|BASH)\]/'''
+
+[[signal]]
+name = "status-idle"
+status = "idle"
+rank = 20
+scope = "last 1"
+when = '''line /^ \[(?:BUILD|PLAN|BASH)\]/'''
+
+[[signal]]
+name = "prompt"
+status = "idle"
+rank = 10
+scope = "last 3"
+when = '''line /^❯ / and not "queue another prompt" and not line /^(?: [\x{2800}-\x{28FF}]){1,2} /'''

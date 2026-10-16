@@ -1,0 +1,4 @@
+  Pick a test runner
+  ❯ cargo test
+    nextest
+  Enter to select · Tab for an optional note

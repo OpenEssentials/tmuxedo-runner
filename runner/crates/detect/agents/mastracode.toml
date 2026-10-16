@@ -1,0 +1,10 @@
+# Mastra Code. Format and meaning: docs/design/agent-detection.md.
+# No screen signals: identified by process, driven by hooks and report_agent.
+agent = "mastracode"
+title = "Mastra Code"
+revision = "2026-10-05.1"
+launch = "mastracode"
+names = ["mastra-code", "mastra code"]
+
+[process]
+scripts = ["node_modules/mastracode/dist/cli.js"]

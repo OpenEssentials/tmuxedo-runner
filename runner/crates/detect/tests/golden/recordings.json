@@ -1,0 +1,3762 @@
+{
+  "claude.bin@12x40": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        212,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        189,
+        "blocked"
+      ],
+      [
+        2220,
+        "idle"
+      ]
+    ]
+  },
+  "claude.bin@24x80": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        212,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        189,
+        "blocked"
+      ],
+      [
+        2220,
+        "idle"
+      ]
+    ]
+  },
+  "claude.bin@40x120": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        212,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        189,
+        "blocked"
+      ],
+      [
+        2220,
+        "idle"
+      ]
+    ]
+  },
+  "claude.bin@50x200": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        212,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        189,
+        "blocked"
+      ],
+      [
+        2220,
+        "idle"
+      ]
+    ]
+  },
+  "codex.bin@12x40": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        277,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "codex.bin@24x80": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        277,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "codex.bin@40x120": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        277,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ],
+      [
+        9024,
+        "idle"
+      ],
+      [
+        9035,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "codex.bin@50x200": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        277,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ],
+      [
+        9024,
+        "idle"
+      ],
+      [
+        9035,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "gemini.bin@12x40": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        260,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "gemini.bin@24x80": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        260,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "gemini.bin@40x120": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        260,
+        "working"
+      ],
+      [
+        2285,
+        "idle"
+      ],
+      [
+        2329,
+        "working"
+      ],
+      [
+        5612,
+        "idle"
+      ],
+      [
+        5648,
+        "working"
+      ],
+      [
+        8931,
+        "idle"
+      ],
+      [
+        8967,
+        "working"
+      ],
+      [
+        12349,
+        "idle"
+      ],
+      [
+        12384,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "gemini.bin@50x200": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        260,
+        "working"
+      ],
+      [
+        2285,
+        "idle"
+      ],
+      [
+        2329,
+        "working"
+      ],
+      [
+        5612,
+        "idle"
+      ],
+      [
+        5648,
+        "working"
+      ],
+      [
+        8931,
+        "idle"
+      ],
+      [
+        8967,
+        "working"
+      ],
+      [
+        12349,
+        "idle"
+      ],
+      [
+        12384,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "htop.bin@12x40": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        108,
+        "working"
+      ],
+      [
+        6016,
+        "idle"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "htop.bin@24x80": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        108,
+        "working"
+      ],
+      [
+        6016,
+        "idle"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "htop.bin@40x120": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        108,
+        "working"
+      ],
+      [
+        6016,
+        "idle"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "htop.bin@50x200": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        108,
+        "working"
+      ],
+      [
+        6016,
+        "idle"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "nvim.bin@12x40": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        5121,
+        "working"
+      ],
+      [
+        12021,
+        "idle"
+      ],
+      [
+        12039,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "nvim.bin@24x80": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        5121,
+        "working"
+      ],
+      [
+        12021,
+        "idle"
+      ],
+      [
+        12039,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "nvim.bin@40x120": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        5121,
+        "working"
+      ],
+      [
+        12021,
+        "idle"
+      ],
+      [
+        12039,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "nvim.bin@50x200": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        5121,
+        "working"
+      ],
+      [
+        12021,
+        "idle"
+      ],
+      [
+        12039,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "opencode.bin@12x40": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        19168,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "opencode.bin@24x80": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        19168,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "opencode.bin@40x120": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        19168,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  },
+  "opencode.bin@50x200": {
+    "agy": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "amp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "claude": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cline": [
+      [
+        1,
+        "idle"
+      ],
+      [
+        19168,
+        "working"
+      ]
+    ],
+    "codex": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "copilot": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "cursor": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "devin": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "droid": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "gemini": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "grok": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "hermes": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kilo": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kimi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "kiro": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "letta": [
+      [
+        1,
+        "unknown"
+      ]
+    ],
+    "maki": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "mastracode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "muse": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "omp": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "opencode": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "pi": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qodercli": [
+      [
+        1,
+        "idle"
+      ]
+    ],
+    "qwen": [
+      [
+        1,
+        "idle"
+      ]
+    ]
+  }
+}

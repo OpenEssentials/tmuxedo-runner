@@ -1,0 +1,47 @@
+{
+  "about": "Restore plans for layout favourites. Read by runner/crates/runner/src/cli/tui/favourites_tests.rs (the TUI's matcher) and packages/layouts/test/favourites-fixture.test.ts (planRestore). Hand-written: change both sides if a rule changes.",
+  "cases": [
+    {
+      "name": "reuse by name and agent, open what is missing, extras move",
+      "slots": [{ "holds": "agent", "agent": "claude", "label": "api" }, { "holds": "shell" }, { "holds": "agent", "agent": "codex" }],
+      "panes": [{ "id": "w1:p1", "agent": "claude", "label": "api" }, { "id": "w1:p2" }, { "id": "w1:p3", "agent": "claude" }],
+      "expect": { "assigned": ["w1:p1", "w1:p2", null], "missing": [2], "extras": ["w1:p3"] }
+    },
+    {
+      "name": "any slots take panes in reading order",
+      "slots": [{ "holds": "any" }, { "holds": "any" }],
+      "panes": [{ "id": "a" }, { "id": "b" }, { "id": "c" }],
+      "expect": { "assigned": ["a", "b"], "missing": [], "extras": ["c"] }
+    },
+    {
+      "name": "a name beats the order",
+      "slots": [{ "holds": "any", "label": "logs" }, { "holds": "any" }],
+      "panes": [{ "id": "a" }, { "id": "b", "label": "logs" }],
+      "expect": { "assigned": ["b", "a"], "missing": [], "extras": [] }
+    },
+    {
+      "name": "the same folder counts one",
+      "slots": [{ "holds": "shell", "cwd": { "base": "workspace", "path": "api" } }, { "holds": "shell", "cwd": { "base": "workspace", "path": "" } }],
+      "panes": [{ "id": "x", "cwd": { "base": "workspace", "path": "" } }, { "id": "y", "cwd": { "base": "workspace", "path": "api" } }],
+      "expect": { "assigned": ["y", "x"], "missing": [], "extras": [] }
+    },
+    {
+      "name": "a shell never fills an agent slot, and a pane given twice counts once",
+      "slots": [{ "holds": "agent", "agent": "codex" }],
+      "panes": [{ "id": "a" }, { "id": "a" }],
+      "expect": { "assigned": [null], "missing": [0], "extras": ["a"] }
+    },
+    {
+      "name": "an agent never fills a shell slot",
+      "slots": [{ "holds": "shell" }, { "holds": "any" }],
+      "panes": [{ "id": "a", "agent": "claude" }],
+      "expect": { "assigned": [null, "a"], "missing": [0], "extras": [] }
+    },
+    {
+      "name": "nothing open",
+      "slots": [{ "holds": "any" }, { "holds": "shell" }],
+      "panes": [],
+      "expect": { "assigned": [null, null], "missing": [0, 1], "extras": [] }
+    }
+  ]
+}

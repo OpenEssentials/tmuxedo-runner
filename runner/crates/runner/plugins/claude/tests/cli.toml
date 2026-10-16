@@ -1,0 +1,16 @@
+# The scripted-agent check (plugins.md §11 step 4): the harness installs the
+# shim into a temp dir, puts `script` on PATH as the agent binary, runs the
+# shim with `args` and `launch_args` (the user's Settings → Terminal args)
+# against a fake runner socket that holds PermissionRequest and then allows.
+script = "fake-cli.sh"
+launch_args = ["--model", "opus"]
+args = ["hello world"]
+# What the real agent receives; `{gen:hook-settings}` is the generated file.
+expect_argv = ["--model", "opus", "--settings", "{gen:hook-settings}", "hello world"]
+# Native hooks the fake runner must see, in order.
+expect_hooks = ["SessionStart", "UserPromptSubmit", "PermissionRequest", "PostToolUse", "Stop", "SessionEnd"]
+# Lines the fake prints (its stdout after the exec).
+expect_output = [
+  'DECISION:{"hookSpecificOutput":{"decision":{"behavior":"allow"},"hookEventName":"PermissionRequest"}}',
+  "FAKE DONE",
+]

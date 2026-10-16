@@ -1,0 +1,5 @@
+  Allow editing file: src/lib.rs?
+
+  ▸ Approve
+    Allow all for this session
+    Deny with feedback

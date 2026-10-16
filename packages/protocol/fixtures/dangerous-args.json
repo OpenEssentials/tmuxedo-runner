@@ -1,0 +1,76 @@
+{
+  "about": "Launch arguments that only a plugin's dangerous switch may add. Per plugin: argument vectors the rule refuses, and look-alikes it accepts. Read by web/tests/plugins/dangerous-args.test.ts (dangerousArg) and runner/crates/runner/tests/plugin_gen.rs (plugin_gen::dangerous_arg).",
+  "claude": {
+    "refused": [
+      ["--dangerously-skip-permissions"],
+      ["  --dangerously-skip-permissions  "],
+      ["--DANGEROUSLY-SKIP-PERMISSIONS"],
+      ["--dangerously-skip-permissions=true"],
+      ["--verbose", "--dangerously-skip-permissions"],
+      ["--verbose --dangerously-skip-permissions"],
+      ["--allow-dangerously-skip-permissions"],
+      ["--permission-mode", "bypassPermissions"],
+      ["--permission-mode=bypassPermissions"],
+      ["--permission-mode", "BYPASSPERMISSIONS"]
+    ],
+    "accepted": [
+      ["--verbose"],
+      ["--add-dir", "/tmp/x y"],
+      ["--dangerously-skip-permissions-not"],
+      ["--permission-mode", "plan"],
+      ["--model", "opus"],
+      ["--append-system-prompt", "never use --force"]
+    ]
+  },
+  "codex": {
+    "refused": [
+      ["--dangerously-bypass-approvals-and-sandbox"],
+      ["--dangerously-bypass-approvals-and-sandbox=1"],
+      [" --yolo "],
+      ["--model x --yolo"],
+      ["-c", "approval_policy=never"],
+      ["-c", "approval_policy=\"never\""],
+      ["--config", "sandbox_mode=danger-full-access"],
+      ["--config=sandbox_mode=\"danger-full-access\""],
+      ["-capproval_policy=never"],
+      ["-c=approval_policy=never"],
+      ["-a", "never"],
+      ["-anever"],
+      ["--ask-for-approval=never"],
+      ["-s", "danger-full-access"],
+      ["--sandbox=danger-full-access"]
+    ],
+    "accepted": [
+      ["--model", "o3"],
+      ["-c", "model=\"o3\""],
+      ["-c", "approval_policy=on-request"],
+      ["-c", "sandbox_mode=read-only"],
+      ["-a", "on-request"],
+      ["-s", "read-only"],
+      ["--yolo-mode"],
+      ["-C", "/tmp"]
+    ]
+  },
+  "cursor": {
+    "refused": [
+      ["--force"],
+      ["-f"],
+      ["--FORCE"],
+      ["--force=true"],
+      ["--yolo"],
+      ["-pf"],
+      ["-fp"],
+      ["  -f  "],
+      ["--verbose", "-f"],
+      ["-p -f"]
+    ],
+    "accepted": [
+      ["--force-color"],
+      ["--verbose"],
+      ["-p"],
+      ["--model", "x"],
+      ["--forced"],
+      ["--output-format=json"]
+    ]
+  }
+}

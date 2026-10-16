@@ -1,0 +1,3 @@
+  Run the migration?
+  Approve once   Cancel
+  enter to confirm
