@@ -59,7 +59,7 @@ const UNTRACKED_COUNTED_MAX: usize = 100;
 pub const BUSY_MAX: usize = 4;
 
 /// The settings every git run gets, before anything the repository says.
-const SAFE: &[&str] = &[
+pub(crate) const SAFE: &[&str] = &[
     "-c",
     "core.fsmonitor=false",
     "-c",
@@ -173,14 +173,16 @@ async fn git(dir: &Path, extra: &[String], args: &[&str], cap: usize) -> Result<
     })
 }
 
-/// The repository the session's folder is in, refused when too broad, and
-/// the `-c` pairs that blank its own filters.
-async fn open_repo(ctx: &Ctx) -> Result<Repo, ApiErr> {
-    if !ctx.cwd.is_absolute() || !ctx.cwd.is_dir() {
+/// The top of the repository a session's folder is in, refused when the
+/// folder is gone, is not in a repository, or the repository is too broad
+/// (the home folder, `/`, the runner's own folders). Shared with the
+/// checkpoints (crate::checkpoint).
+pub(crate) async fn repo_top(cwd: &Path, guard: &jail::Guard) -> Result<PathBuf, ApiErr> {
+    if !cwd.is_absolute() || !cwd.is_dir() {
         return Err(err("folder_gone", "This session's folder is not there any more."));
     }
     let o = git(
-        &ctx.cwd,
+        cwd,
         &[],
         &["rev-parse", "--path-format=absolute", "--show-toplevel"],
         SMALL_OUT_MAX,
@@ -200,12 +202,19 @@ async fn open_repo(ctx: &Ctx) -> Result<Repo, ApiErr> {
     }
     let top = PathBuf::from(String::from_utf8_lossy(&o.stdout).trim());
     let real = top.canonicalize().unwrap_or(top.clone());
-    if jail::too_broad(&real, &ctx.guard) {
+    if jail::too_broad(&real, guard) {
         return Err(err(
             "root_refused",
             "This repository covers too much of the machine (a home folder or a system folder), so tmuxedo does not show its changes.",
         ));
     }
+    Ok(top)
+}
+
+/// The repository the session's folder is in, refused when too broad, and
+/// the `-c` pairs that blank its own filters.
+async fn open_repo(ctx: &Ctx) -> Result<Repo, ApiErr> {
+    let top = repo_top(&ctx.cwd, &ctx.guard).await?;
     let mut blank = Vec::new();
     for scope in ["--local", "--worktree"] {
         let o = git(

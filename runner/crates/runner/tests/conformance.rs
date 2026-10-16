@@ -940,6 +940,19 @@ conformance! {
             assert_eq!(r["error"]["code"], "not_supported", "{m}: {r}");
         }
     });
+    // Checkpoints (Phase 23): never on the local socket; the agent cannot undo its own turn.
+    checkpoint_list => |h| Box::pin(async move {
+        assert_eq!(h.fails("checkpoint.list", json!({"pane": "w1:p1"})).await["code"], "not_supported");
+    });
+    checkpoint_preview => |h| Box::pin(async move {
+        assert_eq!(h.fails("checkpoint.preview", json!({"pane": "w1:p1", "id": 1})).await["code"], "not_supported");
+    });
+    checkpoint_restore => |h| Box::pin(async move {
+        assert_eq!(h.fails("checkpoint.restore", json!({"pane": "w1:p1", "id": 1})).await["code"], "not_supported");
+    });
+    checkpoint_create => |h| Box::pin(async move {
+        assert_eq!(h.fails("checkpoint.create", json!({"chat": "c1"})).await["code"], "not_supported");
+    });
     queued_deliver => |h| Box::pin(async move {
         // Delivery itself (sealed to the runner key) is in tests/chat.rs; here the
         // refusals: missing fields, and a prompt that does not open on this machine.

@@ -64,6 +64,10 @@
       "types": "./dist/review.d.ts",
       "default": "./dist/review.js"
     },
+    "./checkpoint": {
+      "types": "./dist/checkpoint.d.ts",
+      "default": "./dist/checkpoint.js"
+    },
     "./needs": {
       "types": "./dist/needs.d.ts",
       "default": "./dist/needs.js"

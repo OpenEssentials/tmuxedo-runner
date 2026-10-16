@@ -567,6 +567,25 @@ When the machine is back (a machine-state post that does not say offline; at mos
 
 **Exactly once.** The runner keeps the last 512 delivered ids with their answers in `<state>/queued-delivered.json` (written atomically), so a resend answers `duplicate`; a chat also dedupes the `client_msg_id`.
 
+## Checkpoints (Phase 23)
+
+Runner hello feature: **`checkpoints`**. Design: [design/away-and-review.md](design/away-and-review.md) §3, §5; what is in and out: [handoff/checkpoints.md](handoff/checkpoints.md). Code: `runner/crates/runner/src/checkpoint/`, `runner/crates/protocol/src/checkpoint.rs`, `packages/protocol/src/checkpoint.ts`.
+
+Before each agent turn (a hooked pane's `UserPromptSubmit`, a chat's turn) the runner records the session's work tree, when it is in a git repository, as a commit in its own bare repository (`$TMUXEDO_CHECKPOINTS_ROOT`, default `${XDG_DATA_HOME:-~/.local/share}/tmuxedo/checkpoints`; `off` turns checkpoints off), one per repository, under `refs/sessions/<session>/<n>`. It is built with a temporary index: the user's index, HEAD, branches, stash and `.git` are never written. Recorded: tracked files and untracked files that are not ignored, with their modes (executable bit, symlinks). Not recorded: ignored files, `node_modules`, `.venv`, `target`, `dist`, `.next`, secret files (the `chat.file` list), files over 50 MiB, nested repositories; a restore never touches them. A turn waits for its checkpoint at most 8 s (then the turn goes on and nothing is recorded); a turn whose files did not change since the last turn's checkpoint adds none. Kept: the last 50 per session, none older than 7 days.
+
+**Methods** (`req`). A request names a session the runner knows (`pane` or `chat`, exactly one), never a folder. The machine's local socket answers every `checkpoint.*` with `not_supported`. A client socket may send `checkpoint.list`, `checkpoint.preview` and `checkpoint.create` with control of the owner's own machine (else `forbidden_scope`; a runner without the feature: `not_supported`); **`checkpoint.restore` changes files and travels through web only** (`POST /api/v1/machines/{id}/checkpoints/restore`, [api.md](api.md)); the gateway refuses it on a client socket with `forbidden_method`.
+
+| Method | Params | Result `type` |
+|---|---|---|
+| `checkpoint.list` | `pane \| chat` | `checkpoint_list {available, reason?, message?, checkpoints[]}`, newest first. Not available (`available: false`, empty list) with an error code as `reason`, among them `not_a_repo` (the folder is in no git repository), `off`, `root_refused` (the checkpoints folder is inside this repository), `folder_gone`, `git_missing` |
+| `checkpoint.create` | `pane \| chat` | `checkpoint_created {checkpoint \| null}`: a `manual` checkpoint now (also in a plain shell, which gets no turn checkpoints) |
+| `checkpoint.preview` | `pane \| chat, id` | `checkpoint_preview {checkpoint, files[{path, change}], total, truncated, added, modified, removed}`: what a restore would do compared with now; `change` is `added` (the restore brings the file back), `modified` (contents or mode) or `removed` (the file is new since: the restore deletes it); at most 500 files listed |
+| `checkpoint.restore` | `pane \| chat, id` | `checkpoint_restored {id, safety, added, modified, removed, conflicts[], conflict_count}`: first records a `restore` checkpoint of now (`safety`, its id: restoring it undoes the restore), then writes the files back byte for byte with their modes and deletes the files that are new since. A path that cannot be written (a folder in the way, a parent that is a link) is a conflict, left as it is |
+
+A checkpoint is `{id, kind, at, files, skipped: {large[], large_count, secret, other}, restoring?}`; `kind` is `turn`, `restore` or `manual`; `at` ms since the epoch; `restoring` (a `restore` checkpoint) the id it was taken before. **Errors:** `invalid_params`, `not_found` (no such session or checkpoint), `session_busy` (restore while the pane's agent is working or a chat turn runs: stop it or wait), `not_a_repo`, `off`, `root_refused`, `too_many_files` (over 200 000), `git_missing`, `git_failed`, `git_timeout`.
+
+Only files: the conversation, and anything the agent's commands did outside the work tree, stay as they are.
+
 ## Headless tasks (`task.*`, Phase 18)
 
 Web starts these for a service account (docs/api.md "Headless tasks"); a client socket may not start or cancel them (the gateway answers `forbidden_method`), and observe-only sockets may read them. The runner's hello carries `automation: {labels}` when its owner turned automation on (`--automation-label`, `automation_labels` in `runner.toml`; up to 16, `[a-z0-9][a-z0-9-]{0,31}`); web stores them as `Machine.automationLabels`.

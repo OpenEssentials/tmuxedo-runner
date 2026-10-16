@@ -505,6 +505,9 @@ impl Daemon {
         if tmuxedo_protocol::fs::is_fs_method(method) {
             return self.fs_request(method, &params, reply);
         }
+        if tmuxedo_protocol::checkpoint::is_checkpoint_method(method) {
+            return self.checkpoint_request(method, &params, reply);
+        }
         if tmuxedo_protocol::review::is_review_method(method) {
             return self.review_request(method, &params, reply);
         }

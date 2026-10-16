@@ -407,15 +407,15 @@ fn swap_race_never_reads_outside_fallback_walk() {
 fn the_default_resolution_is_openat2_where_the_kernel_has_it() {
     if !openat2_supported() {
         eprintln!("openat2 is not available here: every request takes the component walk");
-        return;
-    }
-    #[cfg(target_os = "linux")]
-    {
-        let t = tree();
-        let before = openat2::HITS.load(Ordering::Relaxed);
-        assert_eq!(open(&t, "docs/sub/b.txt", Engine::Auto).as_deref(), Ok("inside-b\n"));
-        assert!(openat2::HITS.load(Ordering::Relaxed) > before);
-        assert!(!openat2::missing());
+    } else {
+        #[cfg(target_os = "linux")]
+        {
+            let t = tree();
+            let before = openat2::HITS.load(Ordering::Relaxed);
+            assert_eq!(open(&t, "docs/sub/b.txt", Engine::Auto).as_deref(), Ok("inside-b\n"));
+            assert!(openat2::HITS.load(Ordering::Relaxed) > before);
+            assert!(!openat2::missing());
+        }
     }
 }
 

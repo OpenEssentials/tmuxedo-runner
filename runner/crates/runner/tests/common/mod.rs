@@ -388,6 +388,7 @@ pub fn options(dir: &Path, url: &str, holder: PathBuf) -> RunOptions {
     o.verify_hook_callers = false;
     o.worktree_dir = dir.join("worktrees");
     o.files_root = Some(dir.join("files"));
+    o.checkpoints_root = Some(dir.join("checkpoints"));
     o
 }
 

@@ -13,6 +13,7 @@ export * from './when.js';
 export * from './files.js';
 export * from './fs.js';
 export * from './review.js';
+export * from './checkpoint.js';
 export * from './file-ticket.js';
 export * from './needs.js';
 export * from './history.js';
