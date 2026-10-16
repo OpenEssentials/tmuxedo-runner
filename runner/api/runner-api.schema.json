@@ -23,6 +23,10 @@
   "chat.respond",
   "chat.send",
   "chat.start",
+  "checkpoint.create",
+  "checkpoint.list",
+  "checkpoint.preview",
+  "checkpoint.restore",
   "events.subscribe",
   "events.wait",
   "files.delete",
@@ -143,6 +147,10 @@
       "chat.respond",
       "chat.send",
       "chat.start",
+      "checkpoint.create",
+      "checkpoint.list",
+      "checkpoint.preview",
+      "checkpoint.restore",
       "events.subscribe",
       "events.wait",
       "files.delete",
@@ -4284,6 +4292,170 @@
      "if": {
       "properties": {
        "method": {
+        "const": "checkpoint.create"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "checkpoint.create"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         }
+        },
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "checkpoint.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "checkpoint.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         }
+        },
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "checkpoint.preview"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "checkpoint.preview"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "checkpoint.restore"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "checkpoint.restore"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "id"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
         "const": "task.cancel"
        }
       }
@@ -7207,6 +7379,148 @@
       {
        "type": "object",
        "properties": {
+        "type": {
+         "const": "checkpoint_list"
+        },
+        "available": {
+         "type": "boolean"
+        },
+        "reason": {
+         "type": "string"
+        },
+        "message": {
+         "type": "string"
+        },
+        "checkpoints": {
+         "type": "array",
+         "items": {
+          "$ref": "#/$defs/checkpoint"
+         }
+        }
+       },
+       "required": [
+        "type",
+        "available",
+        "checkpoints"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "checkpoint_created"
+        },
+        "checkpoint": {
+         "oneOf": [
+          {
+           "$ref": "#/$defs/checkpoint"
+          },
+          {
+           "type": "null"
+          }
+         ]
+        }
+       },
+       "required": [
+        "type",
+        "checkpoint"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "checkpoint_preview"
+        },
+        "checkpoint": {
+         "$ref": "#/$defs/checkpoint"
+        },
+        "files": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "path": {
+            "type": "string"
+           },
+           "change": {
+            "enum": [
+             "added",
+             "modified",
+             "removed"
+            ]
+           }
+          },
+          "required": [
+           "path",
+           "change"
+          ]
+         }
+        },
+        "total": {
+         "type": "integer"
+        },
+        "truncated": {
+         "type": "boolean"
+        },
+        "added": {
+         "type": "integer"
+        },
+        "modified": {
+         "type": "integer"
+        },
+        "removed": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "type",
+        "checkpoint",
+        "files",
+        "total",
+        "truncated"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "checkpoint_restored"
+        },
+        "id": {
+         "type": "integer"
+        },
+        "safety": {
+         "type": "integer"
+        },
+        "added": {
+         "type": "integer"
+        },
+        "modified": {
+         "type": "integer"
+        },
+        "removed": {
+         "type": "integer"
+        },
+        "conflicts": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         }
+        },
+        "conflict_count": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "type",
+        "id",
+        "safety"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
         "task": {
          "$ref": "#/$defs/task"
         },
@@ -9302,6 +9616,40 @@
     "size",
     "mtime",
     "pinned"
+   ]
+  },
+  "checkpoint": {
+   "type": "object",
+   "properties": {
+    "id": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "kind": {
+     "enum": [
+      "turn",
+      "restore",
+      "manual"
+     ]
+    },
+    "at": {
+     "type": "integer"
+    },
+    "files": {
+     "type": "integer"
+    },
+    "restoring": {
+     "type": "integer"
+    },
+    "skipped": {
+     "type": "object"
+    }
+   },
+   "required": [
+    "id",
+    "kind",
+    "at",
+    "files"
    ]
   },
   "task": {

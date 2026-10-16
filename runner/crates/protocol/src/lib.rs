@@ -7,6 +7,7 @@
 //! generates, so the two implementations cannot drift silently.
 
 pub mod chat;
+pub mod checkpoint;
 pub mod codec;
 pub mod files;
 pub mod frames;

@@ -171,6 +171,12 @@ pub const CAPABILITIES: &[Capability] = &[
             "a prompt the person queued while the machine was offline arrives as an ordinary message; nothing for the agent to do",
         ),
     },
+    Capability {
+        id: "feature:checkpoints",
+        skill: Teach::NotForAgents(
+            "the folder is recorded before each turn so the person can undo it; it does not answer on the local socket",
+        ),
+    },
     // plugin capabilities (manifest `capabilities`)
     Capability {
         id: "plugin:usage.report",

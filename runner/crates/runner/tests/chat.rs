@@ -1309,6 +1309,21 @@ async fn files_are_confined_masked_and_shell_writes_are_found() {
     // Absolute inside the folder works too.
     let abs = work.join("MIGRATION.md").display().to_string();
     assert_eq!(t.h.ok("chat.file", file(&abs)).await["text"], "# Notes\n");
+    // Checkpoints (Phase 23): the folder was recorded before the turn, and
+    // undoing it would take the agent's file away.
+    t.c.send(json!({"t":"req","id":"cl","method":"checkpoint.list","params":{"chat": sid}}))
+        .await;
+    let cl = t.c.res("cl").await;
+    assert_eq!(cl["result"]["checkpoints"][0]["kind"], "turn", "{cl}");
+    let first = cl["result"]["checkpoints"][0]["id"].clone();
+    t.c.send(json!({"t":"req","id":"cp","method":"checkpoint.preview","params":{"chat": sid, "id": first}}))
+        .await;
+    let cp = t.c.res("cp").await;
+    assert_eq!(
+        cp["result"]["files"],
+        json!([{"path": "MIGRATION.md", "change": "removed"}]),
+        "{cp}"
+    );
 
     // An edit by a tool (allowed once): its diffs.
     t.send(&sid, "edit README.md").await;

@@ -115,6 +115,8 @@ pub struct RunOptions {
     pub confirm_poll: Duration,
     /// The files root (crate::files); None = `$TMUXEDO_FILES_ROOT` or the XDG default.
     pub files_root: Option<PathBuf>,
+    /// Where checkpoints live (crate::checkpoint); None = `$TMUXEDO_CHECKPOINTS_ROOT` or the XDG default.
+    pub checkpoints_root: Option<PathBuf>,
     /// Automation labels this machine's owner turned on (crate::task); empty = no tasks.
     pub automation_labels: Vec<String>,
 }
@@ -162,6 +164,7 @@ impl RunOptions {
             confirm: Default::default(),
             confirm_poll: Duration::from_millis(500),
             files_root: None,
+            checkpoints_root: None,
             automation_labels: Vec::new(),
         }
     }
@@ -193,6 +196,12 @@ pub(crate) enum Internal {
         result: Result<u32, String>,
     },
     UpdateReady,
+    /// A chat turn's checkpoint is done: the message goes to the agent now (crate::checkpoint).
+    ChatCheckpointed {
+        sid: String,
+        turn: Option<String>,
+        text: String,
+    },
     /// A task's command exited; finish it once its last output has arrived.
     TaskExit {
         pane_id: String,
@@ -282,6 +291,8 @@ pub struct Daemon {
     pub(crate) fs: crate::fs::Rt,
     /// Review and ship: git reads in flight (crate::review).
     pub(crate) review: crate::review::Rt,
+    /// Checkpoints and undo (crate::checkpoint).
+    pub(crate) checkpoints: crate::checkpoint::Store,
     dirty: bool,
     exit: Option<ExitReason>,
     pub(crate) waiters: Vec<Waiter>,
@@ -461,6 +472,7 @@ pub const RUNNER_FEATURES: &[&str] = &[
     // Review and ship (Phase 23): git.status and git.diff on the gateway.
     tmuxedo_protocol::review::FEATURE_REVIEW,
     tmuxedo_protocol::queued::FEATURE_QUEUED,
+    tmuxedo_protocol::checkpoint::FEATURE_CHECKPOINTS,
 ];
 
 pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
@@ -689,6 +701,11 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
     );
     let delivery = crate::secrets::delivery::Rt::new(&opts.state_dir);
     let queued = crate::queued::Delivered::load(&opts.state_dir);
+    let checkpoints = crate::checkpoint::Store::new(
+        opts.checkpoints_root
+            .clone()
+            .or_else(|| crate::checkpoint::configured_root(std::path::Path::new(&opts.home))),
+    );
     let state_dir_for_ssh = opts.state_dir.join("ssh");
     let stats = crate::stats::Sampler::new(crate::stats::Roots::system(
         std::path::Path::new(&opts.home),
@@ -715,6 +732,7 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
         internal_tx,
         fs: Default::default(),
         review: Default::default(),
+        checkpoints,
         dirty: true,
         exit: None,
         waiters: vec![],
@@ -2071,6 +2089,7 @@ impl Daemon {
                 crate::api::respond(reply, result, self)
             }
             Internal::Files(o) => self.on_files(o).await,
+            Internal::ChatCheckpointed { sid, turn, text } => self.chat_checkpointed(&sid, turn, &text).await,
             Internal::Confirmed { question, result } => self.on_confirmed(question, result).await,
             Internal::LoginDelivered {
                 id,
@@ -3407,7 +3426,26 @@ impl Daemon {
             self.agent_update(&pane_id, false).await;
         }
         let res = rewrite.map_or(json!({}), |o| json!({ "output": o }));
-        crate::api::respond(reply, Ok(res), self);
+        // A turn starts (the prompt was submitted): record the folder first,
+        // and answer the hook once that is done (crate::checkpoint).
+        let turn = out.events.contains(&AgentEvent::TurnStarted);
+        match turn
+            .then(|| self.checkpoint_turn(tmuxedo_protocol::checkpoint::Target::Pane(pane_id.clone())))
+            .flatten()
+        {
+            Some(work) => {
+                let tx = self.internal_tx.clone();
+                tokio::spawn(async move {
+                    work.await;
+                    let _ = tx.send(Internal::Fs {
+                        reply,
+                        result: Ok(res),
+                        frames: vec![],
+                    });
+                });
+            }
+            None => crate::api::respond(reply, Ok(res), self),
+        }
         // Agent chat (design §5.1): an agent session (re)started in this pane — a chat that holds it
         // follows it here; a chat bound to this pane on another session is released.
         if let Some(AgentEvent::SessionStarted {

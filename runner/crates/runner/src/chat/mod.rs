@@ -2214,6 +2214,29 @@ impl Daemon {
     }
 
     async fn chat_write_turn(&mut self, sid: &str, text: &str) {
+        // Checkpoints (crate::checkpoint): the folder is recorded before the
+        // agent sees the message, off the loop; the turn goes on from
+        // `Internal::ChatCheckpointed`.
+        if let Some(work) = self.checkpoint_turn(tmuxedo_protocol::checkpoint::Target::Chat(sid.to_string())) {
+            let turn = self.chats.sessions[sid].meta.turn.clone();
+            let (tx, sid, text) = (self.internal_tx.clone(), sid.to_string(), text.to_string());
+            tokio::spawn(async move {
+                work.await;
+                let _ = tx.send(crate::daemon::Internal::ChatCheckpointed { sid, turn, text });
+            });
+            return;
+        }
+        self.chat_write_turn_now(sid, text).await;
+    }
+
+    /// A turn whose checkpoint is done: unless it was stopped meanwhile.
+    pub(crate) async fn chat_checkpointed(&mut self, sid: &str, turn: Option<String>, text: &str) {
+        if self.chats.sessions.get(sid).is_some_and(|s| s.meta.turn == turn) {
+            self.chat_write_turn_now(sid, text).await;
+        }
+    }
+
+    async fn chat_write_turn_now(&mut self, sid: &str, text: &str) {
         // Before the agent sees the message: what the work folder looks like (the turn-end scan).
         let cwd = self.chats.sessions[sid].meta.cwd.clone();
         let base = files::git_snapshot(Path::new(&cwd)).await;

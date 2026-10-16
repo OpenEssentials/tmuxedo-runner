@@ -8,6 +8,7 @@ pub mod ancestry;
 pub mod api;
 pub mod arrange;
 pub mod chat;
+pub mod checkpoint;
 pub mod claude_auth;
 pub mod cli;
 pub mod config;

@@ -48,6 +48,8 @@ pub const READ_ONLY_METHODS: &[&str] = &[
     "fs.download",
     "git.status",
     "git.diff",
+    "checkpoint.list",
+    "checkpoint.preview",
 ];
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

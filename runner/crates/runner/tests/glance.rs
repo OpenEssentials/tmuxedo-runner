@@ -58,7 +58,8 @@ async fn glances_follow_changes_at_most_hz() {
             "stats",
             "usage",
             "review",
-            "queued_prompts"
+            "queued_prompts",
+            "checkpoints"
         ])
     );
     c.text_t(S, "topology").await;
