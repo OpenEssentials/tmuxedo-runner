@@ -9,7 +9,7 @@
 //! The setting (`overlay` in GET /api/me/keybindings): `on` (default, shown
 //! at once), `delay` (shown when no key follows within [`DELAY`]), `off`.
 
-use super::keymap::{Action, Keymap};
+use super::keymap::{Action, Keymap, RESIZE_ACTIONS};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -78,6 +78,9 @@ pub enum Pick {
     GoToTab,
     AllKeys,
     AgentSettings,
+    Files,
+    Wake,
+    Search,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -102,7 +105,7 @@ fn reason(a: Action, c: &Ctx) -> Option<&'static str> {
     let mutates = matches!(
         a,
         A::NewTab | A::SplitRight | A::SplitDown | A::Zoom | A::ClosePane | A::Arrange | A::EvenOut
-    );
+    ) || RESIZE_ACTIONS.contains(&a);
     if mutates && !c.control {
         return Some(WATCHING);
     }
@@ -127,6 +130,13 @@ fn reason(a: Action, c: &Ctx) -> Option<&'static str> {
         A::Zoom => (c.panes < 2).then_some("only one pane"),
         A::EvenOut => (c.panes < 2).then_some("only one pane"),
         A::Arrange => (!c.online).then_some(OFFLINE),
+        _ if RESIZE_ACTIONS.contains(&a) => {
+            if c.panes < 2 {
+                Some("only one pane")
+            } else {
+                c.zoomed.then_some("unzoom first")
+            }
+        }
         A::RenameTab | A::RenameWorkspace | A::RenamePane => {
             if !c.online {
                 Some(OFFLINE)
@@ -159,6 +169,15 @@ fn label(a: Action, c: &Ctx) -> &'static str {
         A::RenamePane => "rename pane",
         A::Arrange => "arrange terminals",
         A::EvenOut => "even out sizes",
+        A::ResizeSnapLeft => "resize left to the next snap",
+        A::ResizeSnapRight => "resize right to the next snap",
+        A::ResizeSnapUp => "resize up to the next snap",
+        A::ResizeSnapDown => "resize down to the next snap",
+        A::ResizeCellLeft => "resize left by one cell",
+        A::ResizeCellRight => "resize right by one cell",
+        A::ResizeCellUp => "resize up by one cell",
+        A::ResizeCellDown => "resize down by one cell",
+        A::OpenPalette => "search or jump to",
     }
 }
 
@@ -168,8 +187,9 @@ pub fn free(km: &Keymap, key: &str) -> bool {
 }
 
 /// Every bound action once (the user's keys), the TUI's own prefix keys
-/// when no action shadows them, and "all keys".
-pub fn groups(km: &Keymap, c: &Ctx) -> Vec<Group> {
+/// when no action shadows them, and "all keys". The resize keys are only in
+/// the full sheet (`sheet`), as on the web.
+pub fn groups(km: &Keymap, c: &Ctx, sheet: bool) -> Vec<Group> {
     use Action as A;
     let act = |a: Action| Item {
         key: km.key(a).to_string(),
@@ -214,6 +234,15 @@ pub fn groups(km: &Keymap, c: &Ctx) -> Vec<Group> {
     let mut view = vec![];
     view.extend(own("w", "workspaces", Pick::Workspaces, None));
     view.extend(own("S", "agent settings", Pick::AgentSettings, None));
+    view.extend(own("/", "search everything", Pick::Search, None));
+    view.extend(own("F", "files", Pick::Files, None));
+    view.push(act(A::OpenPalette));
+    view.extend(own(
+        "W",
+        "wake this machine",
+        Pick::Wake,
+        c.online.then_some("machine online"),
+    ));
     view.push(act(A::Detach));
     view.extend(own("?", "all keys", Pick::AllKeys, None));
     vec![
@@ -231,7 +260,15 @@ pub fn groups(km: &Keymap, c: &Ctx) -> Vec<Group> {
         },
         Group {
             title: "Layout",
-            items: vec![act(A::Arrange), act(A::EvenOut)],
+            items: if sheet {
+                [A::Arrange, A::EvenOut]
+                    .into_iter()
+                    .chain(RESIZE_ACTIONS)
+                    .map(act)
+                    .collect()
+            } else {
+                vec![act(A::Arrange), act(A::EvenOut)]
+            },
         },
         Group {
             title: "View",
@@ -240,24 +277,32 @@ pub fn groups(km: &Keymap, c: &Ctx) -> Vec<Group> {
     ]
 }
 
-/// `left` → `←`, `ctrl+b` → `^b`, else the notation.
+/// `left` → `←`, `ctrl+b` → `^b`, `alt+left` → `M-←`, else the notation.
 pub fn cap(key: &str) -> String {
-    match key {
-        "left" => "←".into(),
-        "right" => "→".into(),
-        "up" => "↑".into(),
-        "down" => "↓".into(),
-        k => k
-            .strip_prefix("ctrl+")
-            .filter(|c| c.chars().count() == 1)
-            .map(|c| format!("^{c}"))
-            .unwrap_or_else(|| k.to_string()),
+    let arrow = |k: &str| match k {
+        "left" => Some("←"),
+        "right" => Some("→"),
+        "up" => Some("↑"),
+        "down" => Some("↓"),
+        _ => None,
+    };
+    if let Some(a) = arrow(key) {
+        return a.into();
     }
+    for (m, short) in [("ctrl+", "^"), ("alt+", "M-")] {
+        if let Some(a) = key.strip_prefix(m).and_then(arrow) {
+            return format!("{short}{a}");
+        }
+    }
+    key.strip_prefix("ctrl+")
+        .filter(|c| c.chars().count() == 1)
+        .map(|c| format!("^{c}"))
+        .unwrap_or_else(|| key.to_string())
 }
 
 /// Draw the overlay (`sheet` = every binding after `?`) centred in `main`.
 pub fn draw(km: &Keymap, c: &Ctx, sheet: bool, main: Rect, buf: &mut Buffer) {
-    let gs = groups(km, c);
+    let gs = groups(km, c, sheet);
     let lines: Vec<Vec<Line>> = gs
         .iter()
         .map(|g| {

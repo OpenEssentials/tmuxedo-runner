@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { parseClientFrame, parseRunnerFrame } from '../src/frames.js';
 import {
-  configPlugins, helloAgentAuth, parseConfigPlugins, parsePluginInfos, parseUiFrame, pluginActionRequest,
+  configPlugins, helloAgentAuth, USAGE_ALERT_LEVELS, parseConfigPlugins, parsePluginInfos, parseUiFrame, pluginActionRequest,
   uiSlot, visibleItems, type UiItem,
 } from '../src/plugins.js';
 
@@ -60,6 +60,18 @@ describe('config: plugins[] beside claude.args', () => {
     expect(configPlugins([], { keystrokePlugins: ['codex'] })).toEqual(configPlugins([]));
     expect(configPlugins([], { usage: true })).toEqual(fx.config.usage_on.plugins);
     expect(configPlugins([], { usage: false })).toEqual(fx.config.usage_off.plugins);
+  });
+
+  it('usage alert levels: absent is all on, only known levels count, in order (as the Rust side)', () => {
+    expect(USAGE_ALERT_LEVELS).toEqual([80, 95, 100]);
+    for (const c of fx.usage_alerts as { alerts: unknown; want: number[] | null }[]) {
+      const p = parseConfigPlugins([{ id: 'claude', settings: { usage: { enabled: true, alerts: c.alerts } } }])!;
+      expect(p[0].settings?.usage?.alerts, JSON.stringify(c)).toEqual(c.want ?? undefined);
+    }
+    const sent = configPlugins([], { usage: true, usageAlerts: [95, 100] });
+    expect(sent.find((p) => p.id === 'claude')?.settings?.usage).toEqual({ enabled: true, alerts: [95, 100] });
+    expect(sent.find((p) => p.id === 'codex')?.settings?.usage).toEqual({ enabled: true, alerts: [95, 100] });
+    expect(JSON.stringify(configPlugins([], { usage: true }))).not.toContain('alerts');
   });
 
   it('AI usage: on only when the config says so, and never for a plugin with no source', () => {

@@ -3,13 +3,16 @@
   "feature": "review",
   "methods": {
     "read": ["git.status", "git.diff"],
-    "mutating": ["git.commit", "git.push", "git.discard"]
+    "mutating": ["git.commit", "git.push", "git.discard"],
+    "web": ["git.commit", "git.push", "git.discard"]
   },
   "limits": {
     "sessionId": 128,
     "statusFiles": 1000,
     "patchBytes": 524288,
-    "largeLines": 2000
+    "largeLines": 2000,
+    "messageBytes": 10000,
+    "branchBytes": 200
   },
   "params": {
     "valid": [
@@ -31,6 +34,36 @@
       { "method": "git.diff", "params": { "pane": "w1:p1", "path": "a//b" }, "code": "invalid_path" },
       { "method": "git.diff", "params": { "pane": "w1:p1", "path": "" }, "code": "invalid_path" },
       { "method": "git.commit", "params": { "pane": "w1:p1" }, "code": "invalid_params" }
+    ]
+  },
+  "ship": {
+    "valid": [
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "Fix the flaky test" } },
+      { "method": "git.commit", "params": { "chat": "c1", "message": "Add a page\n\nWith a body.", "branch": "agent/add-page" } },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "x", "branch": null } },
+      { "method": "git.push", "params": { "pane": "w1:p1" } },
+      { "method": "git.push", "params": { "pane": "w1:p1", "pr": true } },
+      { "method": "git.push", "params": { "chat": "c1", "pr": true, "base": "release/2.0" } },
+      { "method": "git.discard", "params": { "pane": "w1:p1" } },
+      { "method": "git.discard", "params": { "chat": "c1" } }
+    ],
+    "invalid": [
+      { "method": "git.commit", "params": { "pane": "w1:p1" }, "code": "invalid_params" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "   " }, "code": "invalid_params" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "a\u0000b" }, "code": "invalid_params" },
+      { "method": "git.commit", "params": { "message": "x" }, "code": "invalid_params" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "x", "branch": "-f" }, "code": "invalid_branch" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "x", "branch": "a..b" }, "code": "invalid_branch" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "x", "branch": "a b" }, "code": "invalid_branch" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "x", "branch": "HEAD" }, "code": "invalid_branch" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "x", "branch": "a/" }, "code": "invalid_branch" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "x", "branch": "a.lock" }, "code": "invalid_branch" },
+      { "method": "git.commit", "params": { "pane": "w1:p1", "message": "x", "branch": "a@{1}" }, "code": "invalid_branch" },
+      { "method": "git.push", "params": { "pane": "w1:p1", "pr": "yes" }, "code": "invalid_params" },
+      { "method": "git.push", "params": { "pane": "w1:p1", "base": "../x" }, "code": "invalid_branch" },
+      { "method": "git.discard", "params": {}, "code": "invalid_params" },
+      { "method": "git.discard", "params": { "pane": "w1:p1", "chat": "c1" }, "code": "invalid_params" },
+      { "method": "git.status", "params": { "pane": "w1:p1" }, "code": "invalid_params" }
     ]
   }
 }

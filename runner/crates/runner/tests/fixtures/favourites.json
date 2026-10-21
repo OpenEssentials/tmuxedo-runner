@@ -1,5 +1,5 @@
 {
-  "about": "Restore plans for layout favourites. Read by runner/crates/runner/src/cli/tui/favourites_tests.rs (the TUI's matcher) and packages/layouts/test/favourites-fixture.test.ts (planRestore). Hand-written: change both sides if a rule changes.",
+  "about": "Restore plans for layout favourites. Read by runner/crates/runner/src/cli/tui/favourites_tests.rs (the TUI's matcher), packages/layouts/test/favourites-fixture.test.ts (planRestore) and mobile/__tests__/lib/favouritesDrift.test.ts (the phone copy). Hand-written: change every side if a rule changes.",
   "cases": [
     {
       "name": "reuse by name and agent, open what is missing, extras move",

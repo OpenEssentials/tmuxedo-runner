@@ -303,7 +303,18 @@ impl Daemon {
                 let (ws, tab, pane) = self
                     .state
                     .create_workspace(&cwd, Some(label.clone()), argv, BTreeMap::new());
-                self.spawn_pane(&pane, None);
+                // Checkpoints (crate::checkpoint): the folder is recorded before the
+                // command starts, off the loop, so a headless run can be undone; the
+                // command starts from `Internal::TaskCheckpointed`.
+                if let Some(work) = self.checkpoint_turn(tmuxedo_protocol::checkpoint::Target::Pane(pane.clone())) {
+                    let (tx, pane_id) = (self.internal_tx.clone(), pane.clone());
+                    tokio::spawn(async move {
+                        work.await;
+                        let _ = tx.send(crate::daemon::Internal::TaskCheckpointed { pane_id });
+                    });
+                } else {
+                    self.spawn_pane(&pane, None);
+                }
                 self.emit(crate::events::Event::new(
                     "workspace_created",
                     json!({ "workspace": self.workspace_info(&ws) }),
@@ -429,6 +440,25 @@ impl Daemon {
             text
         };
         Some((text, more || cut))
+    }
+
+    /// A command task's checkpoint is done: its command starts now, unless
+    /// the task was cancelled meanwhile.
+    pub(crate) fn task_checkpointed(&mut self, pane_id: &str) {
+        if self.task_runs_pane(pane_id) && self.state.pane(pane_id).is_some() && !self.panes.contains_key(pane_id) {
+            self.spawn_pane(pane_id, None);
+        }
+    }
+
+    /// The folder of the newest command task that ran in this pane (its
+    /// checkpoints outlive the pane).
+    pub(crate) fn task_pane_cwd(&self, pane_id: &str) -> Option<String> {
+        self.tasks
+            .map
+            .values()
+            .filter(|t| matches!(&t.kind, Kind::Command { pane_id: p } if p == pane_id))
+            .max_by(|a, b| a.started_at.cmp(&b.started_at))
+            .map(|t| t.cwd.clone())
     }
 
     /// Whether a running task's command lives in this pane.

@@ -57,6 +57,7 @@ fn ctx() -> Ctx<'static> {
     Ctx {
         exe: Path::new(EXE),
         skill_text: None,
+        host: None,
     }
 }
 
@@ -121,6 +122,7 @@ fn codex_from_the_shared_fixture_keeps_the_tmuxedo_skill() {
     let with_skill = Ctx {
         exe: Path::new(EXE),
         skill_text: Some("# tmuxedo\n"),
+        host: None,
     };
     let b = gen::build("codex", &set, entry, &with_skill, Path::new("/g"));
     assert_eq!(
@@ -216,6 +218,7 @@ fn every_kind_for_codex_and_cursor() {
             "mcp_servers.files.args=[\"cli\", \"secret\", \"exec\", \"--mcp\", \"codex/files\", \"API_KEY\", \"--\", \
              \"files-mcp\", \"--root\", \"it's here; $(id)\"]",
             "mcp_servers.files.env={ \"MODE\" = \"ro\" }",
+            "mcp_servers.files.env_vars=[\"TMUXEDO_SOCKET_PATH\"]",
             "mcp_servers.files.enabled_tools=[\"read\", \"list\"]",
             "mcp_servers.docs.url=\"https://mcp.example.com/docs\"",
             "mcp_servers.docs.http_headers={ \"X-Team\" = \"a \\\"b\\\"\" }",
@@ -377,16 +380,20 @@ fn the_shim_adds_the_set_of_the_folder_and_leaves_the_users_files_alone() {
     let got: Vec<&str> = out.lines().collect();
     let at = gen::lookup(&gen::root(&state, "claude"), &web).unwrap();
     let at = at.parent().unwrap().display().to_string();
-    assert_eq!(got[0], "--settings");
+    // Claude reads only the last `--append-system-prompt-file`, so the shim
+    // folds the set's file into one leading `--append-system-prompt`.
+    assert_eq!(got[0], "--append-system-prompt");
+    let set = got.iter().position(|a| *a == "--settings").unwrap();
+    let joined = std::fs::read_to_string(format!("{at}/instructions.md")).unwrap();
+    assert_eq!(got[1..set].join("\n"), joined.trim_end());
+    assert!(!out.contains("--append-system-prompt-file"), "{out}");
     assert_eq!(
-        got[2..],
+        got[set + 2..],
         [
             "--mcp-config",
             &format!("{at}/mcp.json"),
             "--plugin-dir",
             &format!("{at}/plugin"),
-            "--append-system-prompt-file",
-            &format!("{at}/instructions.md"),
             "--model",
             "opus",
             "--dangerously-skip-permissions",
@@ -780,4 +787,35 @@ fn a_pinned_package_runs_exactly_as_pinned_and_an_unpinned_one_is_reported() {
         b.argv
     );
     assert_eq!(row(&b, "loose")["package"]["pinned"], false);
+}
+
+/// Codex hands a stdio server only a short list of variables, so a server
+/// wrapped in `secret exec` is told to keep the pane's runner socket
+/// (found by the Phase 17 gate run: without it the server never started).
+/// A server without secrets runs as written and gets nothing extra.
+#[test]
+fn codex_keeps_the_runner_socket_for_a_server_with_a_secret_only() {
+    let set = parse_plugin_set(&json!({
+        "v": 1,
+        "items": [
+            { "id": "a", "kind": "mcp", "name": "github", "version": 1, "definition": {
+                "transport": "stdio", "command": ["gh-mcp"],
+                "env": { "GH_TOKEN": { "$secret": "GH_TOKEN" } } } },
+            { "id": "b", "kind": "mcp", "name": "plain", "version": 1, "definition": {
+                "transport": "stdio", "command": ["plain-mcp"], "env": { "MODE": "ro" } } }
+        ],
+        "machine": { "codex": { "items": ["a", "b"] } },
+        "projects": {}
+    }))
+    .unwrap();
+    let b = gen::build(
+        "codex",
+        &set,
+        set.entry("codex", None).unwrap(),
+        &ctx(),
+        Path::new("/g"),
+    );
+    let with: Vec<&String> = b.argv.iter().filter(|a| a.contains(".env_vars=")).collect();
+    assert_eq!(with, ["mcp_servers.github.env_vars=[\"TMUXEDO_SOCKET_PATH\"]"]);
+    assert_eq!(gen::SOCKET_ENV, "TMUXEDO_SOCKET_PATH");
 }

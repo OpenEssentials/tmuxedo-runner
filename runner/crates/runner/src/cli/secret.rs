@@ -11,6 +11,9 @@
 //!   git hosts).
 //! - `tmuxedo secret agent-env <plugin>` — `export` lines for an agent's own
 //!   environment, read by that plugin's launch shim.
+//! - `tmuxedo secret addon-env <file>` — the same for the variables an
+//!   add-on maps to secrets (`addon-env.json` of a generated scope, names
+//!   only; crate::addon_gen). The same Agent binding decides.
 
 use super::call_local;
 use serde_json::{json, Value};
@@ -22,7 +25,8 @@ pub fn run(args: &[String]) -> i32 {
         Some("exec") => return exec(&args[1..]),
         Some("git-credential") => git_credential(args.get(1).map(String::as_str).unwrap_or("")),
         Some("agent-env") => agent_env(args.get(1).map(String::as_str).unwrap_or("")),
-        _ => Err("secret list | exec NAME… -- cmd | git-credential get | agent-env <plugin>".into()),
+        Some("addon-env") => addon_env(args.get(1).map(String::as_str).unwrap_or("")),
+        _ => Err("secret list | exec NAME… -- cmd | git-credential get | agent-env <plugin> | addon-env <file>".into()),
     };
     match res {
         Ok(()) => 0,
@@ -220,12 +224,65 @@ fn agent_env(plugin: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn addon_env(file: &str) -> Result<(), String> {
+    if file.is_empty() {
+        return Err("addon-env <file>".into());
+    }
+    let doc: Value = std::fs::read_to_string(file)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .ok_or("addon-env: unreadable file")?;
+    let plugin = doc["plugin"].as_str().unwrap_or("");
+    let names = crate::addon_gen::addon_env_names(&doc);
+    if plugin.is_empty() || names.is_empty() {
+        return Ok(());
+    }
+    let r = match result(call_local(
+        "secret.agent_env",
+        json!({"plugin": plugin, "names": names}),
+    )?) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("tmuxedo: {e}");
+            return Ok(());
+        }
+    };
+    let mut out = std::io::stdout().lock();
+    let _ = out.write_all(addon_exports(&doc, &r["values"]).as_bytes());
+    let _ = out.flush();
+    Ok(())
+}
+
+/// `export VAR='value'` for each variable whose secret came back; a missing
+/// one is named on stderr (the agent starts without it).
+pub fn addon_exports(doc: &Value, values: &Value) -> String {
+    let mut s = String::new();
+    for (var, secret) in doc["env"].as_object().into_iter().flatten() {
+        let ok = |c: char| c.is_ascii_alphanumeric() || c == '_';
+        if var.is_empty() || !var.chars().all(ok) {
+            continue;
+        }
+        match secret.as_str().and_then(|n| values[n].as_str()) {
+            Some(v) => s.push_str(&format!("export {var}={}\n", crate::plugin::sh_quote(v))),
+            None => eprintln!("tmuxedo: {var} left out: its secret is not available to this agent"),
+        }
+    }
+    s
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn a(s: &str) -> Vec<String> {
         s.split_whitespace().map(String::from).collect()
+    }
+
+    #[test]
+    fn addon_exports_only_what_came_back() {
+        let doc = json!({ "plugin": "claude", "env": { "A_TOKEN": "S1", "B_TOKEN": "S2", "bad name": "S1" } });
+        let out = addon_exports(&doc, &json!({ "S1": "v'1" }));
+        assert_eq!(out, "export A_TOKEN='v'\\''1'\n");
     }
 
     #[test]

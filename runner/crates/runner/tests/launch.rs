@@ -110,8 +110,15 @@ async fn claude_launch_args_are_prepended_and_never_interpreted() {
     h.ok("pane.send_text", json!({"pane_id": "w1:p1", "text": "claude hello\n"}))
         .await;
     let text = h.wait_text("w1:p1", "<hello>").await.replace('\n', "");
-    let want = format!("<--dangerously-skip-permissions><--append-system-prompt><{value}><--settings>");
+    // Claude keeps only the last prompt flag, so the shim folds the files
+    // note and this value into one leading `--append-system-prompt`.
+    assert!(
+        text.contains("<--append-system-prompt><# Files from the person"),
+        "{text}"
+    );
+    let want = format!("{value}><--add-dir><");
     assert!(text.contains(&want), "{text}");
+    assert!(text.contains("><--dangerously-skip-permissions><--settings>"), "{text}");
     assert!(!marker.exists(), "an arg is never run by a shell");
     // An injection attempt (not a flag, not a flag's value) is refused; the
     // previous args stay.

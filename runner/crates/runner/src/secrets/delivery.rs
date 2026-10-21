@@ -666,11 +666,17 @@ impl Daemon {
                         pane_id: Some(pane),
                         ..Default::default()
                     };
+                    // `names`: only these (an add-on's, crate::addon_gen); the
+                    // same binding decides either way.
+                    let only: Option<Vec<&str>> = params["names"]
+                        .as_array()
+                        .map(|a| a.iter().filter_map(Value::as_str).collect());
                     let names: Vec<String> = self
                         .delivery
                         .policy
                         .names
                         .keys()
+                        .filter(|n| only.as_ref().is_none_or(|o| o.contains(&n.as_str())))
                         .filter(|n| self.delivery.policy.allows(n, &p))
                         .cloned()
                         .collect();
@@ -762,6 +768,7 @@ impl Daemon {
         let dir = self.opts.state_dir.clone();
         let exe = self.opts.hook_exe.clone();
         let mut changed = vec![];
+        let mut guard_changed = false;
         for p in self.plugins.active() {
             let id = p.id().to_string();
             let on = guard && !self.delivery.policy.guard_off.contains(&id);
@@ -770,6 +777,7 @@ impl Daemon {
                 if g.builder == "hook-settings" {
                     if let Some(path) = gen.get(name) {
                         if super::guard::patch_settings(path, on).unwrap_or(false) {
+                            guard_changed = true;
                             changed.push(format!("{id} guard {}", if on { "on" } else { "off" }));
                         }
                     }
@@ -791,6 +799,10 @@ impl Daemon {
         }
         if !changed.is_empty() {
             crate::log!("secrets: {}", changed.join(", "));
+        }
+        // An add-on's settings copy (crate::addon_gen) follows the host's.
+        if guard_changed {
+            self.sync_plugin_set();
         }
     }
 }

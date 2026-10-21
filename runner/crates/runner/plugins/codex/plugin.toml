@@ -198,3 +198,4 @@ windows = [
   { at = "payload.rate_limits.secondary", pct = "used_percent", resets = "resets_at", mins_field = "window_minutes" },
 ]
 plan = "payload.rate_limits.plan_type"
+tokens = ["payload.info.total_token_usage.total_tokens"]

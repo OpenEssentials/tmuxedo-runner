@@ -113,8 +113,21 @@ export interface ConfigPlugin {
      * AI usage (docs/protocol.md "AI usage"): read this agent's plan numbers. For Claude that means the
      * runner sets Claude's status-line command to its own (which runs the person's). Absent = off.
      */
-    usage?: { enabled: boolean };
+    usage?: {
+      enabled: boolean;
+      /** The needs-you alerts on (USAGE_ALERT_LEVELS; 100 = the limit, which offers to resume at the reset). Absent = all. */
+      alerts?: number[];
+    };
   };
+}
+
+/** Usage alert levels in percent (docs/protocol.md "AI usage"); 100 is the limit. */
+export const USAGE_ALERT_LEVELS = [80, 95, 100] as const;
+
+/** `settings.usage.alerts` → the known levels it holds, in order, once each; undefined (all on) when not a list. */
+export function parseAlertLevels(v: unknown): number[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  return USAGE_ALERT_LEVELS.filter((l) => v.includes(l));
 }
 
 /** Built-in plugins web configures besides Claude (PLAN Phase 16). */
@@ -129,9 +142,10 @@ export const USAGE_PLUGINS = ['claude', 'codex'] as const;
  * `config.claude.args` (dual-write: both go out; a new runner reads
  * `plugins`, an old one `claude`).
  */
-export function configPlugins(claudeArgs: readonly string[], opts: { skill?: boolean; keystroke?: boolean; keystrokePlugins?: readonly string[]; /** AI usage for the plugins that can report it (USAGE_PLUGINS); not given = not sent, which a runner reads as off. */ usage?: boolean } = {}): ConfigPlugin[] {
+export function configPlugins(claudeArgs: readonly string[], opts: { skill?: boolean; keystroke?: boolean; keystrokePlugins?: readonly string[]; /** AI usage for the plugins that can report it (USAGE_PLUGINS); not given = not sent, which a runner reads as off. */ usage?: boolean; /** The usage alert levels on; not given = all. */ usageAlerts?: readonly number[] } = {}): ConfigPlugin[] {
   const skill = { enabled: opts.skill ?? true };
-  const usage = opts.usage !== undefined ? { usage: { enabled: opts.usage } } : {};
+  const alerts = opts.usageAlerts !== undefined ? { alerts: parseAlertLevels([...opts.usageAlerts]) } : {};
+  const usage = opts.usage !== undefined ? { usage: { enabled: opts.usage, ...alerts } } : {};
   return [
     {
       id: LEGACY_PLUGIN,
@@ -160,7 +174,10 @@ export function parseConfigPlugins(v: unknown): ConfigPlugin[] | undefined {
     if (skill && typeof skill.enabled === 'boolean') settings.skill = { enabled: skill.enabled };
     if (keys && typeof keys.enabled === 'boolean') settings.keystroke = { enabled: keys.enabled };
     const usage = st.usage as Record<string, unknown> | undefined;
-    if (usage && typeof usage.enabled === 'boolean') settings.usage = { enabled: usage.enabled };
+    if (usage && typeof usage.enabled === 'boolean') {
+      const alerts = parseAlertLevels(usage.alerts);
+      settings.usage = { enabled: usage.enabled, ...(alerts ? { alerts } : {}) };
+    }
     out.push({ id: o.id, ...(typeof o.version === 'string' ? { version: o.version } : {}), ...(typeof o.digest === 'string' ? { digest: o.digest } : {}), ...(Object.keys(settings).length ? { settings } : {}) });
   }
   return out;

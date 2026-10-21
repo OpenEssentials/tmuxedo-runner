@@ -15,6 +15,7 @@ import type { PluginInfo, UiItem } from './plugins.js';
 import type { NeedsYou } from './needs.js';
 import type { StatsFrame, StatsSample } from './stats.js';
 import type { UsageFrame, UsageRecord } from './usage.js';
+import type { KeepAwake, Network } from './wake.js';
 
 export const PROTOCOL_VERSION = 1;
 /** The WebSocket subprotocol clients offer first and the gateway selects when offered. */
@@ -202,7 +203,7 @@ export interface ClaudeAuth { state: ClaudeAuthState; reason: string; since: str
 export const AUTH_EVENT_TYPES = ['auth_ok', 'auth_missing', 'auth_expired', 'auth_failed'] as const;
 /** `features`: optional protocol additions this runner serves (e.g. `glance`); absent on older runners. */
 /** `plugins`: the runner's plugins (plugins.ts); a runner that sends it understands `plugin_action` and sends `ui`. */
-export interface RunnerInfo { version: string; holderVersion: string; os: string; arch: string; hostname: string; claudeVersion?: string; claudeAuth?: ClaudeAuth; features?: string[]; plugins?: PluginInfo[]; /** Automation the machine's owner turned on (tasks.ts); absent = off. */ automation?: { labels: string[] } }
+export interface RunnerInfo { version: string; holderVersion: string; os: string; arch: string; hostname: string; claudeVersion?: string; claudeAuth?: ClaudeAuth; features?: string[]; plugins?: PluginInfo[]; /** Automation the machine's owner turned on (tasks.ts); absent = off. */ automation?: { labels: string[] }; /** Keep-awake state (wake.ts). */ keepAwake?: KeepAwake; /** Interfaces it can be woken through (wake.ts). */ network?: Network }
 /** The welcome feature a gateway lists when it relays `ui` frames (a runner sends none before it). */
 export const UI_FEATURE = 'ui';
 
@@ -259,7 +260,7 @@ export type GatewayToRunner =
   /** Seqs web refused because it already holds a different event under them: renumber above lastEventSeq and resend. */
   | { t: 'events_rejected'; seqs: number[]; lastEventSeq: number }
   /** Launch and shell configuration from web (docs/protocol.md `config`): after welcome and on change. */
-  | { t: 'config'; claude?: { args: string[] }; /** Per plugin (plugins.ts ConfigPlugin); sent beside `claude` (dual-write). */ plugins?: Array<{ id: string; settings?: { launch?: { args: string[] }; skill?: { enabled: boolean }; keystroke?: { enabled: boolean }; usage?: { enabled: boolean } } }>; shell?: { aliases: Record<string, string>; env: Record<string, string>; rc: string }; /** New panes' folder: `~`, `~/…` or absolute; "" = the default (~/work); absent = unchanged. */ workDir?: string; /** Web's agent chat policy for this machine's owner (D-C4); absent = unchanged. */ chat?: { subscription: 'allow' | 'deny' }; /** What each plugin gets on this machine, per project (plugin-set.ts; Phase 17). Absent = unchanged; an older runner ignores it. */ pluginSet?: import('./plugin-set.js').PluginSet; /** The roles effective on this machine, per project (roles.ts RoleSet; Phase 18). Absent = unchanged; an older runner ignores it. */ roles?: import('./roles.js').RoleSet }
+  | { t: 'config'; claude?: { args: string[] }; /** Per plugin (plugins.ts ConfigPlugin); sent beside `claude` (dual-write). */ plugins?: Array<{ id: string; settings?: { launch?: { args: string[] }; skill?: { enabled: boolean }; keystroke?: { enabled: boolean }; usage?: { enabled: boolean } } }>; shell?: { aliases: Record<string, string>; env: Record<string, string>; rc: string }; /** New panes' folder: `~`, `~/…` or absolute; "" = the default (~/work); absent = unchanged. */ workDir?: string; /** Web's agent chat policy for this machine's owner (D-C4); absent = unchanged. */ chat?: { subscription: 'allow' | 'deny' }; /** What each plugin gets on this machine, per project (plugin-set.ts; Phase 17). Absent = unchanged; an older runner ignores it. */ pluginSet?: import('./plugin-set.js').PluginSet; /** The roles effective on this machine, per project (roles.ts RoleSet; Phase 18). Absent = unchanged; an older runner ignores it. */ roles?: import('./roles.js').RoleSet; /** The projects whose search history this machine keeps (docs/protocol.md "Search history"); absent = unchanged, an empty list = none. */ history?: { projects: Array<{ key: string; days?: number }> }; /** Warn before the memory watchdog stops a process (docs/protocol.md "Machine stats"); absent = unchanged, a new runner starts on. */ memoryWarn?: boolean }
   | { t: 'attach'; req: number; paneId: string; from?: number }
   | { t: 'detach'; paneId: string }
   | { t: 'req'; id: string; method: string; params: unknown }

@@ -472,3 +472,125 @@ pub fn problem(code: &str, undo: bool) -> &'static str {
         _ => "That did not work. Nothing was changed.",
     }
 }
+
+/// A split's ratio is kept within this of either end (`MIN_RATIO` in packages/layouts).
+pub const MIN_RATIO: f64 = 0.05;
+
+/// Characters a name may not hold (`UNSAFE` in packages/layouts): controls, line and paragraph separators, bidi overrides.
+fn unsafe_char(c: char) -> bool {
+    matches!(c as u32, 0..=0x1f | 0x7f..=0x9f | 0x2028 | 0x2029 | 0x202a..=0x202e | 0x2066..=0x2069)
+}
+
+/// A favourite's name as the server keeps it (`parseFavouriteName`): trimmed, inner runs of
+/// whitespace as one space, 1 to 40 characters, nothing unsafe. None when it is not one.
+pub fn parse_name(input: &str) -> Option<String> {
+    if input.chars().count() > 4 * NAME_MAX {
+        return None;
+    }
+    let name = input.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!name.is_empty() && name.chars().count() <= NAME_MAX && !name.chars().any(unsafe_char)).then_some(name)
+}
+
+/// A favourite in the API's JSON (`{name, shape, slots}`, the body of `POST /api/me/layouts`).
+pub fn favourite_json(name: &str, shape: &Shape, slots: &[Slot]) -> Value {
+    fn walk(s: &Shape) -> Value {
+        match s {
+            Shape::Slot(n) => json!({ "slot": n }),
+            Shape::Split { dir, ratio, a, b } => json!({
+                "dir": if *dir == SplitDir::H { "h" } else { "v" },
+                "ratio": ratio,
+                "a": walk(a),
+                "b": walk(b),
+            }),
+        }
+    }
+    let slots: Vec<Value> = slots
+        .iter()
+        .map(|s| {
+            let mut o = json!({ "holds": s.holds });
+            if let Some(a) = &s.agent {
+                o["agent"] = json!(a);
+            }
+            if let Some(l) = &s.label {
+                o["label"] = json!(l);
+            }
+            if let Some(c) = &s.cwd {
+                o["cwd"] = json!({ "base": c.base, "path": c.path });
+            }
+            o
+        })
+        .collect();
+    json!({ "name": name, "shape": walk(shape), "slots": slots })
+}
+
+/// The tab's layout as a favourite (`favouriteFrom` in packages/layouts): the shape, and per
+/// slot what the terminal there holds (its agent or a shell, its name, its folder), or only the
+/// shape (`shape_only`: every slot `any`). Ratios kept within [`MIN_RATIO`]. None when it cannot
+/// be one: more than [`MAX_SLOTS`] terminals, too deep, a pane twice, or anything that would not
+/// read back strictly.
+pub fn favourite_from(l: &Layout, panes: &[OpenPane], shape_only: bool) -> Option<(Shape, Vec<Slot>)> {
+    fn walk(
+        n: &Layout,
+        depth: usize,
+        panes: &[OpenPane],
+        shape_only: bool,
+        slots: &mut Vec<Slot>,
+        used: &mut Vec<String>,
+    ) -> Option<Shape> {
+        if depth > MAX_DEPTH {
+            return None;
+        }
+        match n {
+            Layout::Pane { pane } => {
+                if used.contains(pane) || slots.len() >= MAX_SLOTS {
+                    return None;
+                }
+                used.push(pane.clone());
+                let mut slot = Slot {
+                    holds: "any".into(),
+                    agent: None,
+                    label: None,
+                    cwd: None,
+                };
+                if let (false, Some(p)) = (shape_only, panes.iter().find(|p| &p.id == pane)) {
+                    slot.holds = if p.agent.is_some() { "agent" } else { "shell" }.into();
+                    slot.agent = p.agent.clone();
+                    slot.label = p.label.clone();
+                    slot.cwd = p.cwd.clone();
+                }
+                slots.push(slot);
+                Some(Shape::Slot(slots.len() - 1))
+            }
+            Layout::Split { dir, ratio, a, b } => {
+                let a = walk(a, depth + 1, panes, shape_only, slots, used)?;
+                let b = walk(b, depth + 1, panes, shape_only, slots, used)?;
+                Some(Shape::Split {
+                    dir: *dir,
+                    ratio: ratio.clamp(MIN_RATIO, 1.0 - MIN_RATIO),
+                    a: Box::new(a),
+                    b: Box::new(b),
+                })
+            }
+        }
+    }
+    let mut slots = vec![];
+    let shape = walk(l, 0, panes, shape_only, &mut slots, &mut vec![])?;
+    // What a pane reported is as untrusted as anything else: the result must read back strictly.
+    let mut row = favourite_json("draft", &shape, &slots);
+    row["id"] = json!("draft");
+    let back = parse_favourite(&row)?;
+    Some((back.shape, back.slots))
+}
+
+/// What saving a favourite answered, in the web's words (`favouriteProblem(…, 'save')`).
+pub fn save_problem(status: u16, code: Option<&str>) -> &'static str {
+    match code {
+        Some("favourite_limit") => "You have as many favourites as an account keeps. Delete one first.",
+        Some("name_taken") => "Another favourite has that name.",
+        Some("insufficient_scope") => "This CLI token cannot save favourites (it needs the write scope).",
+        Some("invalid_favourite") => "This layout cannot be saved as a favourite.",
+        _ if status == 413 => "This layout cannot be saved as a favourite.",
+        _ if status == 401 || status == 403 => "Sign in again to use favourites.",
+        _ => "That did not work. Nothing was saved.",
+    }
+}

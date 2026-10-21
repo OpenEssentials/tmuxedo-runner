@@ -9,6 +9,12 @@
 //!     ! Dangerous: Never ask for permission
 //!     MCP servers: github, postgres · 1 off
 //!
+//! Then the add-ons on the machine (Phase 17b; the `addons` list of the same
+//! response, absent from an older server), each with where it sends data:
+//!
+//!   Add-ons on this machine
+//!     Example telemetry: sends data to telemetry.example.com (workspace)
+//!
 //! `e` opens Settings → Plugins on the web, where everything is changed;
 //! `r` loads again; ↑↓ scroll; Esc closes. A project can differ from the
 //! machine: the view says so and leaves projects to the web page.
@@ -193,6 +199,31 @@ pub fn rows(view: &View) -> Vec<(Tone, String)> {
                 line.push_str(&format!(" · {off} off"));
             }
             out.push((Tone::Plain, line));
+        }
+    }
+    let addons: Vec<&Value> = v["addons"].as_array().into_iter().flatten().collect();
+    if !addons.is_empty() {
+        out.push((Tone::Heading, "Add-ons on this machine".into()));
+        for a in addons {
+            let title = clean(a["title"].as_str().or(a["name"].as_str()).unwrap_or("?"));
+            let hosts: Vec<String> = a["sendsTo"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .map(|o| clean(o.split_once("://").map_or(o, |(_, rest)| rest).trim_end_matches('/')))
+                .collect();
+            let sends = if hosts.is_empty() {
+                "sends nothing off the machine".to_string()
+            } else {
+                format!("sends data to {}", hosts.join(", "))
+            };
+            let from = if a["from"] == "workspace" {
+                "workspace"
+            } else {
+                "this machine"
+            };
+            out.push((Tone::Plain, format!("  {title}: {sends} ({from})")));
         }
     }
     out.push((Tone::Muted, String::new()));

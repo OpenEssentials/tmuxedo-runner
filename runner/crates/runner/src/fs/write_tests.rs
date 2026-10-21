@@ -553,9 +553,12 @@ fn a_target_swapped_during_a_save_is_a_conflict_never_a_write_through() {
         std::thread::spawn(move || {
             while !stop.load(AO::Relaxed) {
                 if std::fs::rename(&target, &parked).is_ok() {
-                    symlink(&decoy, &target).unwrap();
-                    std::thread::yield_now();
-                    std::fs::remove_file(&target).unwrap();
+                    // Where there is no exchange (macOS), a save's plain rename can put a file
+                    // back under the name in the gap: then this round has no link.
+                    if symlink(&decoy, &target).is_ok() {
+                        std::thread::yield_now();
+                        let _ = std::fs::remove_file(&target);
+                    }
                     std::fs::rename(&parked, &target).unwrap();
                 }
             }

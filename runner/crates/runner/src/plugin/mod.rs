@@ -141,6 +141,7 @@ pub trait AgentPlugin: Send + Sync {
         };
         out.session_id = field(&h.session_field);
         out.cwd = field(&h.cwd_field);
+        out.transcript = field(&h.transcript_field).filter(|t| t.starts_with('/'));
         let name = field(&h.event_field).unwrap_or_default();
         for row in h.map.iter().filter(|r| r.native == name) {
             let when_ok = row.when.iter().all(|(f, allowed)| {
@@ -428,7 +429,25 @@ pub trait AgentPlugin: Send + Sync {
         let l = m.launch.as_ref()?;
         let mut pre = String::new();
         let hosted_extra: &[String] = if e.hosted { &l.hosted_prepend } else { &[] };
+        // With a plugin set, the hook settings are a variable: the set's
+        // `argv.sh` may point it at its own copy (crate::addon_gen).
+        let settings_tokens: Vec<String> = m
+            .generate
+            .iter()
+            .filter(|(_, g)| g.builder == "hook-settings")
+            .map(|(n, _)| format!("{{gen:{n}}}"))
+            .collect();
+        let mut settings_default: Option<String> = None;
         for tok in l.prepend.iter().chain(hosted_extra) {
+            if e.set.is_some() && settings_tokens.contains(tok) {
+                let ctx = Ctx {
+                    gen: Some(gen),
+                    ..Ctx::default()
+                };
+                settings_default = Some(resolve(tok, &ctx));
+                pre.push_str("\"$tmuxedo_hook_settings\" ");
+                continue;
+            }
             if tok == "{hooks.argv...}" {
                 if let Some(exe) = e.hook_exe {
                     for a in self.hooks_argv(exe) {
@@ -501,7 +520,18 @@ pub trait AgentPlugin: Send + Sync {
                 l.target_contains
             ));
         }
-        let set = e.set.unwrap_or_default();
+        let set = match (&settings_default, e.set) {
+            (Some(p), Some(line)) => format!("    tmuxedo_hook_settings={}\n{line}", sh_quote(p)),
+            _ => e.set.unwrap_or_default().to_string(),
+        };
+        // A CLI that reads only the last system-prompt flag: put everything in
+        // `"$@"` first, join those flags there, then run it.
+        let join = l.join_prompt.as_ref().map(|j| j.shell_fragment()).unwrap_or_default();
+        let run = if join.is_empty() {
+            format!("    exec \"$d/{bin}\" {pre}\"$@\"\n")
+        } else {
+            format!("    set -- {pre}\"$@\"\n{join}    exec \"$d/{bin}\" \"$@\"\n")
+        };
         Some(format!(
             r#"#!/bin/sh
 # tmuxedo: run the real {bin} with tmuxedo's hook settings layered on top of the
@@ -515,8 +545,7 @@ for d in $PATH; do
   [ "$abs" = "$shim_dir" ] && continue
   if [ -x "$d/{bin}" ] && [ ! -d "$d/{bin}" ]; then
     IFS=$old_ifs
-{guard}{set}    exec "$d/{bin}" {pre}"$@"
-  fi
+{guard}{set}{run}  fi
 done
 IFS=$old_ifs
 echo "tmuxedo: {bin} is not installed (not found on PATH)" >&2
@@ -538,6 +567,25 @@ exit 127
         };
         Some(
             r.argv
+                .iter()
+                .map(|t| shell_token(t, &resolve(t, &ctx)))
+                .collect::<Vec<_>>()
+                .join(" "),
+        )
+    }
+
+    /// `resume.new_argv` resolved: start the session `session_id` afresh (it has no conversation yet).
+    fn new_session_command(&self, shim_dir: &Path, session_id: &str) -> Option<String> {
+        let m = self.manifest();
+        let r = m.resume.as_ref().filter(|r| !r.new_argv.is_empty())?;
+        let shim = m.launch.as_ref().map(|l| shim_dir.join(&l.shim));
+        let ctx = Ctx {
+            shim: shim.as_deref(),
+            session_id: Some(session_id),
+            ..Ctx::default()
+        };
+        Some(
+            r.new_argv
                 .iter()
                 .map(|t| shell_token(t, &resolve(t, &ctx)))
                 .collect::<Vec<_>>()

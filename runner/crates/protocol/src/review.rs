@@ -16,9 +16,17 @@ pub const FEATURE_REVIEW: &str = "review";
 
 /// The methods that only read.
 pub const READ_METHODS: &[&str] = &["git.status", "git.diff"];
-/// The methods that change the repository or reach a remote. Not served yet:
-/// they will travel through web only, with control and a fresh step-up.
+/// The methods that change the repository or reach a remote. They never
+/// travel on a client socket (the gateway refuses them there).
 pub const MUTATING_METHODS: &[&str] = &["git.commit", "git.push", "git.discard"];
+/// The mutating methods the runner serves, for web only (`machine.call`,
+/// after control and a fresh step-up). `git.discard` records a checkpoint
+/// first, so it can be undone with the checkpoints' restore.
+pub const WEB_METHODS: &[&str] = &["git.commit", "git.push", "git.discard"];
+/// A commit message at most (bytes).
+pub const MESSAGE_MAX: usize = 10_000;
+/// A branch name at most (bytes).
+pub const BRANCH_MAX: usize = 200;
 
 /// A session id at most (bytes).
 pub const MAX_SESSION_ID: usize = 128;
@@ -45,6 +53,27 @@ pub enum Target {
 pub enum ReadParams {
     Status { target: Target },
     Diff { target: Target, path: String },
+}
+
+/// What `git.commit` and `git.push` are asked to do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ShipParams {
+    /// Commit every listed change; on `branch`, a new branch made first.
+    Commit {
+        target: Target,
+        message: String,
+        branch: Option<String>,
+    },
+    /// Push the current branch; with `pr`, open a draft pull request (into
+    /// `base`, else the repository's default branch).
+    Push {
+        target: Target,
+        pr: bool,
+        base: Option<String>,
+    },
+    /// Put every listed change back as the base has it (new files removed),
+    /// after recording the folder as a checkpoint.
+    Discard { target: Target },
 }
 
 pub type ParamError = (&'static str, String);
@@ -97,5 +126,68 @@ pub fn parse_read_params(method: &str, p: &Value) -> Result<ReadParams, ParamErr
             })
         }
         _ => Err(bad("not a reading git method")),
+    }
+}
+
+/// A branch name tmuxedo will hand to git: 1..=200 bytes of
+/// `[A-Za-z0-9._/-]`, not starting with `-`, `.` or `/`, no `..`, `//`,
+/// `/.` or `@{`, not ending in `/`, `.` or `.lock`, and not `HEAD`. The
+/// runner asks `git check-ref-format --branch` as well.
+pub fn valid_branch_name(s: &str) -> bool {
+    !s.is_empty()
+        && s.len() <= BRANCH_MAX
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'/' | b'-'))
+        && !s.starts_with(['-', '.', '/'])
+        && !s.ends_with(['/', '.'])
+        && !s.ends_with(".lock")
+        && !s.contains("..")
+        && !s.contains("//")
+        && !s.contains("/.")
+        && !s.contains("@{")
+        && s != "HEAD"
+}
+
+fn branch_field(p: &Value, key: &str) -> Result<Option<String>, ParamError> {
+    match &p[key] {
+        Value::Null => Ok(None),
+        Value::String(s) if valid_branch_name(s) => Ok(Some(s.clone())),
+        _ => Err(("invalid_branch", "That branch name is not allowed.".into())),
+    }
+}
+
+/// Parse the parameters of one of [`WEB_METHODS`].
+pub fn parse_ship_params(method: &str, p: &Value) -> Result<ShipParams, ParamError> {
+    if !p.is_object() {
+        return Err(bad("params must be an object"));
+    }
+    match method {
+        "git.commit" => {
+            let target = target(p)?;
+            let message = p["message"].as_str().ok_or_else(|| bad("message is required"))?;
+            if message.trim().is_empty() || message.len() > MESSAGE_MAX || message.contains('\0') {
+                return Err(bad("message must be 1..=10000 bytes of text"));
+            }
+            Ok(ShipParams::Commit {
+                target,
+                message: message.to_string(),
+                branch: branch_field(p, "branch")?,
+            })
+        }
+        "git.push" => {
+            let target = target(p)?;
+            let pr = match &p["pr"] {
+                Value::Null => false,
+                Value::Bool(b) => *b,
+                _ => return Err(bad("pr must be true or false")),
+            };
+            Ok(ShipParams::Push {
+                target,
+                pr,
+                base: branch_field(p, "base")?,
+            })
+        }
+        "git.discard" => Ok(ShipParams::Discard { target: target(p)? }),
+        _ => Err(bad("not a git method served here")),
     }
 }

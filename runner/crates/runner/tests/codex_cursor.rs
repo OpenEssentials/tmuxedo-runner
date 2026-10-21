@@ -274,7 +274,17 @@ async fn codex_through_hooks_release_on_typing_login_health_and_device_code() {
 async fn cursor_plugin_dir_link_lift_and_opt_in_keystroke_answers() {
     let mut r = rig().await;
     let cursor = plugin(&r.hello, "cursor");
-    assert_eq!(cursor["auth"]["state"], "missing", "{cursor}");
+    if cfg!(target_os = "linux") {
+        assert_eq!(cursor["auth"]["state"], "missing", "{cursor}");
+    } else {
+        // The credentials file is probed on Linux only; elsewhere they live in the
+        // keychain, which the runner does not read (the plugin's unprobed reason).
+        assert_eq!(
+            (cursor["auth"]["state"].as_str(), cursor["auth"]["reason"].as_str()),
+            (Some("ok"), Some("keychain (not inspected)")),
+            "{cursor}"
+        );
+    }
 
     r.h.ok("pane.send_text", json!({"pane_id": "w1:p1", "text": "agent\n"}))
         .await;

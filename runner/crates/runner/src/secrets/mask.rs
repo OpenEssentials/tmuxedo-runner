@@ -12,8 +12,8 @@
 //! - **Streaming Aho-Corasick.** The automaton keeps its state across reads.
 //!   The bytes that could still be the start of a match (the automaton's
 //!   depth) are held back until the next read decides them, or until
-//!   [`HOLDBACK`] passes, when they are flushed as they are: a secret split
-//!   across a longer gap leaks its tail (documented, §5.2).
+//!   [`HOLDBACK`] passes with no new byte, when they are flushed as they are:
+//!   a secret split by a longer pause leaks its tail (documented, §5.2).
 //! - **Overlapping matches** are all masked (the union of their bytes).
 
 use base64::Engine;
@@ -397,10 +397,15 @@ impl StreamMasker {
         }
         let keep = self.set.depth[self.state as usize] as usize;
         let out = self.release(self.held.len() - keep.min(self.held.len()));
+        // The wait counts from the last byte that kept a match going: a value
+        // echoed a few bytes at a time (a line editor echoing typed input) is
+        // not split by the wait however long it is in all.
         self.held_since = if self.held.is_empty() {
             None
-        } else {
+        } else if bytes.is_empty() {
             self.held_since.or(Some(now))
+        } else {
+            Some(now)
         };
         out
     }
@@ -537,6 +542,25 @@ mod tests {
         // documented leak for > 30 ms gaps).
         let c = m.feed(b"sk-split", t0);
         assert!(c.is_empty());
+        assert_eq!(m.flush(), b"sk-split");
+    }
+
+    #[test]
+    fn a_match_echoed_a_byte_at_a_time_is_masked_whole() {
+        // A line editor echoes typed input a byte at a time: the wait restarts
+        // with each byte, so the value is masked however long it takes in all.
+        let mut m = StreamMasker::new(set(&["sk-split-secret-value"]));
+        let mut t = Instant::now();
+        let mut out = vec![];
+        for &b in b"sk-split-secret-value!" {
+            t += HOLDBACK / 2;
+            assert!(!m.due(t));
+            out.extend(m.feed(&[b], t));
+        }
+        assert_eq!(out, b"*********************!");
+        // A pause longer than the wait still releases a prefix as it is.
+        assert!(m.feed(b"sk-split", t).is_empty());
+        assert!(m.due(t + HOLDBACK));
         assert_eq!(m.flush(), b"sk-split");
     }
 

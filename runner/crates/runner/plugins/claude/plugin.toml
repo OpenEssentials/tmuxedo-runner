@@ -36,6 +36,7 @@ event_field = "hook_event_name"
 session_field = "session_id"
 cwd_field = "cwd"
 source_field = "source"
+transcript_field = "transcript_path"
 # Helpers (sub-agents in Claude's own process): where their hooks name them.
 subagent = { id_field = "agent_id", name_field = "agent_type" }
 register = [
@@ -80,6 +81,9 @@ deny  = '{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{
 
 [resume]                                 # row 14 (the cwd guard stays core)
 argv = ["{shim}", "--resume", "{session_id}"]
+# A session nobody spoke in yet has no transcript, so nothing to resume: it
+# starts under the same id instead (a chat opened from a fresh terminal).
+new_argv = ["{shim}", "--session-id", "{session_id}"]
 
 # Claude never persists "trust this folder" for $HOME (2.1.289: session
 # only), and `--resume <id>` finds a session from any folder: resume
@@ -91,6 +95,13 @@ leave_home = true
 [launch.files]
 add_dir = "--add-dir"
 instructions = "--append-system-prompt-file"
+
+# Claude reads only the last --append-system-prompt and the last
+# --append-system-prompt-file (checked with Claude Code 2.1.289, Phase 17
+# gate run): the shim joins them all into one --append-system-prompt.
+[launch.join_prompt]
+text = "--append-system-prompt"
+file = "--append-system-prompt-file"
 
 [auth]                                   # row 11 (claude_auth.rs)
 probes = [
@@ -124,6 +135,10 @@ argv = ["{agent}", "-p", "--input-format", "stream-json", "--output-format", "st
         "{settings.launch.args...}"]
 new_session = ["--session-id", "{session_id}"]
 resume = ["--resume", "{session_id}"]
+# The transcript its hooks name (transcript_path): turns taken in the terminal
+# are shown in the chat from it, and a session with none yet starts with
+# --session-id instead of --resume (src/chat/transcript.rs).
+transcript = "claude-jsonl"
 mode_flag = "--permission-mode"
 modes = [
   { id = "ask_first", native = "default" },
@@ -218,4 +233,5 @@ windows = [
   { at = "rate_limits.seven_day", pct = "used_percentage", resets = "resets_at", id = "7d", mins = 10080 },
 ]
 context = { pct = "context_window.used_percentage", size = "context_window.context_window_size" }
+tokens = ["context_window.total_input_tokens", "context_window.total_output_tokens"]
 model = "model.display_name"

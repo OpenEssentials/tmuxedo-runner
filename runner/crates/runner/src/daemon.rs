@@ -119,6 +119,8 @@ pub struct RunOptions {
     pub checkpoints_root: Option<PathBuf>,
     /// Automation labels this machine's owner turned on (crate::task); empty = no tasks.
     pub automation_labels: Vec<String>,
+    /// Session recordings (crate::replay): one folder per recorded session.
+    pub recordings_dir: PathBuf,
 }
 
 impl RunOptions {
@@ -130,6 +132,7 @@ impl RunOptions {
             token,
             http_base: None,
             state_dir: crate::paths::state_dir(),
+            recordings_dir: crate::paths::recordings_dir(),
             holder_socket: crate::paths::holder_socket(),
             legacy_holder_socket: tmuxedo_holder::legacy_socket(),
             runner_socket: crate::paths::runner_socket(),
@@ -202,6 +205,10 @@ pub(crate) enum Internal {
         turn: Option<String>,
         text: String,
     },
+    /// A command task's checkpoint is done: its command starts now (crate::task).
+    TaskCheckpointed {
+        pane_id: String,
+    },
     /// A task's command exited; finish it once its last output has arrived.
     TaskExit {
         pane_id: String,
@@ -209,6 +216,18 @@ pub(crate) enum Internal {
         code: Option<i32>,
         signal: Option<String>,
         tries: u32,
+    },
+    /// A pull request was opened from the review: watch its checks (crate::needs_ci).
+    CiWatch {
+        url: String,
+        number: u64,
+        dir: std::path::PathBuf,
+        pane: Option<String>,
+    },
+    /// gh answered about a watched pull request's checks.
+    CiChecked {
+        url: String,
+        outcome: crate::review::ship::Checks,
     },
     /// A file-browser request finished on its blocking thread (crate::fs).
     Fs {
@@ -268,6 +287,8 @@ pub struct Daemon {
     pub(crate) holder: HolderClient,
     pub(crate) panes: BTreeMap<String, PaneRt>,
     by_hid: HashMap<String, String>,
+    /// The last `addon_report` sent (crate::plugin_gen::addon_report).
+    addon_report: Option<Value>,
     gw: Option<gateway::GwLink>,
     /// Frames the outbound queue had no room for, in order (audit P2-5:
     /// the daemon never awaits the connection).
@@ -282,6 +303,8 @@ pub struct Daemon {
     /// instant): a round whose victim is one of them waits; any other group
     /// is still handled (audit P2-16b: no blind window).
     watchdog_stopping: Vec<(u32, Instant)>,
+    /// The warning before the watchdog acts (crate::memory_warn).
+    pub(crate) memory_warn: crate::memory_warn::MemoryWarn,
     pub(crate) prompts: HashMap<String, HeldPrompt>,
     pub(crate) info: RunnerInfo,
     /// Plugins on the wire: gateway features, agent versions, skill wishes (crate::plugin_wire).
@@ -293,6 +316,7 @@ pub struct Daemon {
     pub(crate) review: crate::review::Rt,
     /// Checkpoints and undo (crate::checkpoint).
     pub(crate) checkpoints: crate::checkpoint::Store,
+    pub(crate) replay: crate::replay::Rt,
     dirty: bool,
     exit: Option<ExitReason>,
     pub(crate) waiters: Vec<Waiter>,
@@ -306,6 +330,8 @@ pub struct Daemon {
     welcomed: bool,
     /// Launch/shell configuration from web (persisted in config.json).
     pub(crate) launch: crate::launch_config::LaunchConfig,
+    /// Keep-awake while agents work (crate::awake).
+    pub(crate) awake: crate::awake::KeepAwake,
     /// The plugin host (built-in plugins + their enable state).
     pub(crate) plugins: crate::plugin::Host,
     /// Claude login health (None: no Claude Code on this machine).
@@ -324,7 +350,14 @@ pub struct Daemon {
     /// Machine stats (docs/protocol.md "Machine stats"): samples only while the gateway asks.
     stats: crate::stats::Sampler,
     /// AI usage (crate::usage): the newest record per plugin, sent on change.
-    usage: crate::usage::Store,
+    pub(crate) usage: crate::usage::Store,
+    /// Usage alerts at 80 %, 95 % and the limit (crate::usage::alerts), and the ones open now.
+    pub(crate) usage_alerts: crate::usage::alerts::Alerts,
+    pub(crate) usage_open: Vec<crate::usage::alerts::Alert>,
+    pub(crate) usage_alerts_at: Option<Instant>,
+    /// Restored agents waiting to be opened before they resume (crate::usage::lazy), by pane.
+    pub(crate) usage_lazy: BTreeMap<String, crate::usage::lazy::Waiting>,
+    pub(crate) usage_lazy_shown: Vec<(String, usize)>,
     /// Loopback OAuth callbacks seen in `open_url`s, for `login_callback`.
     login_relay: crate::login_relay::Relay,
     /// Confirm on this Mac: remote control waits for the person at the machine.
@@ -340,10 +373,14 @@ pub struct Daemon {
     secrets_relaunch_pending: bool,
     /// Folder → project key lookups (crate::project).
     pub(crate) projects: crate::project::Resolver,
+    /// The per-project search history (crate::history).
+    pub(crate) history: crate::history::Recorder,
     /// The ssh-agent's keys and pending confirmations (crate::secrets::ssh).
     pub(crate) ssh: crate::secrets::ssh::Rt,
     /// An ssh confirmation was queued: flush events after this turn of the loop.
     pub(crate) ssh_flush: bool,
+    /// A waiting agent was woken: its `resumed` event goes out on the next tick.
+    pub(crate) usage_lazy_flush: bool,
     /// Files and uploads (crate::files); None when files are off on this machine.
     pub(crate) files: Option<crate::files::glue::Files>,
     /// The files worker's inbox, handed to the gateway connection (upload bytes go there directly).
@@ -473,6 +510,10 @@ pub const RUNNER_FEATURES: &[&str] = &[
     tmuxedo_protocol::review::FEATURE_REVIEW,
     tmuxedo_protocol::queued::FEATURE_QUEUED,
     tmuxedo_protocol::checkpoint::FEATURE_CHECKPOINTS,
+    // The away digest's facts (session.summary), from the checkpoints and chat records.
+    tmuxedo_protocol::checkpoint::FEATURE_SESSION_SUMMARY,
+    // Session recording and replay (Phase 27): replay.* through web.
+    tmuxedo_protocol::replay::FEATURE_REPLAY,
 ];
 
 pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
@@ -512,6 +553,8 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
         features: Some(RUNNER_FEATURES.iter().map(|f| f.to_string()).collect()),
         plugins: None,
         automation: crate::task::consent(&opts.automation_labels),
+        keep_awake: None,
+        network: None,
     };
     let mut info = info;
     // Files: a root outside every repository, or off (logged) when there is none.
@@ -596,6 +639,12 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
     for a in &needs.files {
         needs.open.entry(a.pane_id.clone()).or_default().push(a.item());
     }
+    needs.ci = crate::needs_ci::load(&opts.state_dir);
+    for w in &needs.ci {
+        if let Some(it) = w.item() {
+            needs.open.entry(w.pane_id.clone()).or_default().push(it);
+        }
+    }
     for (id, on) in &wire.skill_wanted {
         let ok = plugins
             .get(id)
@@ -612,6 +661,7 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
     // AI usage as web last asked (none until it does): the settings files
     // written below carry a status line only for these.
     wire.usage_wanted = crate::plugin_wire::load_usage_wishes(&opts.state_dir);
+    wire.usage_alert_levels = crate::plugin_wire::load_usage_alert_levels(&opts.state_dir);
     for (id, on) in &wire.usage_wanted {
         plugins.set_usage(id, *on);
     }
@@ -711,8 +761,17 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
         std::path::Path::new(&opts.home),
         holder.pid,
     ));
-    let usage = crate::usage::Store::new(&opts.state_dir);
+    let mut usage = crate::usage::Store::new(&opts.state_dir);
+    // Readings kept from the last run count only for plugins whose AI usage is still on.
+    for r in usage.records() {
+        if !plugins.usage_enabled(&r.plugin) {
+            usage.forget(&r.plugin);
+        }
+    }
+    let usage_alerts = crate::usage::alerts::Alerts::load(&opts.state_dir);
+    let history_state_dir = opts.state_dir.clone();
     let mut d = Daemon {
+        addon_report: None,
         shell: shell_argv[0].clone(),
         opts,
         state,
@@ -727,12 +786,14 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
         rr: 0,
         timers: vec![],
         watchdog_stopping: vec![],
+        memory_warn: crate::memory_warn::MemoryWarn::new(launch.memory_warn != Some(false)),
         prompts: HashMap::new(),
         info,
         internal_tx,
         fs: Default::default(),
         review: Default::default(),
         checkpoints,
+        replay: Default::default(),
         dirty: true,
         exit: None,
         waiters: vec![],
@@ -740,6 +801,10 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
         shim_dir,
         outbox,
         welcomed: false,
+        awake: crate::awake::KeepAwake::new(
+            Box::new(crate::awake::ChildInhibitor::for_this_os()),
+            launch.keep_awake != Some(false),
+        ),
         launch,
         plugins,
         wire,
@@ -752,6 +817,11 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
         glance_rev: HashMap::new(),
         stats,
         usage,
+        usage_alerts,
+        usage_open: vec![],
+        usage_alerts_at: None,
+        usage_lazy: BTreeMap::new(),
+        usage_lazy_shown: vec![],
         login_relay: crate::login_relay::Relay::default(),
         confirm,
         chats,
@@ -760,8 +830,10 @@ pub async fn run(opts: RunOptions) -> Result<ExitReason, String> {
         delivery,
         secrets_relaunch_pending: false,
         projects: Default::default(),
+        history: crate::history::Recorder::new(&history_state_dir),
         ssh: crate::secrets::ssh::Rt::new(state_dir_for_ssh),
         ssh_flush: false,
+        usage_lazy_flush: false,
         files,
         files_in,
         needs,
@@ -952,7 +1024,7 @@ impl Daemon {
     /// shell files. Applies to new launches and new panes.
     /// Build what the kept plugin set gives each agent (crate::plugin_gen);
     /// true when a shim gains or loses its plugin-set line.
-    fn sync_plugin_set(&mut self) -> bool {
+    pub(crate) fn sync_plugin_set(&mut self) -> bool {
         let dir = self.opts.state_dir.clone();
         let roles = crate::role_set::load(&dir);
         let set = match crate::plugin_set::load(&dir) {
@@ -982,7 +1054,19 @@ impl Daemon {
             skill_text,
             multi_agent,
         );
+        self.report_addons();
         self.plugins.set_plugin_set(lines)
+    }
+
+    /// Tell web what the add-ons did here when it changed (`addon_report`).
+    fn report_addons(&mut self) {
+        let report = crate::plugin_gen::addon_report(&self.opts.state_dir);
+        let empty = report["items"].as_array().is_none_or(Vec::is_empty);
+        if self.addon_report.as_ref() == Some(&report) || (self.addon_report.is_none() && empty) {
+            return;
+        }
+        self.addon_report = Some(report.clone());
+        self.queue_event("", "addon_report", report);
     }
 
     fn apply_config(
@@ -1085,6 +1169,7 @@ impl Daemon {
         if !grew {
             return;
         }
+        self.replay_mask_grew();
         let ids: Vec<String> = self.panes.keys().cloned().collect();
         for id in ids {
             let Some(rt) = self.panes.get_mut(&id) else { continue };
@@ -1298,7 +1383,7 @@ impl Daemon {
         });
     }
 
-    fn register(&mut self, pane_id: &str) {
+    pub(crate) fn register(&mut self, pane_id: &str) {
         let Some(p) = self.state.pane(pane_id) else { return };
         let mut rt = PaneRt::new(
             pane_id,
@@ -1316,6 +1401,7 @@ impl Daemon {
                 self.by_hid.remove(&old.hid);
             }
         }
+        self.replay_register(pane_id);
     }
 
     /// Spawn a pane's process in the holder (its record exists in `state`).
@@ -1331,6 +1417,18 @@ impl Daemon {
         if self.opts.pane_history {
             self.load_history(pane_id);
         }
+        self.spawn_in_holder(pane_id, spec);
+    }
+
+    /// Start a registered pane's process (crate::usage::lazy: one that waited to be opened).
+    pub(crate) fn start_spawn(&mut self, pane_id: &str, hid: &str, argv: Vec<String>) {
+        if let Some(spec) = self.spawn_spec(pane_id, hid, argv) {
+            self.spawn_in_holder(pane_id, spec);
+        }
+    }
+
+    fn spawn_in_holder(&mut self, pane_id: &str, spec: SpawnSpec) {
+        let hid = spec.id.clone();
         let holder = self.holder.clone();
         let tx = self.internal_tx.clone();
         let pane_id = pane_id.to_string();
@@ -1464,6 +1562,10 @@ impl Daemon {
                         &session,
                         rec.meta.resume_argv.as_deref(),
                     ));
+                    let resume = argv.clone().unwrap_or_default();
+                    if self.usage_lazy_hold(id, &kind, &session, &resume) {
+                        return;
+                    }
                     log!("{id}: resuming {kind} session {session} in {}", rec.pane.cwd);
                     let mut data = json!({ "kind": kind, "sessionId": session, "cwd": rec.pane.cwd });
                     if moved_from_home {
@@ -1635,6 +1737,7 @@ impl Daemon {
             }
         }
         let reason = self.exit.clone().unwrap_or(ExitReason::Signal);
+        self.awake.release();
         self.persist();
         if let Some(gw) = self.gw.take() {
             if !matches!(reason, ExitReason::Fatal(_)) {
@@ -1827,6 +1930,7 @@ impl Daemon {
     pub(crate) fn queue_event(&mut self, pane_id: &str, kind: &str, mut data: Value) {
         // Masked before it is written to the on-disk outbox.
         crate::secrets::mask_json(&self.secrets.set(), &mut data);
+        self.replay_marker(pane_id, kind);
         self.state.event_seq += 1;
         let seq = self.state.event_seq;
         self.persist();
@@ -1954,6 +2058,7 @@ impl Daemon {
             let _ = holder.remove(&hid).await;
         });
         self.remove_history(pane_id);
+        self.replay_pane_gone(pane_id);
         if closing {
             return;
         }
@@ -2080,6 +2185,8 @@ impl Daemon {
                     self.on_exit(&pane_id, &hid, code, signal).await;
                 }
             }
+            Internal::CiWatch { url, number, dir, pane } => self.ci_watch(url, number, dir, pane).await,
+            Internal::CiChecked { url, outcome } => self.ci_checked(&url, outcome).await,
             Internal::Fs { reply, result, frames } => {
                 if matches!(reply, ReplyTo::Gateway(_)) {
                     for f in frames {
@@ -2090,6 +2197,7 @@ impl Daemon {
             }
             Internal::Files(o) => self.on_files(o).await,
             Internal::ChatCheckpointed { sid, turn, text } => self.chat_checkpointed(&sid, turn, &text).await,
+            Internal::TaskCheckpointed { pane_id } => self.task_checkpointed(&pane_id),
             Internal::Confirmed { question, result } => self.on_confirmed(question, result).await,
             Internal::LoginDelivered {
                 id,
@@ -2265,7 +2373,19 @@ impl Daemon {
                 projects,
                 plugin_set,
                 roles,
+                history,
+                keep_awake,
+                memory_warn,
             } => {
+                if let Some(h) = history {
+                    self.history_apply(&h);
+                }
+                if let Some(on) = keep_awake.as_deref().and_then(Value::as_bool) {
+                    self.set_keep_awake(on);
+                }
+                if let Some(on) = memory_warn.as_deref().and_then(Value::as_bool) {
+                    self.set_memory_warn(on).await;
+                }
                 // Kept for the plugins' builders (crate::plugin_gen, below).
                 crate::plugin_set::apply(&self.opts.state_dir, plugin_set.as_deref());
                 crate::role_set::apply(&self.opts.state_dir, roles.as_deref());
@@ -2289,6 +2409,14 @@ impl Daemon {
                     if cp.usage != self.wire.usage_wanted {
                         self.apply_usage_wishes(cp.usage.clone());
                     }
+                    if cp.usage_alerts != self.wire.usage_alert_levels {
+                        self.wire.usage_alert_levels = cp.usage_alerts.clone();
+                        crate::plugin_wire::save_usage_alert_levels(
+                            &self.opts.state_dir,
+                            &self.wire.usage_alert_levels,
+                        );
+                        log!("usage alerts: {:?}", self.wire.usage_alert_levels);
+                    }
                     if cp.skill != self.wire.skill_wanted {
                         self.wire.skill_wanted = cp.skill;
                         crate::plugin_wire::save_skill_wishes(&self.opts.state_dir, &self.wire.skill_wanted);
@@ -2300,7 +2428,7 @@ impl Daemon {
                 let skill_changed = self.sync_skills();
                 // After the skills: Codex's instructions carry its skill's text.
                 let set_changed = self.sync_plugin_set();
-                self.apply_config(claude, shell, work_dir, projects);
+                self.apply_config(claude, shell, work_dir, projects.map(|p| *p));
                 if (skill_changed || set_changed) && self.shim_dir.is_some() {
                     if let Err(e) = self.plugins.write_shims(&self.opts.state_dir, &self.launch.claude_args) {
                         log!("config: skill shim: {e}");
@@ -2334,6 +2462,8 @@ impl Daemon {
                         ""
                     }
                 );
+                // The first open resumes an agent that waited (crate::usage::lazy).
+                self.usage_lazy_wake(&pane_id);
                 let mut out = vec![];
                 match self.panes.get_mut(&pane_id) {
                     Some(rt) => rt.attach(req, from, &mut out),
@@ -2476,6 +2606,7 @@ impl Daemon {
     async fn do_control(&mut self, w: ControlWork) {
         match w {
             ControlWork::Input { pane_id, bytes } => {
+                self.usage_lazy_wake(&pane_id);
                 self.release_on_input(&pane_id);
                 if let Some(rt) = self.panes.get(&pane_id) {
                     if rt.alive {
@@ -2664,6 +2795,7 @@ impl Daemon {
         rt.rows = rows;
         rt.emu.resize(rows, cols);
         self.holder.resize(&rt.hid, cols, rows);
+        self.replay_resize(pane_id, cols, rows);
         if let Some(p) = self.state.pane_mut(pane_id) {
             p.pane.cols = cols;
             p.pane.rows = rows;
@@ -2729,6 +2861,9 @@ impl Daemon {
                 }
             }
             self.emit(Event::new("pane_agent_status_changed", data));
+            if kind.is_some() {
+                self.replay_marker(pane_id, &format!("status:{}", agent::status_str(new)));
+            }
             if kind.is_some() {
                 if let Some(t) = agent::durable_event(new) {
                     let mut d = json!({ "kind": kind });
@@ -2869,6 +3004,9 @@ impl Daemon {
     }
 
     async fn on_tick(&mut self) {
+        if std::mem::take(&mut self.usage_lazy_flush) {
+            self.flush_events().await;
+        }
         self.flush_overflow();
         self.flush_round(true).await;
         let now = Instant::now();
@@ -2941,6 +3079,7 @@ impl Daemon {
                 self.send_frame(RunnerFrame::Usage(r)).await;
             }
         }
+        self.usage_alerts_tick(now).await;
         self.needs_tick(now).await;
         if now.duration_since(self.last_detect) >= DETECT_EVERY {
             self.last_detect = now;
@@ -2965,13 +3104,45 @@ impl Daemon {
         self.needs_sync(crate::needs::MACHINE).await;
     }
 
+    /// Agents working now, in live panes.
+    fn agents_working(&self) -> usize {
+        self.panes
+            .values()
+            .filter(|rt| rt.alive && rt.track.kind().is_some() && rt.track.effective == AgentStatus::Working)
+            .count()
+    }
+
+    fn awake_tick(&mut self) {
+        let working = self.agents_working();
+        // Battery only matters while something would be held.
+        let low = working > 0 && crate::awake::battery_low();
+        self.awake.update(working, low, Instant::now());
+    }
+
+    /// `config.keepAwake`: the owner's setting, kept in config.json.
+    fn set_keep_awake(&mut self, on: bool) {
+        let want = (!on).then_some(false);
+        if self.launch.keep_awake == want {
+            return;
+        }
+        self.launch.keep_awake = want;
+        if let Ok(b) = serde_json::to_vec_pretty(&self.launch) {
+            let _ = crate::config::write_private(&self.opts.state_dir.join("config.json"), &b);
+        }
+        log!("config: keep awake while agents work {}", if on { "on" } else { "off" });
+        self.awake.set_enabled(on, Instant::now());
+    }
+
     async fn on_slow(&mut self) {
         self.chat_tick().await;
         self.task_tick().await;
         self.secrets_tick();
         self.ssh_tick();
         self.files_tick();
+        self.replay_tick();
         self.file_asks_tick().await;
+        self.ci_tick().await;
+        self.history_tick();
         if self.confirm.expire(Instant::now()) {
             log!("remote control: this Mac's answer never came; denied");
         }
@@ -2983,6 +3154,7 @@ impl Daemon {
         self.auth_changed(c).await;
         self.plugin_slow_tick().await;
         self.reprobe_tick().await;
+        self.awake_tick();
         let moved = self
             .state
             .panes
@@ -3002,12 +3174,17 @@ impl Daemon {
             .filter(|p| p.alive && p.pid > 0)
             .map(|p| (p.id.clone(), p.pid))
             .collect();
-        let Some(v) = watchdog::check(
+        let a = watchdog::assess(
             std::path::Path::new("/sys/fs/cgroup"),
             std::path::Path::new("/proc"),
             self.holder.pid,
             &panes,
-        ) else {
+        );
+        self.memory_warn_update(a.as_ref()).await;
+        let Some(v) = a
+            .filter(|a| watchdog::over_threshold(a.current, a.max))
+            .and_then(|a| a.victim)
+        else {
             return;
         };
         if self.watchdog_stopping.iter().any(|(g, _)| *g == v.pgid) {
@@ -3242,14 +3419,14 @@ impl Daemon {
         if !self.opts.verify_hook_callers {
             return None;
         }
-        let procs = crate::ancestry::System;
+        let procs = req.procs();
         if let Some(chat) = req.params["chatId"].as_str().filter(|c| !c.is_empty()) {
             let pid = self.chats.sessions.get(chat).map_or(0, |s| s.pid);
             if pid == 0 {
                 // A chat the runner does not know: chat_hook answers `{}` anyway.
                 return None;
             }
-            return crate::ancestry::below(&procs, req.peer_pid(), pid)
+            return crate::ancestry::below(procs, req.peer_pid(), pid)
                 .err()
                 .map(|r| r.code());
         }
@@ -3257,7 +3434,7 @@ impl Daemon {
         let rt = self.panes.get(pane)?;
         let plugin = self.plugins.for_hook(req.params["plugin"].as_str())?;
         let labels = plugin.manifest().agent.labels.clone();
-        crate::ancestry::check(&procs, req.peer_pid(), rt.pid, &labels)
+        crate::ancestry::check(procs, req.peer_pid(), rt.pid, &labels)
             .err()
             .map(|r| r.code())
     }
@@ -3299,6 +3476,11 @@ impl Daemon {
         // Tool output with a secret in it is masked before the model sees it (PostToolUse).
         let rewrite = self.post_tool_rewrite(&ev);
         let out = plugin.map_hook(&ev);
+        if let Some(t) = &out.transcript {
+            if let Some(p) = self.state.pane_mut(&pane_id) {
+                p.meta.session_path = Some(t.clone());
+            }
+        }
         self.usage_tail(&pane_id, plugin.as_ref(), &ev);
         self.needs_note_hook(&pane_id, plugin.as_ref(), &ev, &out);
         if out.events.contains(&AgentEvent::TurnCompleted) && self.scan_transcript(&pane_id, &plugin_id, &kind, &ev) {
@@ -3459,6 +3641,15 @@ impl Daemon {
         {
             self.chat_pane_started(&pane_id, &plugin_id, v, source.as_deref()).await;
         }
+        if let Some(t) = &out.transcript {
+            self.chat_pane_transcript(&pane_id, out.session_id.as_deref(), t);
+        }
+        // A turn a chat was showing (it opened mid-turn) ended in the terminal: the chat takes over.
+        if out.events.contains(&AgentEvent::TurnCompleted) {
+            self.chat_pane_turn_over(&pane_id, false).await;
+        } else if out.events.iter().any(|e| matches!(e, AgentEvent::TurnFailed { .. })) {
+            self.chat_pane_turn_over(&pane_id, true).await;
+        }
     }
 
     /// The `subagent.*` events of one hook → the pane's helpers
@@ -3568,7 +3759,7 @@ impl Daemon {
     }
 
     /// Replay saved history only when the tab's layout is the one it was saved under.
-    fn load_history(&mut self, pane_id: &str) {
+    pub(crate) fn load_history(&mut self, pane_id: &str) {
         let Ok(blob) = std::fs::read(self.history_path(pane_id)) else {
             return;
         };

@@ -417,10 +417,18 @@ fn a_fifo_or_device_never_blocks_or_reads() {
 fn names_that_are_not_text_are_counted_not_sent() {
     let t = tree();
     let bad = std::ffi::OsStr::from_bytes(b"caf\xe9.txt");
-    std::fs::write(t.root.join(bad), "x").unwrap();
+    // APFS refuses names that are not UTF-8 (EILSEQ), so there is nothing to skip there.
+    let made_bad = match std::fs::write(t.root.join(bad), "x") {
+        Ok(()) => true,
+        Err(e) if cfg!(target_os = "macos") && e.raw_os_error() == Some(libc::EILSEQ) => {
+            eprintln!("names_that_are_not_text: this filesystem refuses non-UTF-8 names; that case is skipped");
+            false
+        }
+        Err(e) => panic!("{e}"),
+    };
     std::fs::write(t.root.join("tab\there.txt"), "x").unwrap();
     let top = list(&t.ctx, "", None, 500).unwrap();
-    assert_eq!(top["skipped"], 1);
+    assert_eq!(top["skipped"], u64::from(made_bad));
     // A name with a control character is listed (JSON carries it) but the jail will not open it.
     assert!(names(&top).contains(&"tab\there.txt".to_string()));
     assert_eq!(code(read(&t.ctx, "tab\there.txt")), "invalid_path");

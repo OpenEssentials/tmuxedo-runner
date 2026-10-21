@@ -127,6 +127,9 @@ pub struct Info {
     pub at: u64,
     pub files: u64,
     pub restoring: Option<u64>,
+    /// The chat turns this checkpoint was taken before (`t3`): one, or more
+    /// when the folder did not change between turns.
+    pub turns: Vec<String>,
     pub exact: BTreeMap<String, u32>,
     pub skipped: Value,
 }
@@ -138,8 +141,19 @@ impl Info {
         if let Some(r) = self.restoring {
             v["restoring"] = json!(r);
         }
+        if !self.turns.is_empty() {
+            v["turns"] = json!(self.turns);
+        }
         v
     }
+}
+
+/// The most turn names one checkpoint keeps (the newest stay).
+pub const TURNS_MAX: usize = 50;
+
+/// A chat turn's name as the runner makes it (`t` and digits).
+fn valid_turn(t: &str) -> bool {
+    t.len() <= 24 && t.starts_with('t') && t.len() > 1 && t[1..].bytes().all(|b| b.is_ascii_digit())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -226,6 +240,23 @@ impl Store {
         kind: &str,
         abandon: Option<Arc<AtomicBool>>,
     ) -> Result<Option<Info>, ApiErr> {
+        self.snapshot_turn(cwd, guard, session, kind, None, abandon).await
+    }
+
+    /// [`Store::snapshot`], naming the chat turn it is taken before. When
+    /// the folder is the same as the latest turn checkpoint, nothing new is
+    /// recorded but that checkpoint is named for this turn too, so "Restore
+    /// to here" on any message finds the folder as it was.
+    pub async fn snapshot_turn(
+        &self,
+        cwd: &Path,
+        guard: &jail::Guard,
+        session: &str,
+        kind: &str,
+        turn: Option<&str>,
+        abandon: Option<Arc<AtomicBool>>,
+    ) -> Result<Option<Info>, ApiErr> {
+        let turn = turn.filter(|t| valid_turn(t));
         let g = self.open(cwd, guard).await?;
         let mut caches = self.caches.lock().await;
         let cache = caches.entry(g.shadow.clone()).or_default();
@@ -234,6 +265,13 @@ impl Store {
         if kind == proto::KIND_TURN {
             if let Some(last) = list.first() {
                 if last.tree == snap.tree && last.kind == proto::KIND_TURN {
+                    if let Some(t) = turn {
+                        if !last.turns.iter().any(|x| x == t)
+                            && !abandon.as_ref().is_some_and(|a| a.load(Ordering::Relaxed))
+                        {
+                            g.name_turn(session, last, t).await?;
+                        }
+                    }
                     return Ok(None);
                 }
             }
@@ -241,7 +279,8 @@ impl Store {
         if abandon.as_ref().is_some_and(|a| a.load(Ordering::Relaxed)) {
             return Ok(None);
         }
-        let info = g.record(session, kind, &snap, &list, None).await?;
+        let turns: Vec<String> = turn.map(|t| vec![t.to_string()]).unwrap_or_default();
+        let info = g.record(session, kind, &snap, &list, None, turns).await?;
         Ok(Some(info))
     }
 
@@ -281,6 +320,43 @@ impl Store {
         }))
     }
 
+    /// The away digest's facts (`session.summary`): what the folder changed
+    /// since the oldest checkpoint at or after `since` (`files`, null when
+    /// there is none), and the chat turns those checkpoints were taken
+    /// before. Adds no checkpoint: the folder is read through the stat cache.
+    pub async fn summary(
+        &self,
+        cwd: &Path,
+        guard: &jail::Guard,
+        session: &str,
+        since: Option<u64>,
+    ) -> Result<Value, Unavailable> {
+        let g = self.open(cwd, guard).await?;
+        let mut caches = self.caches.lock().await;
+        let list = g.list(session).await?;
+        let recent: Vec<&Info> = list.iter().filter(|i| since.is_none_or(|t| i.at >= t)).collect();
+        let turns: usize = recent.iter().map(|i| i.turns.len()).sum();
+        // Newest first: the oldest one since then is the last.
+        let Some(first) = recent.last() else {
+            return Ok(json!({ "turns": turns, "files": null }));
+        };
+        let cache = caches.entry(g.shadow.clone()).or_default();
+        let now = g.snapshot(cache).await?;
+        let then = g.tree_files(first).await?;
+        // `compare` is what restoring would do: its "removed" is what the agent added.
+        let plan = compare(&now.files, &then, &g.top);
+        let count = |w: Change| plan.iter().filter(|c| c.change == w).count();
+        Ok(json!({
+            "turns": turns,
+            "from": first.at,
+            "files": {
+                "added": count(Change::Removed),
+                "modified": count(Change::Modified),
+                "removed": count(Change::Added),
+            },
+        }))
+    }
+
     /// Put the folder back as checkpoint `id` had it, after recording it as
     /// it is now (the answer's `safety`, so the restore can be undone).
     pub async fn restore(&self, cwd: &Path, guard: &jail::Guard, session: &str, id: u64) -> Result<Value, ApiErr> {
@@ -290,7 +366,9 @@ impl Store {
         let list = g.list(session).await?;
         let target = find(&list, id)?.clone();
         let now = g.snapshot(cache).await?;
-        let safety = g.record(session, proto::KIND_RESTORE, &now, &list, Some(id)).await?;
+        let safety = g
+            .record(session, proto::KIND_RESTORE, &now, &list, Some(id), vec![])
+            .await?;
         let want = g.tree_files(&target).await?;
         let plan = compare(&now.files, &want, &g.top);
         let done = g.apply(&plan, &want).await?;
@@ -309,6 +387,39 @@ impl Store {
             "conflicts": done.conflicts,
             "conflict_count": done.conflict_n,
         }))
+    }
+}
+
+impl Store {
+    /// Record the folder as it is now (a `discard` checkpoint), then run
+    /// `work` with the files that checkpoint holds, under the store's lock
+    /// so no turn is recorded halfway through. `work` answers its result
+    /// and the files it changed (their stat entries are dropped).
+    pub async fn discard_with<F, Fut>(
+        &self,
+        cwd: &Path,
+        guard: &jail::Guard,
+        session: &str,
+        work: F,
+    ) -> Result<Value, ApiErr>
+    where
+        F: FnOnce(Info, HashSet<String>) -> Fut,
+        Fut: std::future::Future<Output = Result<(Value, Vec<String>), ApiErr>>,
+    {
+        let g = self.open(cwd, guard).await?;
+        let mut caches = self.caches.lock().await;
+        let cache = caches.entry(g.shadow.clone()).or_default();
+        let snap = g.snapshot(cache).await?;
+        let list = g.list(session).await?;
+        let info = g
+            .record(session, proto::KIND_DISCARD, &snap, &list, None, vec![])
+            .await?;
+        let saved: HashSet<String> = snap.files.keys().cloned().collect();
+        let (v, changed) = work(info, saved).await?;
+        for p in &changed {
+            cache.remove(p);
+        }
+        Ok(v)
     }
 }
 
@@ -841,6 +952,14 @@ impl G {
                 at: m["at"].as_u64().unwrap_or(0),
                 files: m["files"].as_u64().unwrap_or(0),
                 restoring: m["restoring"].as_u64(),
+                turns: m["turns"]
+                    .as_array()
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|t| t.as_str().filter(|t| valid_turn(t)).map(str::to_owned))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
                 exact,
                 skipped: m["skipped"].clone(),
             });
@@ -857,6 +976,7 @@ impl G {
         snap: &Snap,
         list: &[Info],
         restoring: Option<u64>,
+        turns: Vec<String>,
     ) -> Result<Info, ApiErr> {
         let id = list.first().map(|i| i.id + 1).unwrap_or(1);
         let at = crate::util::now_ms();
@@ -873,6 +993,65 @@ impl G {
         if let Some(r) = restoring {
             body["restoring"] = json!(r);
         }
+        if !turns.is_empty() {
+            body["turns"] = json!(turns);
+        }
+        let refname = format!("refs/sessions/{}/{id:06}", enc(session));
+        self.write_checkpoint(&refname, &snap.tree, id, kind, &body, "").await?;
+        let info = Info {
+            id,
+            refname,
+            tree: snap.tree.clone(),
+            kind: kind.to_string(),
+            at,
+            files: snap.files.len() as u64,
+            restoring,
+            turns,
+            exact: exact
+                .iter()
+                .map(|(k, v)| (k.clone(), v.as_u64().unwrap_or(0) as u32))
+                .collect(),
+            skipped: snap.skipped.json(),
+        };
+        self.prune(at, list).await;
+        Ok(info)
+    }
+
+    /// Name checkpoint `last` for chat turn `turn` as well: the same tree in
+    /// a new parentless commit whose body lists the turn, swapped in under
+    /// the same ref (only if the ref has not moved meanwhile).
+    async fn name_turn(&self, session: &str, last: &Info, turn: &str) -> Result<(), ApiErr> {
+        let mut turns = last.turns.clone();
+        turns.push(turn.to_string());
+        let cut = turns.len().saturating_sub(TURNS_MAX);
+        turns.drain(..cut);
+        let exact: Map<String, Value> = last.exact.iter().map(|(k, v)| (k.clone(), json!(v))).collect();
+        let mut body = json!({
+            "v": 1, "kind": last.kind, "session": session, "at": last.at,
+            "files": last.files, "exact": exact, "skipped": last.skipped, "turns": turns,
+        });
+        if let Some(r) = last.restoring {
+            body["restoring"] = json!(r);
+        }
+        let old = self
+            .sh_ok(&["rev-parse", "--verify", &last.refname], None, SMALL)
+            .await?;
+        let old = String::from_utf8_lossy(&old).trim().to_string();
+        self.write_checkpoint(&last.refname, &last.tree, last.id, &last.kind, &body, &old)
+            .await
+    }
+
+    /// One parentless commit of `tree` with the manifest `body`, set as
+    /// `refname` (`old`: the ref's value it must still have; "" = new).
+    async fn write_checkpoint(
+        &self,
+        refname: &str,
+        tree: &str,
+        id: u64,
+        kind: &str,
+        body: &Value,
+        old: &str,
+    ) -> Result<(), ApiErr> {
         let msg = format!("checkpoint {id} ({kind})\n\n{body}\n");
         let env = [
             ("GIT_AUTHOR_NAME", OsString::from(IDENT)),
@@ -885,7 +1064,7 @@ impl G {
             &self.top,
             &self.pre(),
             &env,
-            &["commit-tree", &snap.tree, "-F", "-"],
+            &["commit-tree", tree, "-F", "-"],
             Some(msg.into_bytes()),
             SMALL,
         )
@@ -894,24 +1073,8 @@ impl G {
             return Err(failed("commit-tree", &o));
         }
         let commit = String::from_utf8_lossy(&o.stdout).trim().to_string();
-        let refname = format!("refs/sessions/{}/{id:06}", enc(session));
-        self.sh_ok(&["update-ref", &refname, &commit, ""], None, SMALL).await?;
-        let info = Info {
-            id,
-            refname,
-            tree: snap.tree.clone(),
-            kind: kind.to_string(),
-            at,
-            files: snap.files.len() as u64,
-            restoring,
-            exact: exact
-                .iter()
-                .map(|(k, v)| (k.clone(), v.as_u64().unwrap_or(0) as u32))
-                .collect(),
-            skipped: snap.skipped.json(),
-        };
-        self.prune(at, list).await;
-        Ok(info)
+        self.sh_ok(&["update-ref", refname, &commit, old], None, SMALL).await?;
+        Ok(())
     }
 
     /// Keep the newest [`KEEP`] and nothing older than [`KEEP_MS`] (the
@@ -1062,7 +1225,7 @@ impl G {
 }
 
 /// Every folder between the top and `rel` is a real folder (not a symlink).
-fn safe_parents(top: &Path, rel: &str) -> bool {
+pub(crate) fn safe_parents(top: &Path, rel: &str) -> bool {
     let mut cur = top.to_path_buf();
     let parts: Vec<&str> = rel.split('/').collect();
     for p in &parts[..parts.len().saturating_sub(1)] {
@@ -1101,7 +1264,7 @@ fn make_parents(top: &Path, rel: &str) -> bool {
 }
 
 /// Remove the folders a removal left empty, up to the top.
-fn prune_dirs(top: &Path, file: &Path) {
+pub(crate) fn prune_dirs(top: &Path, file: &Path) {
     let mut d = file.parent();
     while let Some(dir) = d {
         if dir == top || !dir.starts_with(top) || std::fs::remove_dir(dir).is_err() {

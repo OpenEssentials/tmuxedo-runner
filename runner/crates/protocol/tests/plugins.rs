@@ -126,3 +126,15 @@ fn ui_items_parse_like_the_typescript_side() {
         .collect();
     assert!(parse_ui_items(&Value::Array(too_many)).is_none());
 }
+
+#[test]
+fn usage_alert_levels_parse_like_the_typescript_side() {
+    let one = |alerts: Value| {
+        let v = serde_json::json!([{ "id": "claude", "settings": { "usage": { "enabled": true, "alerts": alerts } } }]);
+        parse_config_plugins(&v).unwrap()[0].1.usage_alerts.clone()
+    };
+    for case in fx()["usage_alerts"].as_array().unwrap() {
+        let want = case["want"].as_array().map(|w| w.iter().map(|x| x.as_u64().unwrap() as u8).collect::<Vec<_>>());
+        assert_eq!(one(case["alerts"].clone()), want, "{case}");
+    }
+}

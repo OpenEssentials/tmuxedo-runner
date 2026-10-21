@@ -1018,7 +1018,7 @@ impl Lines<'_> {
                 let (line, st) = if status == "failed" {
                     let e = error
                         .as_deref()
-                        .map(|e| format!(": {}", safe_line(e, 300)))
+                        .map(|e| format!(": {}", safe_line(&super::chat_model::turn_error_words(e), 300)))
                         .unwrap_or_default();
                     (format!("✕ The turn failed{e}"), self.st(Color::Red))
                 } else {

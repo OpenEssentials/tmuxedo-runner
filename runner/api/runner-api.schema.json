@@ -52,7 +52,10 @@
   "fs.stat",
   "fs.undo",
   "fs.write",
+  "git.commit",
   "git.diff",
+  "git.discard",
+  "git.push",
   "git.status",
   "layout.apply",
   "layout.arrange",
@@ -90,7 +93,13 @@
   "plugin.list",
   "plugin.log.list",
   "queued.deliver",
+  "replay.delete",
+  "replay.list",
+  "replay.read",
+  "replay.set",
+  "search",
   "server.agent_manifests",
+  "session.summary",
   "tab.close",
   "tab.create",
   "tab.focus",
@@ -102,6 +111,8 @@
   "task.get",
   "task.list",
   "task.start",
+  "usage.list",
+  "wol.send",
   "workspace.close",
   "workspace.create",
   "workspace.focus",
@@ -176,7 +187,10 @@
       "fs.stat",
       "fs.undo",
       "fs.write",
+      "git.commit",
       "git.diff",
+      "git.discard",
+      "git.push",
       "git.status",
       "layout.apply",
       "layout.arrange",
@@ -214,7 +228,13 @@
       "plugin.list",
       "plugin.log.list",
       "queued.deliver",
+      "replay.delete",
+      "replay.list",
+      "replay.read",
+      "replay.set",
+      "search",
       "server.agent_manifests",
+      "session.summary",
       "tab.close",
       "tab.create",
       "tab.focus",
@@ -222,6 +242,12 @@
       "tab.list",
       "tab.move",
       "tab.rename",
+      "task.cancel",
+      "task.get",
+      "task.list",
+      "task.start",
+      "usage.list",
+      "wol.send",
       "workspace.close",
       "workspace.create",
       "workspace.focus",
@@ -232,11 +258,7 @@
       "worktree.create",
       "worktree.list",
       "worktree.open",
-      "worktree.remove",
-      "task.cancel",
-      "task.get",
-      "task.list",
-      "task.start"
+      "worktree.remove"
      ]
     },
     "params": {
@@ -2891,6 +2913,63 @@
      "if": {
       "properties": {
        "method": {
+        "const": "search"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "search"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "q": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "session": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+         },
+         "agent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+         },
+         "since": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "project": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+         },
+         "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "q"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
         "const": "server.agent_manifests"
        }
       }
@@ -3514,6 +3593,25 @@
       "properties": {
        "method": {
         "const": "needs.list"
+       },
+       "params": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "usage.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "usage.list"
        },
        "params": {
         "type": "object"
@@ -4175,6 +4273,159 @@
      "if": {
       "properties": {
        "method": {
+        "const": "replay.list"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "replay.list"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         }
+        },
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "replay.set"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "replay.set"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "on": {
+          "type": "boolean"
+         }
+        },
+        "required": [
+         "pane",
+         "on"
+        ],
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "replay.read"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "replay.read"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "from_ms": {
+          "type": "integer",
+          "minimum": 0
+         },
+         "cursor": {
+          "type": "string",
+          "pattern": "^[0-9]{1,16}\\.[0-9]{1,16}\\.[0-9]{1,16}$"
+         },
+         "limit_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 524288
+         },
+         "markers_only": {
+          "type": "boolean"
+         }
+        },
+        "required": [
+         "pane"
+        ],
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "replay.delete"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "replay.delete"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         }
+        },
+        "required": [
+         "pane"
+        ],
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
         "const": "git.status"
        }
       }
@@ -4201,6 +4452,59 @@
          }
         },
         "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "git.commit"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "git.commit"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+         },
+         "branch": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "minLength": 1,
+          "maxLength": 200
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "message"
+        ]
        }
       },
       "required": [
@@ -4246,6 +4550,91 @@
         "required": [
          "path"
         ]
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "git.discard"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "git.discard"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         }
+        },
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "git.push"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "git.push"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "pr": {
+          "type": "boolean"
+         },
+         "base": {
+          "type": [
+           "string",
+           "null"
+          ],
+          "minLength": 1,
+          "maxLength": 200
+         }
+        },
+        "additionalProperties": true
        }
       },
       "required": [
@@ -4484,6 +4873,47 @@
      "if": {
       "properties": {
        "method": {
+        "const": "session.summary"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "session.summary"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "pane": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "chat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_:.-]+$"
+         },
+         "since": {
+          "type": "integer",
+          "minimum": 0
+         }
+        },
+        "additionalProperties": true
+       }
+      },
+      "required": [
+       "params"
+      ]
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
         "const": "task.get"
        }
       }
@@ -4618,6 +5048,43 @@
         "additionalProperties": true
        }
       }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "method": {
+        "const": "wol.send"
+       }
+      }
+     },
+     "then": {
+      "properties": {
+       "method": {
+        "const": "wol.send"
+       },
+       "params": {
+        "type": "object",
+        "properties": {
+         "mac": {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{2}([:-][0-9A-Fa-f]{2}){5}$"
+         },
+         "broadcast": {
+          "type": "string",
+          "format": "ipv4"
+         }
+        },
+        "additionalProperties": true,
+        "required": [
+         "mac",
+         "broadcast"
+        ]
+       }
+      },
+      "required": [
+       "params"
+      ]
      }
     }
    ]
@@ -6793,6 +7260,69 @@
        "type": "object",
        "properties": {
         "type": {
+         "const": "usage_list"
+        },
+        "enabled": {
+         "type": "boolean"
+        },
+        "records": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "plugin": {
+            "type": "string"
+           },
+           "name": {
+            "type": "string"
+           },
+           "observedAt": {
+            "type": "integer"
+           },
+           "windows": {
+            "type": "array",
+            "items": {
+             "type": "object",
+             "properties": {
+              "id": {
+               "type": "string"
+              },
+              "label": {
+               "type": "string"
+              },
+              "usedPct": {
+               "type": "number"
+              },
+              "resetsAt": {
+               "type": "integer"
+              }
+             },
+             "required": [
+              "id",
+              "label",
+              "usedPct"
+             ]
+            }
+           }
+          },
+          "required": [
+           "plugin",
+           "name",
+           "windows"
+          ]
+         }
+        }
+       },
+       "required": [
+        "type",
+        "enabled",
+        "records"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
          "const": "needs_list"
         },
         "items": {
@@ -7322,6 +7852,101 @@
        "type": "object",
        "properties": {
         "type": {
+         "const": "git_committed"
+        },
+        "commit": {
+         "type": "string"
+        },
+        "branch": {
+         "type": [
+          "string",
+          "null"
+         ]
+        },
+        "files": {
+         "type": "integer"
+        },
+        "left": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "type",
+        "commit",
+        "files"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "git_pushed"
+        },
+        "branch": {
+         "type": "string"
+        },
+        "remote": {
+         "type": "string"
+        },
+        "pr": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "type": "object",
+           "properties": {
+            "number": {
+             "type": "integer"
+            },
+            "url": {
+             "type": "string"
+            },
+            "existing": {
+             "type": "boolean"
+            }
+           },
+           "required": [
+            "number",
+            "url"
+           ]
+          }
+         ]
+        }
+       },
+       "required": [
+        "type",
+        "branch",
+        "remote"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "git_discarded"
+        },
+        "files": {
+         "type": "integer"
+        },
+        "left": {
+         "type": "integer"
+        },
+        "checkpoint": {
+         "type": "integer"
+        }
+       },
+       "required": [
+        "type",
+        "files",
+        "left",
+        "checkpoint"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
          "const": "git_diff"
         },
         "path": {
@@ -7549,6 +8174,226 @@
        "required": [
         "tasks",
         "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "hits": {
+         "type": "array",
+         "maxItems": 50,
+         "items": {
+          "type": "object",
+          "properties": {
+           "project": {
+            "type": "string"
+           },
+           "kind": {
+            "enum": [
+             "terminal",
+             "chat"
+            ]
+           },
+           "session": {
+            "type": "string"
+           },
+           "title": {
+            "type": "string"
+           },
+           "agent": {
+            "type": "string"
+           },
+           "at": {
+            "type": "string"
+           },
+           "atMs": {
+            "type": "integer"
+           },
+           "snippet": {
+            "type": "string",
+            "maxLength": 170
+           },
+           "match": {
+            "oneOf": [
+             {
+              "type": "array",
+              "items": {
+               "type": "integer",
+               "minimum": 0
+              },
+              "minItems": 2,
+              "maxItems": 2
+             },
+             {
+              "type": "null"
+             }
+            ]
+           },
+           "turn": {
+            "type": "string"
+           },
+           "line": {
+            "type": "integer",
+            "minimum": 0
+           }
+          },
+          "required": [
+           "project",
+           "kind",
+           "session",
+           "title",
+           "agent",
+           "at",
+           "atMs",
+           "snippet",
+           "match"
+          ]
+         }
+        },
+        "partial": {
+         "type": "boolean"
+        },
+        "more": {
+         "type": "boolean"
+        },
+        "projects": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "off": {
+         "type": "boolean"
+        },
+        "type": {
+         "const": "search_hits"
+        }
+       },
+       "required": [
+        "hits",
+        "partial",
+        "more",
+        "projects",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "broadcast": {
+         "type": "string"
+        },
+        "port": {
+         "type": "integer"
+        },
+        "type": {
+         "const": "wol_sent"
+        }
+       },
+       "required": [
+        "broadcast",
+        "port",
+        "type"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "type": {
+         "const": "session_summary"
+        },
+        "available": {
+         "type": "boolean"
+        },
+        "reason": {
+         "type": "string"
+        },
+        "turns": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "from": {
+         "type": "integer",
+         "minimum": 0
+        },
+        "files": {
+         "oneOf": [
+          {
+           "type": "null"
+          },
+          {
+           "type": "object",
+           "properties": {
+            "added": {
+             "type": "integer",
+             "minimum": 0
+            },
+            "modified": {
+             "type": "integer",
+             "minimum": 0
+            },
+            "removed": {
+             "type": "integer",
+             "minimum": 0
+            }
+           },
+           "required": [
+            "added",
+            "modified",
+            "removed"
+           ]
+          }
+         ]
+        },
+        "line": {
+         "type": "string",
+         "maxLength": 120
+        },
+        "turn": {
+         "type": "string"
+        },
+        "usage": {
+         "type": "object",
+         "properties": {
+          "plugin": {
+           "type": "string"
+          },
+          "windows": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "id": {
+              "type": "string"
+             },
+             "spentPct": {
+              "type": "number",
+              "exclusiveMinimum": 0
+             },
+             "windowMins": {
+              "type": "integer",
+              "minimum": 1
+             }
+            },
+            "required": [
+             "id",
+             "spentPct"
+            ]
+           }
+          },
+          "tokens": {
+           "type": "integer",
+           "minimum": 1
+          }
+         },
+         "required": [
+          "plugin"
+         ]
+        }
+       },
+       "required": [
+        "type",
+        "available",
+        "turns",
+        "files"
        ]
       }
      ]
@@ -9640,6 +10485,12 @@
     },
     "restoring": {
      "type": "integer"
+    },
+    "turns": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
     },
     "skipped": {
      "type": "object"

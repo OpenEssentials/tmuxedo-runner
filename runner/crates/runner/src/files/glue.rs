@@ -3,7 +3,7 @@
 
 use super::worker::{Msg, Out};
 use super::{project_key, repo_of, INTERNAL_METHODS, LOCAL_METHODS};
-use crate::api::{err, respond, ReplyTo};
+use crate::api::{err, respond, ApiErr, ReplyTo};
 use crate::daemon::Daemon;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -63,6 +63,31 @@ pub fn work_folder(cwd: &Path) -> PathBuf {
     repo_of(cwd).map(|(r, _)| r).unwrap_or_else(|| cwd.to_path_buf())
 }
 
+/// Who may call `method` from where (`remote`: the gateway, i.e. web), and the params it
+/// may carry: `override_space` (an admin's "Upload anyway", web's own verdict) only on
+/// `files.upload_init` from web; the local socket never reaches upload_init at all.
+pub(crate) fn gate_params(method: &str, remote: bool, params: &Value) -> Result<Value, ApiErr> {
+    if remote && LOCAL_METHODS.contains(&method) {
+        return Err(err(
+            "not_supported",
+            format!("{method} is available on the machine's local socket only"),
+        ));
+    }
+    if !remote && INTERNAL_METHODS.contains(&method) {
+        return Err(err(
+            "not_supported",
+            format!("{method} is used by tmuxedo's servers only"),
+        ));
+    }
+    let mut p = if params.is_object() { params.clone() } else { json!({}) };
+    if !(remote && method == "files.upload_init") {
+        if let Some(o) = p.as_object_mut() {
+            o.remove("override_space");
+        }
+    }
+    Ok(p)
+}
+
 impl Daemon {
     /// A `files.*` method, from the gateway (web, a client socket) or the local socket.
     pub(crate) fn files_request(&mut self, method: &str, params: &Value, reply: ReplyTo) {
@@ -70,27 +95,10 @@ impl Daemon {
             return respond(reply, Err(err("not_supported", "Files are off on this machine.")), self);
         };
         let remote = matches!(reply, ReplyTo::Gateway(_));
-        if remote && LOCAL_METHODS.contains(&method) {
-            return respond(
-                reply,
-                Err(err(
-                    "not_supported",
-                    format!("{method} is available on the machine's local socket only"),
-                )),
-                self,
-            );
-        }
-        if !remote && INTERNAL_METHODS.contains(&method) {
-            return respond(
-                reply,
-                Err(err(
-                    "not_supported",
-                    format!("{method} is used by tmuxedo's servers only"),
-                )),
-                self,
-            );
-        }
-        let mut p = if params.is_object() { params.clone() } else { json!({}) };
+        let mut p = match gate_params(method, remote, params) {
+            Ok(p) => p,
+            Err(e) => return respond(reply, Err(e), self),
+        };
         // The project: given, else the pane's (gateway: `pane_id`), else the caller's folder (local: `cwd`).
         // A pane's folder, or (agent chat, the composer's 📎) the chat's work folder.
         let pane_cwd = p["pane_id"]
@@ -120,13 +128,21 @@ impl Daemon {
                         | "files.upload_abort"
                         | "files.read"
                 ) => {}
-                None => {
+                // Named a pane or chat that is gone (a stale link): say so, in words.
+                None if p["pane_id"].is_string() || p["session_id"].is_string() => {
                     return respond(
                         reply,
                         Err(err(
-                            "invalid_params",
-                            "say which project: project, pane_id or (local) cwd",
+                            "pane_gone",
+                            "That pane has closed. Open a pane to see its project's files.",
                         )),
+                        self,
+                    )
+                }
+                None => {
+                    return respond(
+                        reply,
+                        Err(err("no_project", "Pick a pane first: files go to its project.")),
                         self,
                     )
                 }

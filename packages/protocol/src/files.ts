@@ -218,7 +218,8 @@ export function parseRange(header: string | null | undefined, size: number): Ran
  * How full the machine's home disk is (design §5): `ok`; `low` under 10 %
  * free (banner, uploads refused); `critical` under 5 % (pane history
  * stops, a durable `disk_low` event); `alert` under 2 % (the operator's
- * alert). The runner computes the same levels.
+ * alert). The runner computes the same levels. `disk_low` is raised once
+ * per problem: it is re-armed only above 8 % free.
  */
 export type DiskLevel = 'ok' | 'low' | 'critical' | 'alert';
 

@@ -148,6 +148,12 @@
       { "t": "plugin_action", "id": "r", "pluginId": "claude", "actionId": "login", "paneId": "" }
     ]
   },
+  "usage_alerts": [
+    { "alerts": null, "want": null },
+    { "alerts": [], "want": [] },
+    { "alerts": [100, 80, 80, 50, "95"], "want": [80, 100] },
+    { "alerts": "80", "want": null }
+  ],
   "welcome": {
     "new": { "t": "welcome", "machineId": "m1", "userId": "u1", "lastEventSeq": 4, "features": ["ui"] },
     "old": { "t": "welcome", "machineId": "m1", "userId": "u1", "lastEventSeq": 4 }

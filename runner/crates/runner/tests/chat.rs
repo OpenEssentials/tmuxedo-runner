@@ -146,6 +146,13 @@ impl Chat {
         self.dir.path().join("log")
     }
 
+    /// A command line that runs the agent in the pane the test starts with: that pane's shell
+    /// began before the config, so the fake's log folder (where it keeps its transcripts, as
+    /// Claude keeps them under its config folder) is named on the line.
+    fn agent_line(&self, cmd: &str) -> String {
+        format!("FAKE_LOG={} {cmd}\n", self.log_dir().display())
+    }
+
     fn argv_log(&self) -> Vec<Vec<String>> {
         std::fs::read_to_string(self.log_dir().join("argv.log"))
             .unwrap_or_default()
@@ -778,8 +785,6 @@ async fn chat_to_terminal_and_back_on_one_session() {
     assert_eq!(back["session"]["status"], "parked");
     let hb = t.wait_type(&sid, "session.handoff", 2).await;
     assert_eq!(hb[1]["to"], "chat");
-    t.wait(&sid, |v| v["type"] == "notice" && v["code"] == "terminal_turns")
-        .await;
     // The pane is gone.
     let panes = t.h.ok("pane.list", json!({})).await;
     assert!(!panes.to_string().contains(&format!("\"{pane}\"")), "{panes}");
@@ -789,7 +794,12 @@ async fn chat_to_terminal_and_back_on_one_session() {
     assert!(last.contains(&"-p".to_string()));
     let j = last.iter().position(|a| a == "--resume").unwrap();
     assert_eq!(last[j + 1], vendor, "the chat resumed the same session");
-    assert_contiguous(&t.events(&sid));
+    // The chat knows its transcript: no turn taken in the terminal, nothing shown twice, no note.
+    let ev = t.events(&sid);
+    assert!(!ev.iter().any(|v| v["code"] == "terminal_turns"), "{ev:?}");
+    assert_eq!(ev.iter().filter(|v| v["type"] == "turn.done").count(), 3, "{ev:?}");
+    assert_eq!(ev.iter().filter(|v| v["type"] == "message.user").count(), 3, "{ev:?}");
+    assert_contiguous(&ev);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -802,10 +812,14 @@ async fn a_terminal_session_opens_as_a_chat() {
     // A pane running the agent, started in the terminal (not from a chat).
     t.h.ok(
         "pane.send_text",
-        json!({ "pane_id": "w1:p1", "text": "claude --resume abc-123\n" }),
+        json!({ "pane_id": "w1:p1", "text": t.agent_line("claude --resume abc-123") }),
     )
     .await;
     t.h.wait_text("w1:p1", "FAKE TUI resumed abc-123").await;
+    // A turn taken there: the agent has a transcript, so the chat reopens it.
+    t.h.ok("pane.send_text", json!({ "pane_id": "w1:p1", "text": "say first\n" }))
+        .await;
+    t.h.wait_text("w1:p1", "FAKE TUI said").await;
     let until = Instant::now() + S;
     let r = loop {
         let r =
@@ -825,6 +839,231 @@ async fn a_terminal_session_opens_as_a_chat() {
     let last = t.argv_log().last().unwrap().clone();
     let j = last.iter().position(|a| a == "--resume").unwrap();
     assert_eq!(last[j + 1], "abc-123");
+    // The turn taken in the terminal is in the chat, as a turn like any other.
+    let ev = t.events(&sid);
+    assert!(
+        ev.iter().any(|v| v["type"] == "message.user" && v["text"] == "first"),
+        "{ev:?}"
+    );
+    assert!(ev
+        .iter()
+        .any(|v| v["type"] == "message.done" && v["text"] == "You said first"));
+    assert!(
+        !ev.iter().any(|v| v["code"] == "terminal_turns"),
+        "no 'not shown here' note"
+    );
+    assert_contiguous(&ev);
+}
+
+/// The text of the pane's agent session id, from "FAKE TUI started <id>".
+async fn started_session(h: &H, pane: &str) -> String {
+    let started = h.wait_text(pane, "FAKE TUI started ").await;
+    started
+        .split("FAKE TUI started ")
+        .last()
+        .unwrap()
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .to_string()
+}
+
+/// "Open as chat" as soon as the pane's agent has reported its session (its start hook lands a
+/// moment after its first words) and is idle.
+async fn open_when_ready(t: &Chat, pane: &str) -> Value {
+    let until = Instant::now() + S;
+    loop {
+        let r = t.h.raw("chat.handoff", json!({ "pane_id": pane, "to": "chat" })).await;
+        if r.get("result").is_some() {
+            return r["result"].clone();
+        }
+        assert!(Instant::now() < until, "{r}");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+}
+
+/// The owner's bug (2026-10-18): `claude` in a terminal, "Open as chat" before typing anything, "hi"
+/// → "✕ error_during_execution", "The agent stopped: No conversation found with session ID: …".
+/// Claude writes its transcript from the first turn on, so there was nothing to `--resume`: the chat
+/// starts that same session id instead, and the reply comes. Back in the terminal the conversation
+/// (the chat's turn included) is resumed; the terminal's turns come back into the chat as turns.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn opening_as_a_chat_before_any_turn_starts_that_session() {
+    let mut t = Chat::start(Setup {
+        api_key: true,
+        ..Default::default()
+    })
+    .await;
+    t.h.ok(
+        "pane.send_text",
+        json!({ "pane_id": "w1:p1", "text": t.agent_line("claude") }),
+    )
+    .await;
+    let vendor = started_session(&t.h, "w1:p1").await;
+    let r = open_when_ready(&t, "w1:p1").await;
+    let sid = r["session"]["id"].as_str().unwrap().to_string();
+    assert_eq!(r["session"]["vendorSessionId"], vendor.as_str());
+    t.attach(&sid, 1).await;
+    t.send(&sid, "hi").await;
+    let done = t.wait(&sid, |v| v["type"] == "turn.done").await;
+    assert_eq!(done["status"], "completed", "{:?}", t.events(&sid));
+    let reply = t.wait(&sid, |v| v["type"] == "message.done").await;
+    assert_eq!(reply["text"], "echo: hi");
+    let last = t.argv_log().last().unwrap().clone();
+    assert!(last.contains(&"-p".to_string()), "{last:?}");
+    assert!(
+        !last.contains(&"--resume".to_string()),
+        "nothing to resume yet: {last:?}"
+    );
+    let j = last.iter().position(|a| a == "--session-id").unwrap();
+    assert_eq!(last[j + 1], vendor, "the same session id");
+    // The chat works in the terminal's folder.
+    assert_eq!(chat_status(&t, &sid).await["cwd"], r["session"]["cwd"]);
+    let ev = t.events(&sid);
+    assert!(!ev.iter().any(|v| v["code"] == "terminal_turns"), "{ev:?}");
+    assert!(
+        !ev.iter().any(|v| v.to_string().contains("error_during_execution")),
+        "{ev:?}"
+    );
+
+    // Back to the terminal: the same conversation, the chat's turn included.
+    let r =
+        t.h.ok("chat.handoff", json!({ "session_id": sid, "to": "terminal" }))
+            .await;
+    let pane = r["paneId"].as_str().unwrap().to_string();
+    t.h.wait_text(&pane, &format!("FAKE TUI resumed {vendor}")).await;
+    // A turn in the terminal, then back to the chat: it shows that turn, once.
+    t.h.ok(
+        "pane.send_text",
+        json!({ "pane_id": pane, "text": "say from the terminal\n" }),
+    )
+    .await;
+    t.h.wait_text(&pane, "FAKE TUI said").await;
+    open_when_ready(&t, &pane).await;
+    let said = t
+        .wait(&sid, |v| {
+            v["type"] == "message.done" && v["text"] == "You said from the terminal"
+        })
+        .await;
+    assert!(said["turnId"].is_string(), "{said}");
+    let ev = t.events(&sid);
+    assert_eq!(
+        ev.iter()
+            .filter(|v| v["type"] == "message.user" && v["text"] == "hi")
+            .count(),
+        1,
+        "the chat's own turn is not shown twice: {ev:?}"
+    );
+    t.send(&sid, "hello").await;
+    t.wait_type(&sid, "turn.done", 3).await;
+    let last = t.argv_log().last().unwrap().clone();
+    let j = last.iter().position(|a| a == "--resume").unwrap();
+    assert_eq!(last[j + 1], vendor);
+
+    // And a second time round.
+    let r =
+        t.h.ok("chat.handoff", json!({ "session_id": sid, "to": "terminal" }))
+            .await;
+    let pane = r["paneId"].as_str().unwrap().to_string();
+    t.h.wait_text(&pane, &format!("FAKE TUI resumed {vendor}")).await;
+    t.h.ok("pane.send_text", json!({ "pane_id": pane, "text": "say twice\n" }))
+        .await;
+    t.h.wait_text(&pane, "FAKE TUI said").await;
+    open_when_ready(&t, &pane).await;
+    t.wait(&sid, |v| v["type"] == "message.done" && v["text"] == "You said twice")
+        .await;
+    t.send(&sid, "hello").await;
+    let done = t.wait_type(&sid, "turn.done", 5).await;
+    assert!(done.iter().all(|d| d["status"] == "completed"), "{done:?}");
+    assert_contiguous(&t.events(&sid));
+}
+
+/// Back to the terminal before any turn was taken anywhere: the terminal starts that session id
+/// too (there is still nothing to resume), and the chat can take it again.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn back_and_forth_before_any_turn() {
+    let mut t = Chat::start(Setup {
+        api_key: true,
+        ..Default::default()
+    })
+    .await;
+    t.h.ok(
+        "pane.send_text",
+        json!({ "pane_id": "w1:p1", "text": t.agent_line("claude") }),
+    )
+    .await;
+    let vendor = started_session(&t.h, "w1:p1").await;
+    let sid = open_when_ready(&t, "w1:p1").await["session"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    t.attach(&sid, 1).await;
+    let r =
+        t.h.ok("chat.handoff", json!({ "session_id": sid, "to": "terminal" }))
+            .await;
+    let pane = r["paneId"].as_str().unwrap().to_string();
+    t.h.wait_text(&pane, &format!("FAKE TUI started {vendor}")).await;
+    let last = t.argv_log().last().unwrap().clone();
+    let j = last.iter().position(|a| a == "--session-id").unwrap();
+    assert_eq!(last[j + 1], vendor);
+    let back = open_when_ready(&t, &pane).await;
+    assert_eq!(back["session"]["id"], sid.as_str());
+    t.send(&sid, "hi").await;
+    let done = t.wait(&sid, |v| v["type"] == "turn.done").await;
+    assert_eq!(done["status"], "completed", "{:?}", t.events(&sid));
+}
+
+/// "Open as chat" while the terminal's agent is mid-turn: the chat opens at once, shows the turn
+/// working (its prompt so far), takes over when the terminal's turn ends (its answer shown), and a
+/// message sent meanwhile goes out after it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn opening_as_a_chat_mid_turn_shows_it_working_then_takes_over() {
+    let mut t = Chat::start(Setup {
+        api_key: true,
+        ..Default::default()
+    })
+    .await;
+    t.h.ok(
+        "pane.send_text",
+        json!({ "pane_id": "w1:p1", "text": t.agent_line("claude") }),
+    )
+    .await;
+    let vendor = started_session(&t.h, "w1:p1").await;
+    t.h.ok("pane.send_text", json!({ "pane_id": "w1:p1", "text": "say before\n" }))
+        .await;
+    t.h.wait_text("w1:p1", "FAKE TUI said").await;
+    t.h.ok("pane.send_text", json!({ "pane_id": "w1:p1", "text": "busy\n" }))
+        .await;
+    t.h.wait_text("w1:p1", "FAKE TUI working").await;
+    status_for(&mut t, "w1:p1", |a| a["status"] == "working").await;
+    let r =
+        t.h.ok("chat.handoff", json!({ "pane_id": "w1:p1", "to": "chat" }))
+            .await;
+    let sid = r["session"]["id"].as_str().unwrap().to_string();
+    assert_eq!(r["session"]["status"], "working", "{r}");
+    t.attach(&sid, 1).await;
+    t.wait(&sid, |v| v["type"] == "message.user" && v["text"] == "busy")
+        .await;
+    t.wait(&sid, |v| v["type"] == "message.done" && v["text"] == "You said before")
+        .await;
+    assert_eq!(t.send(&sid, "hello").await["queued"], true);
+    // The terminal's turn ends: its answer, the end of the turn, the pane closes, the message goes.
+    t.h.ok("pane.send_text", json!({ "pane_id": "w1:p1", "text": "done\n" }))
+        .await;
+    t.wait(&sid, |v| {
+        v["type"] == "message.done" && v["text"] == "Done in the terminal."
+    })
+    .await;
+    t.wait(&sid, |v| v["type"] == "message.done" && v["text"] == "Hello there")
+        .await;
+    let done = t.wait_type(&sid, "turn.done", 3).await;
+    assert!(done.iter().all(|d| d["status"] == "completed"), "{done:?}");
+    let last = t.argv_log().last().unwrap().clone();
+    let j = last.iter().position(|a| a == "--resume").unwrap();
+    assert_eq!(last[j + 1], vendor);
+    let panes = t.h.ok("pane.list", json!({})).await;
+    assert!(!panes.to_string().contains("\"w1:p1\""), "{panes}");
+    assert_contiguous(&t.events(&sid));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -1315,6 +1554,8 @@ async fn files_are_confined_masked_and_shell_writes_are_found() {
         .await;
     let cl = t.c.res("cl").await;
     assert_eq!(cl["result"]["checkpoints"][0]["kind"], "turn", "{cl}");
+    // Named for the turn it came before ("Restore to here" on the message).
+    assert_eq!(cl["result"]["checkpoints"][0]["turns"], json!(["t1"]), "{cl}");
     let first = cl["result"]["checkpoints"][0]["id"].clone();
     t.c.send(json!({"t":"req","id":"cp","method":"checkpoint.preview","params":{"chat": sid, "id": first}}))
         .await;
@@ -1324,6 +1565,23 @@ async fn files_are_confined_masked_and_shell_writes_are_found() {
         json!([{"path": "MIGRATION.md", "change": "removed"}]),
         "{cp}"
     );
+    // The away digest's facts: the turn, the agent's file, its last line and turn.
+    t.c.send(json!({"t":"req","id":"ss","method":"session.summary","params":{"chat": sid}}))
+        .await;
+    let ss = t.c.res("ss").await;
+    assert_eq!(ss["result"]["turns"], 1, "{ss}");
+    assert_eq!(
+        ss["result"]["files"],
+        json!({"added": 1, "modified": 0, "removed": 0}),
+        "{ss}"
+    );
+    assert!(
+        ss["result"]["line"]
+            .as_str()
+            .is_some_and(|l| !l.is_empty() && !l.contains('\n')),
+        "{ss}"
+    );
+    assert_eq!(ss["result"]["turn"], "t1", "{ss}");
 
     // An edit by a tool (allowed once): its diffs.
     t.send(&sid, "edit README.md").await;
@@ -1449,20 +1707,6 @@ async fn chat_status(t: &Chat, sid: &str) -> Value {
     t.h.ok("chat.get", json!({ "session_id": sid })).await["session"].clone()
 }
 
-/// `chat.handoff {pane_id, to: chat}` once the pane's agent is idle.
-async fn open_as_chat(t: &Chat, pane: &str) -> Value {
-    let until = Instant::now() + S;
-    loop {
-        let r = t.h.raw("chat.handoff", json!({ "pane_id": pane, "to": "chat" })).await;
-        if r.get("result").is_some() {
-            return r["result"].clone();
-        }
-        assert_eq!(r["error"]["code"], "agent_busy", "{r}");
-        assert!(Instant::now() < until, "{r}");
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-}
-
 /// The owner, 2026-10-09: "if I exit claude when I have chat available, chat goes away … when I go back in
 /// to claude is it possible for tmuxedo to detect that and bring the chat option back?" A chat that
 /// continued in a terminal follows its session: exiting the agent there gives the chat back;
@@ -1566,7 +1810,7 @@ async fn a_chat_follows_its_session_out_of_the_terminal_and_back() {
         "the old chat was not taken over"
     );
     // "Open as chat" on it: a new chat on the new session, not the old one.
-    let opened = open_as_chat(&t, &pane).await;
+    let opened = open_when_ready(&t, &pane).await;
     assert_ne!(opened["session"]["id"], sid.as_str());
     assert_eq!(opened["session"]["vendorSessionId"], fresh.as_str());
 
@@ -1605,7 +1849,7 @@ async fn a_chat_follows_its_session_out_of_the_terminal_and_back() {
     let refused = t.h.raw("chat.send", json!({ "session_id": sid, "text": "hi" })).await;
     assert_eq!(refused["error"]["code"], "chat_in_terminal");
     // "Open as chat" there continues the same chat (history), not a new one.
-    let back = open_as_chat(&t, "w1:p1").await;
+    let back = open_when_ready(&t, "w1:p1").await;
     assert_eq!(back["session"]["id"], sid.as_str());
     assert_contiguous(&t.events(&sid));
 }
@@ -2960,4 +3204,68 @@ async fn an_agent_task_that_needs_a_permission_fails_saying_which() {
     // Nobody is left waiting: the chat closed with the task.
     let g = t.h.ok("chat.get", json!({ "session_id": sid })).await;
     assert_eq!(g["session"]["status"], "closed", "{g}");
+}
+
+/// Checkpoints (Phase 23) for a headless agent task: its turn is recorded
+/// before the agent works, and the run can be previewed and undone after the
+/// task ended and its chat closed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn an_agent_task_is_recorded_and_undone() {
+    let mut t = Chat::start(Setup {
+        api_key: true,
+        tweak: Some(automation),
+        ..Default::default()
+    })
+    .await;
+    let work = t.dir.path().join("work");
+    let vcs = |args: &[&str]| {
+        let o = std::process::Command::new("git")
+            .arg("-C")
+            .arg(&work)
+            .args(args)
+            .env("GIT_AUTHOR_NAME", "t")
+            .env("GIT_AUTHOR_EMAIL", "t@example.invalid")
+            .env("GIT_COMMITTER_NAME", "t")
+            .env("GIT_COMMITTER_EMAIL", "t@example.invalid")
+            .output()
+            .unwrap();
+        assert!(o.status.success(), "{args:?}: {}", String::from_utf8_lossy(&o.stderr));
+    };
+    std::fs::write(work.join("README.md"), "# Readme\n").unwrap();
+    vcs(&["init", "-q"]);
+    vcs(&["add", "."]);
+    vcs(&["commit", "-q", "-m", "init"]);
+    let root = work.display().to_string();
+    let r =
+        t.h.ok(
+            "task.start",
+            json!({ "task_id": "ck1", "kind": "agent", "labels": ["ci"], "cwd": root, "roots": [root],
+                "agent": "claude", "allowed_agents": ["claude"], "mode": "ask_first", "text": "write MIGRATION.md" }),
+        )
+        .await;
+    let sid = r["task"]["session_id"].as_str().unwrap().to_string();
+    let done = task_wait(&t.h, "ck1").await;
+    assert_eq!(done["status"], "done", "{done}");
+    assert!(work.join("MIGRATION.md").exists(), "the agent wrote its file");
+
+    t.c.send(json!({"t":"req","id":"tl","method":"checkpoint.list","params":{"chat": sid}}))
+        .await;
+    let l = t.c.res("tl").await;
+    assert_eq!(l["result"]["checkpoints"][0]["kind"], "turn", "{l}");
+    assert_eq!(l["result"]["checkpoints"][0]["turns"], json!(["t1"]), "{l}");
+    let id = l["result"]["checkpoints"][0]["id"].clone();
+    t.c.send(json!({"t":"req","id":"tp","method":"checkpoint.preview","params":{"chat": sid, "id": id}}))
+        .await;
+    let p = t.c.res("tp").await;
+    assert_eq!(
+        p["result"]["files"],
+        json!([{"path": "MIGRATION.md", "change": "removed"}]),
+        "{p}"
+    );
+    t.c.send(json!({"t":"req","id":"tr","method":"checkpoint.restore","params":{"chat": sid, "id": id}}))
+        .await;
+    let r = t.c.res("tr").await;
+    assert_eq!(r["result"]["type"], "checkpoint_restored", "{r}");
+    assert!(!work.join("MIGRATION.md").exists(), "undone");
+    assert_eq!(std::fs::read(work.join("README.md")).unwrap(), b"# Readme\n");
 }

@@ -25,8 +25,9 @@ pub const MAX_ITEMS: usize = 200;
 pub const MAX_PROJECTS: usize = 200;
 /// The largest version (a whole number both sides represent exactly).
 pub const MAX_VERSION: u64 = 9_007_199_254_740_991;
-/// The kinds of item.
-pub const KINDS: [&str; 5] = ["mcp", "skill", "subagent", "command", "instructions"];
+/// The kinds of item: the user's (MCP servers, skills, sub-agents,
+/// commands, instruction blocks) and curated add-ons (`crate::addon`).
+pub const KINDS: [&str; 6] = ["mcp", "skill", "subagent", "command", "instructions", "addon"];
 
 /// One item, sent once however many plugins and projects get it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

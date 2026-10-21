@@ -229,9 +229,12 @@ async fn an_upload_survives_a_runner_restart_and_a_download_comes_back_in_frames
     // The pane knows its files folder.
     let _ = common::call_once(
         &rsock,
-        &json!({"id": "l3", "method": "pane.send_input", "params": {"pane_id": "w1:p1", "text": "echo \"FD=$TMUXEDO_FILES_DIR RT=$TMUXEDO_FILES_ROOT\"", "keys": ["Enter"]}}),
+        &json!({"id": "l3", "method": "pane.send_input", "params": {"pane_id": "w1:p1", "text": "printf 'FD=%s\\nRT=%s\\nEND\\n' \"$TMUXEDO_FILES_DIR\" \"$TMUXEDO_FILES_ROOT\"", "keys": ["Enter"]}}),
     )
     .await;
+    // The paths can be longer than the pane is wide (macOS temp folders): the
+    // rows are joined, so a wrapped path reads whole (the paths hold no spaces).
+    let root = files_root.canonicalize().unwrap().display().to_string();
     let until = Instant::now() + S;
     loop {
         let r = common::call_once(
@@ -240,13 +243,12 @@ async fn an_upload_survives_a_runner_restart_and_a_download_comes_back_in_frames
         )
         .await;
         let text = r["result"]["read"]["text"].as_str().unwrap_or("").to_string();
-        if let Some(line) = text.lines().find(|l| l.starts_with("FD=")) {
-            let root = files_root.canonicalize().unwrap().display().to_string();
-            assert!(line.contains(&format!("FD={root}/path_")), "{line}");
-            assert!(line.ends_with(&format!("RT={root}")), "{line}");
+        let joined: String = text.lines().map(str::trim_end).collect();
+        if joined.contains(&format!("RT={root}END")) {
+            assert!(joined.contains(&format!("FD={root}/path_")), "{root}: {text}");
             break;
         }
-        assert!(Instant::now() < until, "no FD= line: {text}");
+        assert!(Instant::now() < until, "no FD=/RT= lines for {root}: {text}");
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 }
@@ -265,6 +267,22 @@ async fn a_files_root_inside_a_repository_turns_files_off() {
         !h.dir.path().join("repo/uploads").exists(),
         "nothing made inside the repository"
     );
+}
+
+/// A pane that has closed (a stale `?pane=` link), or no project at all, gets a
+/// code the app can act on and a sentence a person can read, never the
+/// parameter names.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_closed_pane_or_no_project_says_so_in_words() {
+    let h = common::H::start_with(|_| {}).await;
+    let r = h.raw("files.list", json!({"pane_id": "w9:p9"})).await;
+    assert_eq!(r["error"]["code"], "pane_gone", "{r}");
+    let r = h.raw("files.list", json!({"session_id": "no-such-chat"})).await;
+    assert_eq!(r["error"]["code"], "pane_gone", "{r}");
+    let r = h.raw("files.list", json!({})).await;
+    assert_eq!(r["error"]["code"], "no_project", "{r}");
+    let msg = r["error"]["message"].as_str().unwrap_or_default();
+    assert!(!msg.contains("pane_id") && !msg.contains("cwd"), "{r}");
 }
 
 fn ev(name: &str, extra: Value) -> Value {

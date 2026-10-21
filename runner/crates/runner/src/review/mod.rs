@@ -9,7 +9,8 @@
 //!
 //! WHO. The gateway only. On the machine's local socket every `git.*`
 //! method is `not_supported` (an agent has git itself; the review is for
-//! the person). Commit, push and discard are not built: `not_supported`.
+//! the person). Commit and push are the shipping half ([`ship`]); discard
+//! is not built: `not_supported`.
 //!
 //! GIT IS HOSTILE INPUT. The agent under review can write the repository's
 //! own config, so nothing in it may run a program here:
@@ -31,6 +32,7 @@
 //! The machine's own (global) git config is the owner's and stays in force.
 //! Secret-named files (the file browser's rule) are counted, never shown.
 
+pub mod ship;
 #[cfg(test)]
 mod tests;
 
@@ -42,7 +44,9 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 use tmuxedo_protocol::fs::path_components;
-use tmuxedo_protocol::review::{self as proto, ReadParams, Target, LARGE_LINES, PATCH_MAX, STATUS_FILES_MAX};
+use tmuxedo_protocol::review::{
+    self as proto, ReadParams, ShipParams, Target, LARGE_LINES, PATCH_MAX, STATUS_FILES_MAX,
+};
 use tokio::io::AsyncReadExt;
 
 /// One git run at most.
@@ -86,10 +90,14 @@ pub struct Ctx {
     pub cwd: PathBuf,
     pub guard: jail::Guard,
     pub masker: Masker,
+    /// The machine's own gh (`gh`, found on the runner's PATH).
+    pub gh: PathBuf,
+    /// Set on every git and gh run (empty in the daemon; tests' own config).
+    pub env: Vec<(String, String)>,
 }
 
 /// The answer of one git run.
-struct Out {
+pub(crate) struct Out {
     ok: bool,
     code: Option<i32>,
     stdout: Vec<u8>,
@@ -102,48 +110,97 @@ struct Repo {
     top: PathBuf,
     /// `-c` pairs that neutralise the repository's own filter programs.
     blank: Vec<String>,
+    /// Every setting name the repository's own config (local or worktree
+    /// scope, includes followed) has, lowercased: commit and push refuse some.
+    names: Vec<String>,
 }
 
 fn git_missing() -> ApiErr {
     err("git_missing", "git isn't installed on this machine.")
 }
 
+/// How one program run is bounded and fed.
+#[derive(Default)]
+pub(crate) struct Opts<'a> {
+    /// Stdout is read up to this many bytes, then the program is stopped.
+    pub cap: usize,
+    /// Written to stdin (otherwise stdin is empty).
+    pub input: Option<&'a [u8]>,
+    /// The time limit ([`GIT_TIME`] when unset).
+    pub time: Option<Duration>,
+    /// Set after the inherited `GIT_*` variables are dropped (tests point
+    /// `GIT_CONFIG_GLOBAL` at a config of their own).
+    pub env: &'a [(String, String)],
+}
+
 /// Run git in `dir` with the safe settings, `extra` and `args`; read stdout
 /// up to `cap` bytes (then stop it), stderr up to 4 KiB.
 async fn git(dir: &Path, extra: &[String], args: &[&str], cap: usize) -> Result<Out, ApiErr> {
+    git_with(dir, extra, args, &Opts { cap, ..Opts::default() }).await
+}
+
+/// [`git`] with stdin, a time limit and variables of its own.
+pub(crate) async fn git_with(dir: &Path, extra: &[String], args: &[&str], o: &Opts<'_>) -> Result<Out, ApiErr> {
     let mut c = tokio::process::Command::new("git");
+    c.args(SAFE).args(extra).arg("-C").arg(dir).args(args);
+    exec(c, o, git_missing, "git").await
+}
+
+/// Drop the inherited `GIT_*` variables and set the quiet ones; then `o.env`.
+pub(crate) fn quiet_env(c: &mut tokio::process::Command, o: &Opts<'_>) {
     for (k, _) in std::env::vars_os() {
         if k.to_string_lossy().starts_with("GIT_") {
             c.env_remove(&k);
         }
     }
-    c.args(SAFE)
-        .args(extra)
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .env("GIT_TERMINAL_PROMPT", "0")
+    c.env("GIT_TERMINAL_PROMPT", "0")
         .env("GIT_OPTIONAL_LOCKS", "0")
         .env("GIT_PAGER", "cat")
         .env("PAGER", "cat")
         .env("GIT_EDITOR", ":")
-        .env("LC_ALL", "C")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .kill_on_drop(true);
+        .env("LC_ALL", "C");
+    c.envs(o.env.iter().map(|(k, v)| (k, v)));
+}
+
+/// Start `c` (its program and arguments set), feed and read it within the
+/// bounds; `missing` answers a program that isn't there.
+pub(crate) async fn exec(
+    mut c: tokio::process::Command,
+    o: &Opts<'_>,
+    missing: fn() -> ApiErr,
+    what: &'static str,
+) -> Result<Out, ApiErr> {
+    use tokio::io::AsyncWriteExt;
+    quiet_env(&mut c, o);
+    c.stdin(if o.input.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::null()
+    })
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped())
+    .kill_on_drop(true);
     let mut child = c.spawn().map_err(|e| {
         if e.kind() == std::io::ErrorKind::NotFound {
-            git_missing()
+            missing()
         } else {
-            err("git_failed", "git could not be started on this machine.")
+            err("git_failed", format!("{what} could not be started on this machine."))
         }
     })?;
+    let input = o.input.map(|b| b.to_vec());
+    let stdin = child.stdin.take();
     let (so, se) = (child.stdout.take().expect("piped"), child.stderr.take().expect("piped"));
+    let cap = o.cap;
     let work = async {
         let mut out = Vec::new();
         let mut errb = Vec::new();
-        // Each pipe is dropped once read, so a git cut short gets EPIPE and ends.
+        let feed = async move {
+            if let (Some(mut w), Some(b)) = (stdin, input) {
+                let _ = w.write_all(&b).await;
+                // Dropped here: the program sees the end of its input.
+            }
+        };
+        // Each pipe is dropped once read, so a program cut short gets EPIPE and ends.
         let read_out = async move {
             let _ = so.take(cap as u64 + 1).read_to_end(&mut out).await;
             out
@@ -152,7 +209,7 @@ async fn git(dir: &Path, extra: &[String], args: &[&str], cap: usize) -> Result<
             let _ = se.take(4096).read_to_end(&mut errb).await;
             errb
         };
-        let (mut out, errb) = tokio::join!(read_out, read_err);
+        let ((), mut out, errb) = tokio::join!(feed, read_out, read_err);
         let cut = out.len() > cap;
         if cut {
             out.truncate(cap);
@@ -161,9 +218,9 @@ async fn git(dir: &Path, extra: &[String], args: &[&str], cap: usize) -> Result<
         let status = child.wait().await.ok();
         (out, errb, cut, status)
     };
-    let (stdout, errb, cut, status) = tokio::time::timeout(GIT_TIME, work)
+    let (stdout, errb, cut, status) = tokio::time::timeout(o.time.unwrap_or(GIT_TIME), work)
         .await
-        .map_err(|_| err("git_timeout", "git took too long on this machine."))?;
+        .map_err(|_| err("git_timeout", format!("{what} took too long on this machine.")))?;
     Ok(Out {
         ok: !cut && status.is_some_and(|s| s.success()),
         code: status.and_then(|s| s.code()),
@@ -216,6 +273,7 @@ pub(crate) async fn repo_top(cwd: &Path, guard: &jail::Guard) -> Result<PathBuf,
 async fn open_repo(ctx: &Ctx) -> Result<Repo, ApiErr> {
     let top = repo_top(&ctx.cwd, &ctx.guard).await?;
     let mut blank = Vec::new();
+    let mut names = Vec::new();
     for scope in ["--local", "--worktree"] {
         let o = git(
             &top,
@@ -229,6 +287,9 @@ async fn open_repo(ctx: &Ctx) -> Result<Repo, ApiErr> {
         }
         for name in o.stdout.split(|b| *b == 0).filter(|n| !n.is_empty()) {
             let name = String::from_utf8_lossy(name).trim().to_ascii_lowercase();
+            if !names.contains(&name) {
+                names.push(name.clone());
+            }
             let Some(rest) = name.strip_prefix("filter.") else {
                 continue;
             };
@@ -251,7 +312,7 @@ async fn open_repo(ctx: &Ctx) -> Result<Repo, ApiErr> {
         }
     }
     let blank = blank.into_iter().flat_map(|p| ["-c".to_string(), p]).collect();
-    Ok(Repo { top, blank })
+    Ok(Repo { top, blank, names })
 }
 
 /// What the work is compared with: HEAD, or the empty tree before the first commit.
@@ -487,11 +548,14 @@ pub async fn status(ctx: &Ctx) -> ApiResult {
     )
     .await?;
     let branch = String::from_utf8_lossy(&b.stdout).trim().to_string();
+    let b_ok = b.ok;
     let label = repo
         .top
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
+    let on = Some(branch.as_str()).filter(|b| b_ok && !b.is_empty());
+    let (ahead, protected) = ship::status_extra(ctx, &repo, on, head.is_some()).await?;
     let (add, del) = l.files.iter().fold((0u64, 0u64), |(a, d), f| {
         (a + f.add.unwrap_or(0), d + f.del.unwrap_or(0))
     });
@@ -505,6 +569,8 @@ pub async fn status(ctx: &Ctx) -> ApiResult {
         "del": del,
         "hidden": l.hidden,
         "truncated": l.truncated,
+        "ahead": ahead,
+        "protected": protected,
     }))
 }
 
@@ -609,6 +675,12 @@ use crate::daemon::{Daemon, Internal};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
+/// A parsed request.
+enum Job {
+    Read(ReadParams),
+    Ship(ShipParams),
+}
+
 /// Work in flight.
 #[derive(Default)]
 pub struct Rt {
@@ -616,17 +688,31 @@ pub struct Rt {
 }
 
 impl Daemon {
+    /// A pane's folder now: its shell's (a plain `cd` never reaches the
+    /// runner), else the one recorded at launch or by the agent's hook.
+    pub(crate) fn pane_folder_now(&self, id: &str) -> Option<String> {
+        let recorded = self.state.pane(id).map(|r| r.pane.cwd.clone())?;
+        let shell = self.panes.get(id).map(|r| r.pid).filter(|p| *p > 0);
+        Some(
+            shell
+                .and_then(tmuxedo_detect::platform::cwd)
+                .filter(|c| std::path::Path::new(c).is_dir())
+                .unwrap_or(recorded),
+        )
+    }
+
     /// The work folder the runner records for a session, never a client's.
     fn review_folder(&self, t: &Target) -> Option<PathBuf> {
         let cwd = match t {
-            Target::Pane(id) => self.state.pane(id).map(|r| r.pane.cwd.clone())?,
+            Target::Pane(id) => self.pane_folder_now(id)?,
             Target::Chat(id) => self.chats.sessions.get(id).map(|s| s.meta.cwd.clone())?,
         };
         Some(PathBuf::from(cwd)).filter(|p| p.is_absolute())
     }
 
-    /// Every `git.*` request: local callers and the methods that change
-    /// something are refused; a reading one is answered from a task.
+    /// Every `git.*` request: local callers are refused; a reading one, a
+    /// commit or a push is answered from a task (the gateway lets only the
+    /// web ask for a commit or a push).
     pub(crate) fn review_request(&mut self, method: &str, params: &Value, reply: ReplyTo) {
         if matches!(reply, ReplyTo::Local(_)) {
             let e = err(
@@ -635,23 +721,45 @@ impl Daemon {
             );
             return respond(reply, Err(e), self);
         }
-        if !proto::READ_METHODS.contains(&method) {
+        let parsed = if proto::READ_METHODS.contains(&method) {
+            proto::parse_read_params(method, params).map(Job::Read)
+        } else if proto::WEB_METHODS.contains(&method) {
+            proto::parse_ship_params(method, params).map(Job::Ship)
+        } else {
             let e = if proto::MUTATING_METHODS.contains(&method) {
-                err(
-                    "not_supported",
-                    "This runner does not commit or push from the review yet.",
-                )
+                err("not_supported", "This runner does not do that from the review.")
             } else {
                 err("unknown_method", format!("unknown method {method}"))
             };
             return respond(reply, Err(e), self);
-        }
-        let parsed = match proto::parse_read_params(method, params) {
+        };
+        let parsed = match parsed {
             Ok(p) => p,
             Err((code, why)) => return respond(reply, Err(err(code, format!("{method}: {why}"))), self),
         };
         let target = match &parsed {
-            ReadParams::Status { target } | ReadParams::Diff { target, .. } => target,
+            Job::Read(ReadParams::Status { target } | ReadParams::Diff { target, .. }) => target,
+            Job::Ship(
+                ShipParams::Commit { target, .. } | ShipParams::Push { target, .. } | ShipParams::Discard { target },
+            ) => target,
+        };
+        // A discard records a checkpoint first, and must not race the agent.
+        let ck_target = match target {
+            Target::Pane(id) => crate::checkpoint::daemon::CkTarget::Pane(id.clone()),
+            Target::Chat(id) => crate::checkpoint::daemon::CkTarget::Chat(id.clone()),
+        };
+        let discard = matches!(parsed, Job::Ship(ShipParams::Discard { .. }));
+        if discard && self.checkpoint_busy(&ck_target) {
+            let e = err(
+                "session_busy",
+                "The agent is working: stop it or wait for its turn to end, then discard.",
+            );
+            return respond(reply, Err(e), self);
+        }
+        let (store, key) = (self.checkpoints.clone(), ck_target.key());
+        let pane = match target {
+            Target::Pane(id) => Some(id.clone()),
+            Target::Chat(_) => None,
         };
         let Some(cwd) = self.review_folder(target) else {
             return respond(reply, Err(err("not_found", "No such session on this machine.")), self);
@@ -666,12 +774,29 @@ impl Daemon {
             cwd,
             guard: self.fs_guard(),
             masker,
+            gh: PathBuf::from("gh"),
+            env: vec![],
         };
         let (busy, tx) = (self.review.busy.clone(), self.internal_tx.clone());
         busy.fetch_add(1, Ordering::Relaxed);
         tokio::spawn(async move {
-            let result = run(&ctx, &parsed).await;
+            let result = match &parsed {
+                Job::Read(p) => run(&ctx, p).await,
+                Job::Ship(ShipParams::Discard { .. }) => ship::discard(&ctx, &store, &key).await,
+                Job::Ship(p) => ship::run(&ctx, p).await,
+            };
             busy.fetch_sub(1, Ordering::Relaxed);
+            // A pull request opened here: its checks are watched (crate::needs_ci).
+            if let Ok(v) = &result {
+                if let (Some(url), Some(number)) = (v["pr"]["url"].as_str(), v["pr"]["number"].as_u64()) {
+                    let _ = tx.send(Internal::CiWatch {
+                        url: url.to_string(),
+                        number,
+                        dir: ctx.cwd.clone(),
+                        pane: pane.clone(),
+                    });
+                }
+            }
             // The same delivery as the file browser's: a reply and its result.
             let _ = tx.send(Internal::Fs {
                 reply,

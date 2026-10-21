@@ -154,6 +154,10 @@ pub const CAPABILITIES: &[Capability] = &[
         skill: Teach::NotForAgents("the review of changes is for the person; it does not answer on the local socket"),
     },
     Capability {
+        id: "feature:replay",
+        skill: Teach::NotForAgents("session recordings are for the person to replay; they do not answer on the local socket"),
+    },
+    Capability {
         id: "feature:stats",
         skill: Teach::NotForAgents(
             "the machine's CPU, memory and disk bars are drawn for the person; nothing for the agent to do",
@@ -175,6 +179,12 @@ pub const CAPABILITIES: &[Capability] = &[
         id: "feature:checkpoints",
         skill: Teach::NotForAgents(
             "the folder is recorded before each turn so the person can undo it; it does not answer on the local socket",
+        ),
+    },
+    Capability {
+        id: "feature:session_summary",
+        skill: Teach::NotForAgents(
+            "a session's facts for the person's away digest; it does not answer on the local socket",
         ),
     },
     // plugin capabilities (manifest `capabilities`)
@@ -279,6 +289,10 @@ pub const CAPABILITIES: &[Capability] = &[
     Capability {
         id: "cli:attach",
         skill: Teach::NotForAgents("an interactive terminal client"),
+    },
+    Capability {
+        id: "cli:changes",
+        skill: Teach::NotForAgents("shows the person a session's changes; the agent has git itself"),
     },
     Capability {
         id: "cli:tui",

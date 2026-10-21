@@ -68,6 +68,8 @@ pub struct Needs {
     settled: HashMap<String, u64>,
     /// Open file requests (`tmuxedo files request`, crate::needs_files).
     pub files: Vec<crate::needs_files::FileAsk>,
+    /// Pull requests opened from the review, their checks watched (crate::needs_ci).
+    pub ci: Vec<crate::needs_ci::CiWatch>,
 }
 
 struct PendingKeys {
@@ -305,6 +307,8 @@ impl Daemon {
     fn needs_desired(&mut self, pane_id: &str) -> Vec<NeedsYou> {
         let mut v = self.needs_desired_agent(pane_id);
         v.extend(self.file_items(pane_id));
+        v.extend(self.ci_items(pane_id));
+        v.extend(self.memory_warn_items(pane_id));
         v.truncate(tmuxedo_protocol::needs::MAX_ITEMS);
         v
     }
@@ -458,10 +462,13 @@ impl Daemon {
             }
         }
         out.sort_by(|a, b| a.created_at.cmp(&b.created_at));
-        let files = self.file_items(MACHINE);
+        let mut files = self.file_items(MACHINE);
+        files.extend(self.ci_items(MACHINE));
         out.truncate(tmuxedo_protocol::needs::MAX_ITEMS.saturating_sub(1 + files.len()));
         out.extend(files);
         out.extend(self.needs_login_item(&existing));
+        out.extend(self.usage_alert_items(&existing));
+        out.truncate(tmuxedo_protocol::needs::MAX_ITEMS);
         out
     }
 
@@ -683,6 +690,12 @@ impl Daemon {
             );
             return respond(reply, Err(e), self);
         }
+        if let Some(outcome) = self.memory_warn_respond(&item, &r).await {
+            return respond(reply, Ok(json!({ "type": "needs_respond", "outcome": outcome })), self);
+        }
+        if let Some(outcome) = self.usage_alert_respond(&item, &r.id).await {
+            return respond(reply, Ok(json!({ "type": "needs_respond", "outcome": outcome })), self);
+        }
         let pane = item.pane_id.clone();
         match item.answer_via.as_str() {
             "hook" => {
@@ -727,6 +740,7 @@ impl Daemon {
             }
             "keystroke" => self.needs_keys(item, r, p, reply).await,
             "upload" => self.file_ask_respond(&item, &r, reply).await,
+            "none" if item.id.starts_with("ci-") && item.source == "core" => self.ci_respond(&item, &r, reply).await,
             "action" => {
                 let Some(action) = r.action_id.clone().filter(|_| r.kind == "action") else {
                     let e = err("invalid_params", "this response is not an action");

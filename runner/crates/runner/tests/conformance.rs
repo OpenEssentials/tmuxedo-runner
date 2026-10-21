@@ -720,6 +720,13 @@ conformance! {
         assert_eq!(r["type"], "needs_list");
         assert_eq!(r["items"], json!([]));
     });
+    usage_list => |h| Box::pin(async move {
+        // AI usage is off on a fresh runner: nothing to show.
+        let r = h.ok("usage.list", json!({})).await;
+        assert_eq!(r["type"], "usage_list");
+        assert_eq!(r["enabled"], false);
+        assert_eq!(r["records"], json!([]));
+    });
     needs_respond => |h| Box::pin(async move {
         // Answers come from people through tmuxedo, never from the local socket
         // (anything in a pane can reach it); over the gateway: tests/needs.rs.
@@ -888,6 +895,11 @@ conformance! {
     fs_list => |h| Box::pin(async move {
         assert_eq!(h.fails("fs.list", json!({"root": "r0123456789abcdef", "path": ""})).await["code"], "not_supported");
     });
+    wol_send => |h| Box::pin(async move {
+        // Gateway only (web picks the relay): refused on the local socket.
+        let p = json!({"mac": "02:00:00:00:00:01", "broadcast": "255.255.255.255"});
+        assert_eq!(h.fails("wol.send", p).await["code"], "not_supported");
+    });
     fs_stat => |h| Box::pin(async move {
         assert_eq!(h.fails("fs.stat", json!({"root": "r0123456789abcdef", "path": "README.md"})).await["code"], "not_supported");
     });
@@ -906,6 +918,19 @@ conformance! {
             let r = h.raw(m, json!({"root": "r0123456789abcdef", "path": "x", "text": "y"})).await;
             assert_eq!(r["error"]["code"], "not_supported", "{m}: {r}");
         }
+    });
+    // Search history (docs/protocol.md "Search history"): web only. Anything in a pane could
+    // read every project's history through the local socket, so it is refused there.
+    search => |h| Box::pin(async move {
+        assert_eq!(h.fails("search", json!({"q": "deploy"})).await["code"], "not_supported");
+    });
+    // An add-on's reachability check: started from its card through web, never the local socket.
+    addon_test => |h| Box::pin(async move {
+        assert_eq!(h.fails("addon.test", json!({"name": "example"})).await["code"], "not_supported");
+    });
+    // An MCP server's "Test on machine" starts it with its secrets: web only, never the local socket.
+    mcp_test => |h| Box::pin(async move {
+        assert_eq!(h.fails("mcp.test", json!({"id": "srv1", "plugin": "claude"})).await["code"], "not_supported");
     });
     // The changing methods (slice A2): never on the local socket either, even with every flag web
     // would set (an agent in a pane must not write through the browser's path).
@@ -940,9 +965,24 @@ conformance! {
             assert_eq!(r["error"]["code"], "not_supported", "{m}: {r}");
         }
     });
+    // Commit and push travel through web only (machine.call); an agent on the local socket cannot ship.
+    git_commit => |h| Box::pin(async move {
+        assert_eq!(h.fails("git.commit", json!({"pane": "w1:p1", "message": "x"})).await["code"], "not_supported");
+    });
+    git_push => |h| Box::pin(async move {
+        assert_eq!(h.fails("git.push", json!({"pane": "w1:p1", "pr": true})).await["code"], "not_supported");
+    });
+    // Discard changes files: through web only, so an agent cannot throw away work from here.
+    git_discard => |h| Box::pin(async move {
+        assert_eq!(h.fails("git.discard", json!({"pane": "w1:p1"})).await["code"], "not_supported");
+    });
     // Checkpoints (Phase 23): never on the local socket; the agent cannot undo its own turn.
     checkpoint_list => |h| Box::pin(async move {
         assert_eq!(h.fails("checkpoint.list", json!({"pane": "w1:p1"})).await["code"], "not_supported");
+    });
+    session_summary => |h| Box::pin(async move {
+        // The away digest's facts travel through web only (the gateway test answers one).
+        assert_eq!(h.fails("session.summary", json!({"pane": "w1:p1"})).await["code"], "not_supported");
     });
     checkpoint_preview => |h| Box::pin(async move {
         assert_eq!(h.fails("checkpoint.preview", json!({"pane": "w1:p1", "id": 1})).await["code"], "not_supported");
@@ -952,6 +992,20 @@ conformance! {
     });
     checkpoint_create => |h| Box::pin(async move {
         assert_eq!(h.fails("checkpoint.create", json!({"chat": "c1"})).await["code"], "not_supported");
+    });
+    // Session recording and replay: web only, never the local socket.
+    replay_list => |h| Box::pin(async move {
+        assert_eq!(h.fails("replay.list", json!({})).await["code"], "not_supported");
+    });
+    replay_set => |h| Box::pin(async move {
+        assert_eq!(h.fails("replay.set", json!({"pane": "w1:p1", "on": true})).await["code"], "not_supported");
+    });
+    replay_read => |h| Box::pin(async move {
+        assert_eq!(h.fails("replay.read", json!({"pane": "w1:p1", "from_ms": 0})).await["code"], "not_supported");
+        assert_eq!(h.fails("replay.anything", json!({"pane": "w1:p1"})).await["code"], "not_supported");
+    });
+    replay_delete => |h| Box::pin(async move {
+        assert_eq!(h.fails("replay.delete", json!({"pane": "w1:p1"})).await["code"], "not_supported");
     });
     queued_deliver => |h| Box::pin(async move {
         // Delivery itself (sealed to the runner key) is in tests/chat.rs; here the

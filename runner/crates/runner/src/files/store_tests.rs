@@ -696,3 +696,119 @@ fn an_upload_with_its_hash_given_lands_with_its_last_chunk() {
     }
     assert!(landed(&outs).is_none());
 }
+
+// Owner request 2026-10-20: an admin can upload anyway when the disk is under the floor or the
+// Files quota is used up (web passes `override_space` for that one upload), but never past the
+// disk itself: OVERRIDE_HARD_MARGIN (64 MiB, or 1 % of a small disk) must stay free.
+#[test]
+fn an_admin_override_passes_the_floor_and_the_quota_but_never_the_disk() {
+    use super::{glue::gate_params, OVERRIDE_HARD_MARGIN};
+    let t = setup();
+    // 1 GiB free of 100 GiB (floor 10 GiB), and a 1 KiB quota already used up.
+    let mut s = Store::new(
+        t.root.clone(),
+        Limits {
+            fake_disk: Some((GIB, 100 * GIB)),
+            quota: Some(1024),
+            ..Limits::default()
+        },
+    );
+    assert_eq!(s.quota().unwrap()["uploadsAllowed"], false);
+    let body = data(CS as usize * 2, 9);
+    let up = |id: &str, size: u64, over: bool| {
+        let mut p = json!({"upload_id": id, "project": "p1", "name": "anyway.bin", "size": size, "chunk_size": CS});
+        if over {
+            p["override_space"] = json!(true);
+        }
+        p
+    };
+    // Without the override: refused, as today.
+    let e = s
+        .upload_init(&up("up_over_0001", body.len() as u64, false))
+        .unwrap_err();
+    assert_eq!(e.code, "insufficient_storage");
+    // With it: allowed, and every chunk is taken although the disk stays under the floor.
+    s.upload_init(&up("up_over_0002", body.len() as u64, true)).unwrap();
+    ok(put(&mut s, "up_over_0002", &body, 0, FRAME_PAYLOAD));
+    ok(put(&mut s, "up_over_0002", &body, 1, FRAME_PAYLOAD));
+    let done = s
+        .upload_complete(&json!({"upload_id": "up_over_0002", "sha256": sha(&body)}))
+        .unwrap();
+    assert_eq!(done["size"], body.len());
+    // The quota alone (plenty of disk): the override passes it too.
+    s.limits.fake_disk = Some((100 * GIB, 200 * GIB));
+    assert_eq!(
+        s.upload_init(&up("up_over_0003", 4096, false)).unwrap_err().code,
+        "quota_exceeded"
+    );
+    s.upload_init(&up("up_over_0004", 4096, true)).unwrap();
+    // Past the hard margin: refused even with the override, in words.
+    s.limits.fake_disk = Some((OVERRIDE_HARD_MARGIN + GIB / 2, 100 * GIB));
+    let e = s.upload_init(&up("up_over_0005", GIB, true)).unwrap_err();
+    assert_eq!(e.code, "insufficient_storage");
+    assert!(e.message.contains("even"), "{}", e.message);
+    // The disk fills during an overridden upload: past the margin the next chunk stops it.
+    s.limits.fake_disk = Some((GIB, 100 * GIB));
+    s.upload_init(&up("up_over_0006", body.len() as u64, true)).unwrap();
+    ok(put(&mut s, "up_over_0006", &body, 0, FRAME_PAYLOAD));
+    s.limits.fake_disk = Some((OVERRIDE_HARD_MARGIN, 100 * GIB));
+    let a = put(&mut s, "up_over_0006", &body, 1, FRAME_PAYLOAD).unwrap();
+    assert_eq!(a.code.as_deref(), Some("insufficient_storage"));
+    // A small disk: the margin is 1 % of it.
+    assert_eq!(s.limits.hard_margin_for(1024 * 1024 * 1024), 1024 * 1024 * 1024 / 100);
+    assert_eq!(s.limits.hard_margin_for(100 * GIB), OVERRIDE_HARD_MARGIN);
+
+    // Only web says it: never the local socket (upload_init is refused there), and no other
+    // method carries it on.
+    let p = json!({"upload_id": "up_over_0007", "override_space": true});
+    let e = gate_params("files.upload_init", false, &p).unwrap_err();
+    assert_eq!(e.code, "not_supported");
+    assert_eq!(
+        gate_params("files.upload_init", true, &p).unwrap()["override_space"],
+        true
+    );
+    assert!(gate_params("files.list", true, &p)
+        .unwrap()
+        .get("override_space")
+        .is_none());
+    assert!(gate_params("files.list", false, &p)
+        .unwrap()
+        .get("override_space")
+        .is_none());
+}
+
+// Owner request 2026-10-21: one notification per disk problem, not one per hour. A disk that
+// hovers around the 5 % line (the hourly partial sweep frees a little, then it fills again)
+// raises `disk_low` once; it re-arms only after the disk has had more than 8 % free.
+#[test]
+fn a_disk_flapping_around_five_percent_raises_disk_low_once() {
+    let t = setup();
+    let mut w = Worker::new(Store::new(
+        t.root.clone(),
+        Limits {
+            fake_disk: Some((49 * GIB / 10, 100 * GIB)),
+            ..Limits::default()
+        },
+    ));
+    let mut lows = 0;
+    let mut at = |w: &mut Worker, free: u64| {
+        w.store.limits.fake_disk = Some((free, 100 * GIB));
+        let mut outs = vec![];
+        w.handle(Msg::DiskNow, &mut |o| outs.push(o));
+        lows += outs
+            .iter()
+            .filter(|o| matches!(o, Out::Event(n) if n.kind == "disk_low"))
+            .count();
+        lows
+    };
+    assert_eq!(at(&mut w, 49 * GIB / 10), 1);
+    // 5.1 %, 4.9 %, 6 %, 4.8 %, 7.9 %, 4 %: still the same problem.
+    for free in [51, 49, 60, 48, 79, 40] {
+        assert_eq!(at(&mut w, free * GIB / 10), 1, "free {free}/1000");
+    }
+    // Worse (alert) is the server's to tell from the disk frame: no second event.
+    assert_eq!(at(&mut w, GIB), 1);
+    // Back above 8 %: re-armed; the next fall is a new problem.
+    assert_eq!(at(&mut w, 9 * GIB), 1);
+    assert_eq!(at(&mut w, 4 * GIB), 2);
+}

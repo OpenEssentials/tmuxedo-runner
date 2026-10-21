@@ -31,6 +31,9 @@ pub struct Wire {
     /// Web asked for AI usage per plugin (`config.plugins[].settings.usage`);
     /// only the ones that are on. Kept in `<state>/usage.json`.
     pub usage_wanted: BTreeMap<String, bool>,
+    /// The usage alert levels on per plugin (`settings.usage.alerts`); a
+    /// plugin not here has all of them. Kept in `<state>/usage-alert-levels.json`.
+    pub usage_alert_levels: BTreeMap<String, Vec<u8>>,
     /// A hosted machine (the provisioner sets TMUXEDO_CONFIG_SOURCE).
     pub hosted: bool,
 }
@@ -57,6 +60,8 @@ pub struct ConfigPlugins {
     pub keystroke: BTreeMap<String, bool>,
     /// AI usage per plugin (only the ones web turned on; absent = off).
     pub usage: BTreeMap<String, bool>,
+    /// Usage alert levels per plugin, only where web said (absent = all on).
+    pub usage_alerts: BTreeMap<String, Vec<u8>>,
 }
 
 pub fn read_config_plugins(plugins: Option<&Value>) -> Option<ConfigPlugins> {
@@ -66,6 +71,7 @@ pub fn read_config_plugins(plugins: Option<&Value>) -> Option<ConfigPlugins> {
         skill: BTreeMap::new(),
         keystroke: BTreeMap::new(),
         usage: BTreeMap::new(),
+        usage_alerts: BTreeMap::new(),
     };
     for (id, c) in list {
         if id == LEGACY_PLUGIN {
@@ -73,6 +79,9 @@ pub fn read_config_plugins(plugins: Option<&Value>) -> Option<ConfigPlugins> {
         }
         if c.usage == Some(true) {
             out.usage.insert(id.clone(), true);
+        }
+        if let Some(l) = c.usage_alerts.clone() {
+            out.usage_alerts.insert(id.clone(), l);
         }
         if let Some(on) = c.keystroke {
             out.keystroke.insert(id.clone(), on);
@@ -115,6 +124,27 @@ pub fn save_usage_wishes(state_dir: &std::path::Path, w: &BTreeMap<String, bool>
     }
 }
 
+/// Web's last usage alert levels (`<state>/usage-alert-levels.json`, `{"claude": [95, 100]}`).
+pub fn load_usage_alert_levels(state_dir: &std::path::Path) -> BTreeMap<String, Vec<u8>> {
+    std::fs::read(state_dir.join("usage-alert-levels.json"))
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default()
+}
+
+pub fn save_usage_alert_levels(state_dir: &std::path::Path, l: &BTreeMap<String, Vec<u8>>) {
+    if let Ok(b) = serde_json::to_vec_pretty(l) {
+        let _ = crate::config::write_private(&state_dir.join("usage-alert-levels.json"), &b);
+    }
+}
+
+/// The usage alert levels on for `plugin`.
+pub fn alert_levels(l: &BTreeMap<String, Vec<u8>>, plugin: &str) -> Vec<u8> {
+    l.get(plugin)
+        .cloned()
+        .unwrap_or_else(|| tmuxedo_protocol::usage::USAGE_ALERT_LEVELS.to_vec())
+}
+
 impl Daemon {
     /// `hello.runner.plugins[]`: every plugin the host holds.
     pub(crate) fn plugin_infos(&self) -> Vec<PluginInfo> {
@@ -149,6 +179,8 @@ impl Daemon {
     /// The hello this runner sends now (legacy fields untouched, plugins added).
     pub(crate) fn hello_info(&mut self) -> tmuxedo_protocol::frames::RunnerInfo {
         self.info.plugins = Some(self.plugin_infos());
+        self.info.keep_awake = Some(self.awake.wire());
+        self.info.network = Some(crate::wake::discover());
         self.info.clone()
     }
 

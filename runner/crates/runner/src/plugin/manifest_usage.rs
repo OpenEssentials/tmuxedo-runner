@@ -37,6 +37,10 @@ pub struct UsageSource {
     /// Field with the plan's name.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plan: Option<String>,
+    /// Fields whose whole numbers add up to the session's running token
+    /// total (what the agent says this session used so far; at most 4).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tokens: Vec<String>,
     /// `statusline`: field with the model's display name (for the short line).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
@@ -168,6 +172,10 @@ impl Manifest {
                 fields.extend(c.size.iter().map(|f| ("context.size", f)));
             }
             fields.extend(s.plan.iter().map(|f| ("plan", f)));
+            fields.extend(s.tokens.iter().map(|f| ("tokens", f)));
+            if s.tokens.len() > 4 {
+                e.push(format!("{w}: more than 4 token fields"));
+            }
             fields.extend(s.model.iter().map(|f| ("model", f)));
             fields.extend(s.path_field.iter().map(|f| ("path_field", f)));
             fields.extend(s.select.keys().map(|f| ("select", f)));

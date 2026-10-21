@@ -179,7 +179,7 @@ fn the_popup_fits_every_size_and_drops_pictures_when_short() {
     a.on_favourites(Ok(json!({"favourites": []})));
     let s = screen(&a);
     assert!(s.contains("One terminal: nothing to arrange yet."), "{s}");
-    assert!(s.contains("None yet: save a layout"), "{s}");
+    assert!(s.contains("None yet: s saves this layout"), "{s}");
 }
 
 #[test]
@@ -439,4 +439,134 @@ fn hostile_favourites_are_left_out() {
     ] {
         assert!(fav::parse_favourite(&row).is_none(), "{row}");
     }
+}
+
+#[test]
+fn more_layouts_opens_with_m_and_a_number_past_four_arranges() {
+    let mut a = app(4, (100, 40), "control");
+    prefixed(&mut a, KeyCode::Char(' '));
+    a.on_favourites(Ok(json!({"favourites": []})));
+    let first = a.arrange_patterns().len();
+    let more = a.arrange_more();
+    assert!(more > 0, "four terminals have more layouts");
+    let s = screen(&a);
+    assert!(s.contains(&format!("m More layouts ({more})")), "{s}");
+    a.on_key(key(KeyCode::Char('m')));
+    assert_eq!(a.arrange_patterns().len(), first + more);
+    let s = screen(&a);
+    assert!(s.contains("m Fewer layouts"), "{s}");
+    assert!(s.contains(&format!("{} ", first + 1)), "{s}");
+    a.on_key(key(KeyCode::Char(char::from(b'0' + (first as u8 + 1)))));
+    let r = one_req(&mut a);
+    assert_eq!(r["method"], "layout.arrange", "{r}");
+    // Opening the popup again starts with the short list.
+    prefixed(&mut a, KeyCode::Char(' '));
+    assert_eq!(a.arrange_patterns().len(), first);
+}
+
+#[test]
+fn s_saves_the_layout_under_a_prefilled_name_and_says_what_happened() {
+    let mut a = app(3, (100, 40), "control");
+    prefixed(&mut a, KeyCode::Char(' '));
+    a.on_favourites(Ok(favourites()));
+    assert!(screen(&a).contains("s Save this layout"));
+    a.on_key(key(KeyCode::Char('s')));
+    let Mode::SaveFavourite(name) = a.mode.clone() else {
+        panic!("{:?}", a.mode)
+    };
+    assert!(name.contains("Claude"), "the name says what runs: {name}");
+    assert!(screen(&a).contains("save layout as"), "{}", screen(&a));
+    // Esc goes back to the popup; s again, then a typed name.
+    a.on_key(key(KeyCode::Esc));
+    assert_eq!(a.mode, Mode::Arrange(0));
+    a.on_key(key(KeyCode::Char('s')));
+    a.on_key(KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL));
+    a.on_key(key(KeyCode::Enter));
+    assert!(matches!(a.mode, Mode::SaveFavourite(_)), "an empty name stays");
+    assert_eq!(a.note.as_deref(), Some("A name is 1 to 40 characters."));
+    a.on_event(ratatui::crossterm::event::Event::Paste("Pair".into()));
+    assert!(a.save_line("Pair").contains("replaces yours of that name"));
+    a.on_key(key(KeyCode::Enter));
+    assert_eq!(a.mode, Mode::Normal);
+    let body = a.layouts.save_out.clone().expect("queued for the event loop");
+    assert_eq!(body["name"], "Pair");
+    assert_eq!(body["slots"].as_array().unwrap().len(), 3);
+    assert_eq!(body["slots"][1]["holds"], "agent");
+    assert!(body["shape"]["dir"].is_string(), "{body}");
+    a.layouts.save_out = None;
+    a.layouts.saving = true;
+    a.on_favourite_saved(Ok((
+        200,
+        json!({"favourite": {"id": "f3", "name": "Pair", "shape": body["shape"], "slots": body["slots"]}}),
+    )));
+    assert_eq!(a.note.as_deref(), Some("Replaced your favourite “Pair”."));
+    assert!(!a.layouts.saving);
+    let favs = a.layouts.favourites.as_ref().unwrap();
+    assert_eq!(favs.iter().filter(|f| f.name == "Pair").count(), 1);
+    assert_eq!(favs.iter().find(|f| f.id == "f3").unwrap().slots.len(), 3);
+    // A read-only CLI token is told why.
+    a.on_favourite_saved(Ok((
+        403,
+        json!({"error": {"code": "insufficient_scope", "message": "no"}}),
+    )));
+    assert!(a.note.as_deref().unwrap().contains("write scope"), "{:?}", a.note);
+    a.on_favourite_saved(Err("down".into()));
+    assert_eq!(a.note.as_deref(), Some("Not saved: the server could not be reached."));
+}
+
+#[test]
+fn more_than_twelve_terminals_cannot_be_saved() {
+    let mut a = app(13, (200, 60), "control");
+    prefixed(&mut a, KeyCode::Char(' '));
+    a.on_favourites(Ok(json!({"favourites": []})));
+    a.on_key(key(KeyCode::Char('s')));
+    assert_eq!(a.mode, Mode::Normal);
+    assert_eq!(
+        a.note.as_deref(),
+        Some("A favourite holds up to 12 terminals. This tab has more.")
+    );
+}
+
+#[test]
+fn t_moves_the_focused_terminal_to_a_new_tab_and_is_offered_only_with_another() {
+    for size in [(100, 30), (80, 24), (61, 17), (44, 12)] {
+        let mut a = app(3, size, "control");
+        prefixed(&mut a, KeyCode::Char(' '));
+        a.on_favourites(Ok(favourites()));
+        let s = screen(&a);
+        assert!(s.contains("t Move this terminal"), "{size:?}\n{s}");
+        for line in s.lines() {
+            assert!(line.chars().count() <= size.0 as usize);
+        }
+    }
+    let mut a = app(3, (100, 30), "control");
+    prefixed(&mut a, KeyCode::Char(' '));
+    a.on_key(key(KeyCode::Char('t')));
+    assert_eq!(a.mode, Mode::Normal);
+    let r = one_req(&mut a);
+    assert_eq!(r["method"], "pane.move");
+    assert_eq!(
+        r["params"],
+        json!({"pane_id":"w1:p1","destination":{"type":"new_tab"},"focus":true})
+    );
+    res(&mut a, &r, json!({"type":"pane_move","move_result":{"changed":true}}));
+    assert_eq!(a.note.as_deref(), Some("Moved w1:p1 to a new tab. Nothing was closed."));
+    // A refusal says nothing changed.
+    prefixed(&mut a, KeyCode::Char(' '));
+    a.on_key(key(KeyCode::Char('t')));
+    let r = one_req(&mut a);
+    refuse(&mut a, &r, "pane_not_found");
+    assert_eq!(a.note.as_deref(), Some("w1:p1 is gone. Nothing was changed."));
+    // One terminal: not offered, `t` does nothing.
+    let mut a = app(1, (100, 30), "control");
+    prefixed(&mut a, KeyCode::Char(' '));
+    assert!(!screen(&a).contains("t Move this terminal"));
+    a.on_key(key(KeyCode::Char('t')));
+    assert!(reqs(&mut a).is_empty());
+    // Watching: nothing is sent.
+    let mut a = app(3, (100, 30), "observe");
+    prefixed(&mut a, KeyCode::Char(' '));
+    a.on_key(key(KeyCode::Char('t')));
+    assert!(reqs(&mut a).is_empty());
+    assert_eq!(a.note.as_deref(), Some("You are watching. Take control to arrange."));
 }

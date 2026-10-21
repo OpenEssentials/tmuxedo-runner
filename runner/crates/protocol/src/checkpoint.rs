@@ -38,6 +38,8 @@ pub const PREVIEW_FILES_MAX: usize = 500;
 pub const KIND_TURN: &str = "turn";
 pub const KIND_RESTORE: &str = "restore";
 pub const KIND_MANUAL: &str = "manual";
+/// Recorded before the review's Discard.
+pub const KIND_DISCARD: &str = "discard";
 
 /// Every `checkpoint.*` name: known or not.
 pub fn is_checkpoint_method(method: &str) -> bool {
@@ -103,6 +105,49 @@ pub fn parse_params(method: &str, p: &Value) -> Result<Params, ParamError> {
     Ok(Params { target, id })
 }
 
+/// The away digest's facts for one session (docs/design/away-and-review.md
+/// §5): what the folder changed since the first checkpoint at or after
+/// `since`, the chat turns recorded since then, and the agent's last line.
+/// Built from what the runner already records; it records nothing itself.
+pub const METHOD_SUMMARY: &str = "session.summary";
+/// The runner hello feature for [`METHOD_SUMMARY`].
+pub const FEATURE_SESSION_SUMMARY: &str = "session_summary";
+/// The longest last line a summary carries (characters, with the ellipsis).
+pub const SUMMARY_LINE_MAX: usize = 120;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SummaryParams {
+    pub target: Target,
+    /// Unix milliseconds; None = since the session's oldest checkpoint.
+    pub since: Option<u64>,
+}
+
+/// Parse `session.summary`'s `{pane | chat, since?}`.
+pub fn parse_summary_params(p: &Value) -> Result<SummaryParams, ParamError> {
+    let target = parse_params(METHOD_LIST, p)?.target;
+    let since = match &p["since"] {
+        Value::Null => None,
+        v => Some(v.as_u64().ok_or_else(|| bad("since must be Unix milliseconds"))?),
+    };
+    Ok(SummaryParams { target, since })
+}
+
+/// The first non-blank line of an agent's message, without control
+/// characters, cut to [`SUMMARY_LINE_MAX`] with an ellipsis.
+pub fn summary_line(text: &str) -> Option<String> {
+    let line = text.lines().map(str::trim).find(|l| !l.is_empty())?;
+    let clean: String = line.chars().filter(|c| !c.is_control()).collect();
+    let flat = clean.split_whitespace().collect::<Vec<_>>().join(" ");
+    if flat.is_empty() {
+        return None;
+    }
+    if flat.chars().count() <= SUMMARY_LINE_MAX {
+        return Some(flat);
+    }
+    let cut: String = flat.chars().take(SUMMARY_LINE_MAX - 1).collect();
+    Some(format!("{}\u{2026}", cut.trim_end()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,5 +177,41 @@ mod tests {
         );
         assert!(is_checkpoint_method("checkpoint.x") && !is_checkpoint_method("git.status"));
         assert!(!SOCKET_METHODS.contains(&METHOD_RESTORE));
+    }
+
+    #[test]
+    fn a_summary_names_one_session_and_an_optional_since() {
+        let p = parse_summary_params(&json!({"pane": "w1:p1"})).unwrap();
+        assert_eq!((p.target, p.since), (Target::Pane("w1:p1".into()), None));
+        let p = parse_summary_params(&json!({"chat": "c1", "since": 1_760_000_000_000u64})).unwrap();
+        assert_eq!(
+            (p.target, p.since),
+            (Target::Chat("c1".into()), Some(1_760_000_000_000))
+        );
+        for bad in [
+            json!({}),
+            json!({"pane": "a", "chat": "b"}),
+            json!({"pane": "a", "since": -1}),
+            json!({"pane": "a", "since": "yesterday"}),
+            json!([]),
+        ] {
+            assert_eq!(parse_summary_params(&bad).unwrap_err().0, "invalid_params", "{bad}");
+        }
+        assert!(!is_checkpoint_method(METHOD_SUMMARY));
+    }
+
+    #[test]
+    fn a_summary_line_is_one_short_line() {
+        assert_eq!(
+            summary_line("  \n\nAll tests pass.\nDetails follow  "),
+            Some("All tests pass.".into())
+        );
+        assert_eq!(summary_line("   \n "), None);
+        let long = "word ".repeat(60);
+        let l = summary_line(&long).unwrap();
+        assert!(l.chars().count() <= SUMMARY_LINE_MAX, "{l}");
+        assert!(l.ends_with('\u{2026}'), "{l}");
+        // Control characters never reach a card.
+        assert_eq!(summary_line("done\u{1b}[31m red"), Some("done[31m red".into()));
     }
 }

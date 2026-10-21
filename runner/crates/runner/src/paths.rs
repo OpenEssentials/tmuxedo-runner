@@ -33,6 +33,19 @@ pub fn state_dir() -> PathBuf {
     prefer_migrated(default_state_dir(), &legacy_state_dir())
 }
 
+/// `$TMUXEDO_RECORDINGS_DIR` or `${XDG_DATA_HOME:-~/.local/share}/tmuxedo/recordings`:
+/// session recordings (opt-in per session; crate::replay).
+pub fn recordings_dir() -> PathBuf {
+    if let Some(d) = env_os("RECORDINGS_DIR") {
+        return PathBuf::from(d);
+    }
+    let data = match std::env::var_os("XDG_DATA_HOME") {
+        Some(d) if !d.is_empty() && Path::new(&d).is_absolute() => PathBuf::from(d),
+        _ => home_dir().join(".local/share"),
+    };
+    data.join(NAME).join("recordings")
+}
+
 /// `$XDG_CONFIG_HOME/tmuxedo` or `~/.config/tmuxedo`.
 pub fn config_dir() -> PathBuf {
     prefer_migrated(config_home().join(NAME), &legacy_config_dir())

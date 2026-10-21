@@ -129,7 +129,7 @@ fn the_claude_shim_carries_the_skill_only_when_it_is_on() {
     let off = c.shim_script(&gen, &["--model".into(), "opus".into()], None).unwrap();
     assert!(
         // (The files fragment, Phase 15, comes first; it is empty outside a pane with a files folder.)
-        off.contains("exec \"$d/claude\" ${TMUXEDO_FILES_DIR:+--add-dir \"$TMUXEDO_FILES_DIR\" --append-system-prompt-file \"$TMUXEDO_FILES_ROOT/.instructions.md\"} '--model' 'opus' --settings '/s/claude-settings.json' \"$@\"\n"),
+        off.contains("set -- ${TMUXEDO_FILES_DIR:+--add-dir \"$TMUXEDO_FILES_DIR\" --append-system-prompt-file \"$TMUXEDO_FILES_ROOT/.instructions.md\"} '--model' 'opus' --settings '/s/claude-settings.json' \"$@\"\n"),
         "{off}"
     );
     let on = c
@@ -140,7 +140,7 @@ fn the_claude_shim_carries_the_skill_only_when_it_is_on() {
         )
         .unwrap();
     assert!(
-        on.contains("exec \"$d/claude\" ${TMUXEDO_FILES_DIR:+--add-dir \"$TMUXEDO_FILES_DIR\" --append-system-prompt-file \"$TMUXEDO_FILES_ROOT/.instructions.md\"} '--model' 'opus' --settings '/s/claude-settings.json' --plugin-dir '/s/plugins/claude/skill' \"$@\"\n"),
+        on.contains("set -- ${TMUXEDO_FILES_DIR:+--add-dir \"$TMUXEDO_FILES_DIR\" --append-system-prompt-file \"$TMUXEDO_FILES_ROOT/.instructions.md\"} '--model' 'opus' --settings '/s/claude-settings.json' --plugin-dir '/s/plugins/claude/skill' \"$@\"\n"),
         "{on}"
     );
     // The Claude manifest declares exactly one surface: Sign in, while a login is needed.

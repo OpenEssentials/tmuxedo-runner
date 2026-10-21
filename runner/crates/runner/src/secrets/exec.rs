@@ -20,7 +20,7 @@
 //! refused unless allowed by name.
 
 use serde_json::{json, Value};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd, RawFd};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
@@ -315,7 +315,21 @@ fn recv_with_fds(s: &UnixStream) -> Result<(Vec<u8>, Vec<OwnedFd>), String> {
     if msg.msg_flags & libc::MSG_CTRUNC != 0 {
         return Err("too many descriptors".into());
     }
-    buf.truncate(n as usize);
+    // A stream socket can split the message (macOS's local socket buffer is
+    // 8 KiB and the caller's environment is often larger): read to the newline.
+    let mut have = n as usize;
+    // Bounded, and cleared after: the same socket later waits on the caller's signals.
+    let _ = s.set_read_timeout(Some(std::time::Duration::from_secs(10)));
+    while !buf[..have].contains(&b'\n') && have < buf.len() {
+        match (&*s).read(&mut buf[have..]) {
+            Ok(0) => break,
+            Ok(k) => have += k,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+    let _ = s.set_read_timeout(None);
+    buf.truncate(have);
     if let Some(nl) = buf.iter().position(|&b| b == b'\n') {
         buf.truncate(nl);
     }
@@ -324,7 +338,16 @@ fn recv_with_fds(s: &UnixStream) -> Result<(Vec<u8>, Vec<OwnedFd>), String> {
 
 // ── client (the CLI in a pane) ───────────────────────────────────────────
 
-fn send_with_fds(s: &UnixStream, data: &[u8], fds: &[RawFd]) -> std::io::Result<()> {
+/// Send `data` with `fds` attached to its first bytes. Only a short first part
+/// goes with the descriptors (a stream socket may take less, and a small send
+/// buffer refuses a large message with them); the rest follows as plain bytes.
+fn send_with_fds(mut s: &UnixStream, data: &[u8], fds: &[RawFd]) -> std::io::Result<()> {
+    let first = &data[..data.len().min(1024)];
+    let sent = sendmsg_fds(s, first, fds)?;
+    s.write_all(&data[sent..])
+}
+
+fn sendmsg_fds(s: &UnixStream, data: &[u8], fds: &[RawFd]) -> std::io::Result<usize> {
     let space = unsafe { libc::CMSG_SPACE(std::mem::size_of_val(fds) as u32) } as usize;
     let mut cmsg = vec![0u8; space];
     let mut iov = libc::iovec {
@@ -343,11 +366,17 @@ fn send_with_fds(s: &UnixStream, data: &[u8], fds: &[RawFd]) -> std::io::Result<
         (*c).cmsg_type = libc::SCM_RIGHTS;
         (*c).cmsg_len = libc::CMSG_LEN(std::mem::size_of_val(fds) as u32) as _;
         std::ptr::copy_nonoverlapping(fds.as_ptr(), libc::CMSG_DATA(c) as *mut RawFd, fds.len());
-        if libc::sendmsg(s.as_raw_fd(), &msg, 0) < 0 {
-            return Err(std::io::Error::last_os_error());
+        loop {
+            let n = libc::sendmsg(s.as_raw_fd(), &msg, 0);
+            if n >= 0 {
+                return Ok(n as usize);
+            }
+            let e = std::io::Error::last_os_error();
+            if e.kind() != std::io::ErrorKind::Interrupted {
+                return Err(e);
+            }
         }
     }
-    Ok(())
 }
 
 /// Run `argv` with secrets `names` through the runner; returns the exit code
@@ -426,5 +455,22 @@ mod tests {
         assert!(program_allowed(&sh, &[sh.display().to_string()]));
         assert!(!program_allowed(&sh, &["gh".into(), "/usr/bin/git".into()]));
         assert!(!program_allowed(&sh, &[]));
+    }
+
+    /// A request larger than a small socket buffer (macOS: 8 KiB) arrives in
+    /// parts; the runner reads it whole, descriptors and all.
+    #[test]
+    fn a_large_request_arrives_whole_with_its_descriptors() {
+        let (a, b) = UnixStream::pair().unwrap();
+        let mut line = json!({"env": {"BIG": "x".repeat(40 * 1024)}}).to_string().into_bytes();
+        line.push(b'\n');
+        let want = line.len() - 1;
+        let sender = std::thread::spawn(move || send_with_fds(&a, &line, &[0, 1, 2]).unwrap());
+        let (got, fds) = recv_with_fds(&b).unwrap();
+        sender.join().unwrap();
+        assert_eq!(fds.len(), 3);
+        assert_eq!(got.len(), want);
+        let v: Value = serde_json::from_slice(&got).unwrap();
+        assert_eq!(v["env"]["BIG"].as_str().unwrap().len(), 40 * 1024);
     }
 }

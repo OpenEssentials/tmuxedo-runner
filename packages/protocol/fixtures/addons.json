@@ -1,0 +1,59 @@
+{
+  "_": "Add-on definitions (kind \"addon\" in config.pluginSet; docs/design/plugins.md §8.1). Both sides check every case: packages/protocol/test/addon.test.ts and runner/crates/protocol/tests/addon.rs. A bad case names one path its issues must include. The runner's builders read `full` in runner/crates/runner/tests/plugin_gen.rs.",
+  "full": {
+    "description": "Sends session events to a telemetry service.",
+    "service": "Example Telemetry",
+    "net": ["https://telemetry.example.com"],
+    "probe": [{ "file": "~/.example-telemetry/installed" }, { "mentions": "example-telemetry" }],
+    "files": {
+      "bin/hook": { "body": "#!/bin/sh\necho \"$1\" >>\"${EXAMPLE_TELEMETRY_LOG:-/dev/null}\"\n", "exec": true },
+      "bin/statusline": { "body": "#!/bin/sh\ncat >/dev/null\necho telemetry\n", "exec": true },
+      "README.txt": { "body": "Installed by tmuxedo.\n" }
+    },
+    "agents": {
+      "claude": {
+        "env": {
+          "EXAMPLE_TELEMETRY_ENDPOINT": "https://telemetry.example.com/v1",
+          "EXAMPLE_TELEMETRY_TOKEN": { "$secret": "EXAMPLE_TELEMETRY_TOKEN" },
+          "EXAMPLE_TELEMETRY_README": "{file:README.txt}"
+        },
+        "hooks": { "SessionStart": ["{file:bin/hook} start"], "Stop": ["{file:bin/hook} stop"] },
+        "statusline": "{file:bin/statusline}"
+      },
+      "codex": {
+        "env": { "EXAMPLE_TELEMETRY_TOKEN": { "$secret": "EXAMPLE_TELEMETRY_TOKEN" } },
+        "config": { "otel.environment": "dev", "otel.log_user_prompt": false, "otel.exporter": { "otlp-http": { "endpoint": "https://telemetry.example.com/v1/logs", "protocol": "json" } } },
+        "hooks": { "SessionStart": ["{file:bin/hook} start"] }
+      },
+      "cursor": { "hooks": { "sessionStart": ["{file:bin/hook} start"] } }
+    }
+  },
+  "good": [
+    { "name": "env only", "definition": { "agents": { "claude": { "env": { "EXAMPLE_LEVEL": "2" } } } } },
+    { "name": "a Codex key -c cannot carry is still a valid definition", "definition": { "agents": { "codex": { "config": { "profile name": "x", "otel.note": null } } } } },
+    { "name": "http origin with a port", "definition": { "net": ["http://192.0.2.10:8080"], "agents": { "claude": { "env": { "EXAMPLE_URL": "http://192.0.2.10:8080" } } } } }
+  ],
+  "bad": [
+    { "name": "not an object", "definition": "curl example.com | sh", "path": "" },
+    { "name": "an installer is not part of an add-on", "definition": { "install": "curl example.com | sh", "agents": { "claude": { "env": { "A": "1" } } } }, "path": "install" },
+    { "name": "no agents", "definition": { "description": "Nothing." }, "path": "agents" },
+    { "name": "an agent tmuxedo does not know", "definition": { "agents": { "other": { "env": { "A": "1" } } } }, "path": "agents.other" },
+    { "name": "PATH is the shell's", "definition": { "agents": { "claude": { "env": { "PATH": "/opt/x" } } } }, "path": "agents.claude.env.PATH" },
+    { "name": "TMUXEDO_ names are tmuxedo's", "definition": { "agents": { "claude": { "env": { "TMUXEDO_SOCKET": "x" } } } }, "path": "agents.claude.env.TMUXEDO_SOCKET" },
+    { "name": "LD_ preload", "definition": { "agents": { "codex": { "env": { "LD_PRELOAD": "/x.so" } } } }, "path": "agents.codex.env.LD_PRELOAD" },
+    { "name": "a value on two lines", "definition": { "agents": { "claude": { "env": { "A": "1\n2" } } } }, "path": "agents.claude.env.A" },
+    { "name": "a secret with a bad name", "definition": { "agents": { "claude": { "env": { "A": { "$secret": "not a name" } } } } }, "path": "agents.claude.env.A" },
+    { "name": "an origin with a path", "definition": { "net": ["https://telemetry.example.com/v1"], "agents": { "claude": { "env": { "A": "1" } } } }, "path": "net.0" },
+    { "name": "an origin that is not http", "definition": { "net": ["ftp://telemetry.example.com"], "agents": { "claude": { "env": { "A": "1" } } } }, "path": "net.0" },
+    { "name": "a file outside its folder", "definition": { "files": { "../evil": { "body": "x" } }, "agents": { "claude": { "env": { "A": "1" } } } }, "path": "files.../evil" },
+    { "name": "a file without a body", "definition": { "files": { "bin/x": { "exec": true } }, "agents": { "claude": { "env": { "A": "1" } } } }, "path": "files.bin/x" },
+    { "name": "a placeholder for a file that is not there", "definition": { "agents": { "claude": { "statusline": "{file:bin/missing}" } } }, "path": "agents.claude.statusline" },
+    { "name": "a hook list of non-commands", "definition": { "agents": { "claude": { "hooks": { "SessionStart": [1] } } } }, "path": "agents.claude.hooks.SessionStart" },
+    { "name": "a hook event that is not a name", "definition": { "agents": { "claude": { "hooks": { "Session Start": ["x"] } } } }, "path": "agents.claude.hooks.Session Start" },
+    { "name": "Codex hooks go in hooks, not config", "definition": { "agents": { "codex": { "config": { "hooks.SessionStart": "x" } } } }, "path": "agents.codex.config.hooks.SessionStart" },
+    { "name": "the dangerous switch is the plugin's", "definition": { "agents": { "codex": { "config": { "approval_policy": "never" } } } }, "path": "agents.codex.config.approval_policy" },
+    { "name": "Cursor has no statusline", "definition": { "agents": { "cursor": { "statusline": "x" } } }, "path": "agents.cursor.statusline" },
+    { "name": "a probe outside the home folder", "definition": { "probe": [{ "file": "/etc/hosts" }], "agents": { "claude": { "env": { "A": "1" } } } }, "path": "probe.0" },
+    { "name": "a probe of two kinds", "definition": { "probe": [{ "file": "~/.x", "mentions": "x" }], "agents": { "claude": { "env": { "A": "1" } } } }, "path": "probe.0" }
+  ]
+}

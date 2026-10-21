@@ -72,6 +72,10 @@ pub struct UploadState {
     /// upload completes itself when its last chunk arrives, with no client call.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub file_sha256: Option<String>,
+    /// An admin's "Upload anyway" (web's `override_space`): past the floor and the quota,
+    /// never past the hard margin (`Limits::hard_margin_for`).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub override_space: bool,
     pub created_ms: u64,
     pub last_ms: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -258,8 +262,23 @@ impl Store {
     }
 
     /// Would `extra` more bytes fit (quota and floor)? The refusal says which.
-    fn room_for(&mut self, extra: u64, already_counted: u64) -> Result<(), ApiErr> {
+    /// `override_space` (an admin's "Upload anyway") checks only the hard margin.
+    fn room_for(&mut self, extra: u64, already_counted: u64, override_space: bool) -> Result<(), ApiErr> {
         let (free, total) = self.disk();
+        if override_space {
+            let margin = self.limits.hard_margin_for(total);
+            if free.saturating_sub(extra) < margin.max(1) || free < extra {
+                return Err(err(
+                    "insufficient_storage",
+                    format!(
+                        "Not enough space on the machine even to upload anyway: {} free, and at least {} must stay free for the machine to keep working.",
+                        human(free),
+                        human(margin)
+                    ),
+                ));
+            }
+            return Ok(());
+        }
         let floor = self.limits.floor_for(total);
         if free.saturating_sub(extra) < floor {
             return Err(err(
@@ -381,7 +400,8 @@ impl Store {
             }
             return Ok(self.init_answer(id));
         }
-        self.room_for(size, 0)?;
+        let override_space = p["override_space"].as_bool() == Some(true);
+        self.room_for(size, 0, override_space)?;
         let dir = self.partial_dir(id);
         let parent = self.root.join(".partial");
         if !parent.exists() {
@@ -431,6 +451,7 @@ impl Store {
                 })
                 .map(str::to_owned),
             file_sha256: p["sha256"].as_str().filter(|s| valid_sha256(s)).map(str::to_owned),
+            override_space,
             created_ms: now,
             last_ms: now,
             done: None,
@@ -504,10 +525,16 @@ impl Store {
         }
         // The floor, again, for what is still to come (the disk may have filled since).
         let remaining = u.st.size.saturating_sub(u.st.received_bytes());
+        let override_space = u.st.override_space;
         let (free, total) = self.disk();
-        let floor = self.limits.floor_for(total);
+        // An admin's "Upload anyway": only the hard margin, else half the floor.
+        let keep = if override_space {
+            self.limits.hard_margin_for(total).max(1)
+        } else {
+            self.limits.floor_for(total) / 2
+        };
         // The data file is sparse: what is still to come takes space as it arrives.
-        if free.saturating_sub(remaining) < floor / 2 || free < size {
+        if free.saturating_sub(remaining) < keep || free < size {
             let _ = self.abort_inner(id);
             return Some(FileAck::err(
                 id,
@@ -1007,7 +1034,7 @@ impl Store {
             return Err(err("file_refused", "That upload is still in progress."));
         }
         let (mut f, m, real) = (opened.file, opened.meta, opened.real);
-        self.room_for(m.len(), 0)?;
+        self.room_for(m.len(), 0, false)?;
         let outbox = self.folder(project, "outbox", true)?;
         let base = sanitize_name(
             &real

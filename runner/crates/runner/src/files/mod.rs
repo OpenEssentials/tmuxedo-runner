@@ -99,6 +99,11 @@ pub const INTERNAL_METHODS: &[&str] = &[
     "files.read",
 ];
 
+/// An admin's "Upload anyway" (web's `override_space` on `files.upload_init`, one upload)
+/// goes past the free-space floor and the Files quota, never past the disk itself: this
+/// much (or 1 % of a small disk, whichever is smaller) must still be free after the file.
+pub const OVERRIDE_HARD_MARGIN: u64 = 64 * 1024 * 1024;
+
 /// Methods an agent uses on the local socket only (they act for the agent).
 pub const LOCAL_METHODS: &[&str] = &["files.share", "files.request"];
 
@@ -381,6 +386,11 @@ impl Limits {
     pub fn floor_for(&self, total: u64) -> u64 {
         self.min_free
             .unwrap_or_else(|| tmuxedo_protocol::files::free_space_floor(total))
+    }
+
+    /// What must stay free after an admin's "Upload anyway" ([`OVERRIDE_HARD_MARGIN`], or 1 % of a small disk).
+    pub fn hard_margin_for(&self, total: u64) -> u64 {
+        OVERRIDE_HARD_MARGIN.min(total / 100)
     }
 }
 

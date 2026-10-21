@@ -26,6 +26,7 @@ pub mod codex;
 pub mod files;
 pub mod log;
 pub mod mask;
+pub mod transcript;
 
 use crate::api::{err, respond, ApiErr, ApiResult, ReplyTo};
 use crate::daemon::Daemon;
@@ -131,6 +132,19 @@ pub struct Meta {
     /// The ACP translator's state (any agent with `transport = "acp"`).
     #[serde(default)]
     pub acp: acp::AState,
+    /// The agent's own transcript of `vendor_session` (`[chat] transcript`), when known:
+    /// turns taken in the terminal are read from it.
+    #[serde(default)]
+    pub transcript: String,
+    /// How much of `transcript` the chat has shown or written itself.
+    #[serde(default)]
+    pub transcript_read: u64,
+    /// The pane whose turn this chat shows until it ends ("Open as chat" mid-turn).
+    #[serde(default)]
+    pub handoff_from: Option<String>,
+    /// The translator's state for the transcript (a turn read in two parts).
+    #[serde(default)]
+    pub import_tr: claude::TState,
 }
 
 pub(crate) struct OpenNeed {
@@ -185,6 +199,8 @@ pub(crate) struct Session {
     rpc_deadline: Option<(Instant, &'static str)>,
     /// The agent's last finished message, masked (a headless task's result).
     pub last_reply: String,
+    /// The turn [`Self::last_reply`] ended (the digest's turn link; memory only).
+    pub last_reply_turn: Option<String>,
 }
 
 impl Session {
@@ -416,6 +432,7 @@ impl Session {
             turn_files: BTreeSet::new(),
             rpc_deadline: None,
             last_reply: String::new(),
+            last_reply_turn: None,
         }
     }
 }
@@ -638,7 +655,7 @@ impl Daemon {
 
     /// Start (or resume) the session's structured child in the holder.
     async fn chat_spawn(&mut self, sid: &str) -> Result<(), ApiErr> {
-        let (plugin_id, resume, vendor, cwd, mode) = {
+        let (plugin_id, resume, vendor, cwd, mode, transcript) = {
             let s = self
                 .chats
                 .sessions
@@ -647,6 +664,9 @@ impl Daemon {
             if s.alive {
                 return Ok(());
             }
+            if s.meta.handoff_from.is_some() {
+                return Err(err("agent_busy", "the terminal's turn is still running"));
+            }
             let m = &s.meta;
             (
                 m.plugin.clone(),
@@ -654,10 +674,18 @@ impl Daemon {
                 m.vendor_session.clone(),
                 m.cwd.clone(),
                 m.mode.clone(),
+                m.transcript.clone(),
             )
         };
         let plugin = self.chat_plugin(&plugin_id)?;
         let c = plugin.manifest().chat.clone().expect("checked");
+        // A session taken from a terminal before anyone spoke in it has nothing to resume:
+        // it starts under the same id (its transcript says which).
+        let resume = if resume && c.transcript == transcript::CLAUDE_JSONL && !transcript.is_empty() {
+            transcript::has_conversation(&transcript)
+        } else {
+            resume
+        };
         let env = self.chat_env(sid, plugin.as_ref());
         let login = self.chat_login(plugin.as_ref(), &env);
         self.chat_login_allowed(plugin.as_ref(), &login)?;
@@ -861,6 +889,7 @@ impl Daemon {
                 s.meta.preview_by = preview_by(kind).into();
                 if kind == "message.done" {
                     s.last_reply = claude::cut(v["text"].as_str().unwrap_or(""), crate::task::RESULT_MAX);
+                    s.last_reply_turn = ev.turn_id.clone();
                 }
             }
             if kind == "files.changed" {
@@ -873,6 +902,24 @@ impl Daemon {
                 }
             }
         }
+        // Search history (crate::history): the owner's words and the agent's replies, for a
+        // project that keeps it. The store masks again before the write.
+        let hist = (!ephemeral && matches!(kind, "message.done" | "message.user") && self.history.is_on()).then(|| {
+            (
+                s.meta.cwd.clone(),
+                crate::history::Entry {
+                    at_ms: crate::util::now_ms() as i64,
+                    kind: "chat",
+                    session: sid.to_string(),
+                    title: s.meta.title.clone(),
+                    agent: s.meta.plugin.clone(),
+                    turn: s.meta.turn.clone(),
+                    line: None,
+                    text: v["text"].as_str().unwrap_or("").to_string(),
+                },
+                s.masker.clone(),
+            )
+        });
         let frame = ChatFrame {
             gap: false,
             ephemeral,
@@ -886,6 +933,9 @@ impl Daemon {
             if let Ok(b) = frame.encode() {
                 self.queue_msg(Message::Binary(b.into()));
             }
+        }
+        if let Some((cwd, entry, masker)) = hist {
+            self.history_chat(&cwd, entry, masker);
         }
         // Login health (claude_auth): a chat's words about its login count like a pane's screen,
         // and a turn that completes proves the login works.
@@ -2150,7 +2200,14 @@ impl Daemon {
                 }
             }
         }
-        if !self.chats.sessions[sid].alive {
+        if let Some(pane) = self.chats.sessions[sid].meta.handoff_from.clone() {
+            // The chat shows a turn still running in a terminal: the message waits for it,
+            // unless that pane is gone.
+            if self.state.pane(&pane).is_none() {
+                self.chat_pane_turn_over(&pane, true).await;
+            }
+        }
+        if !self.chats.sessions[sid].alive && self.chats.sessions[sid].meta.handoff_from.is_none() {
             self.chat_spawn(sid).await?;
         }
         let queued = {
@@ -2528,6 +2585,15 @@ impl Daemon {
                         )),
                     ));
                 }
+                if s.meta.handoff_from.is_some() {
+                    return Some((
+                        reply,
+                        Err(err(
+                            "turn_running",
+                            "the terminal's turn is still running; it continues there",
+                        )),
+                    ));
+                }
                 if s.meta.turn.is_some() && p.get("stop").and_then(Value::as_bool) != Some(true) {
                     return Some((
                         reply,
@@ -2568,9 +2634,16 @@ impl Daemon {
                 s.meta.title.clone(),
             )
         };
-        let kind = self.chat_plugin(&plugin)?.agent_label().to_string();
+        let chat_plugin = self.chat_plugin(&plugin)?;
+        let kind = chat_plugin.agent_label().to_string();
         let shim = self.shim_dir.clone().unwrap_or_default();
-        let argv = crate::inject::resume_argv_with(&self.plugins, &self.shell, &shim, &kind, &vendor, None);
+        // What the chat showed and wrote so far: the terminal's turns are the lines after it.
+        let transcript = self.chat_transcript_mark(sid);
+        let fresh = transcript.as_deref().is_some_and(|t| !transcript::has_conversation(t));
+        let argv = match fresh.then(|| chat_plugin.new_session_command(&shim, &vendor)).flatten() {
+            Some(cmd) => crate::plugin::run_then_shell(&self.shell, &cmd),
+            None => crate::inject::resume_argv_with(&self.plugins, &self.shell, &shim, &kind, &vendor, None),
+        };
         let label = if title.is_empty() {
             None
         } else {
@@ -2645,16 +2718,20 @@ impl Daemon {
         let plugin_id = plugin.id().to_string();
         self.chat_plugin(&plugin_id)?;
         let status = self.panes.get(&pane).map(|rt| rt.track.effective);
-        if matches!(
+        let busy = matches!(
             status,
             Some(tmuxedo_protocol::frames::AgentStatus::Working | tmuxedo_protocol::frames::AgentStatus::Blocked)
-        ) {
+        );
+        // The agent's own transcript: the terminal's turns are shown from it, and it says
+        // whether there is a conversation to resume yet.
+        let found = self.chat_transcript_find(&plugin_id, &vendor, rec.meta.session_path.as_deref());
+        if busy && found.is_none() {
             return Err(err("agent_busy", "available when it finishes"));
         }
         // A session a chat already holds (it was a chat before, or `--resume` / `--continue`
         // reopened it in this pane): continue that chat, history and all.
         let existing = existing.or_else(|| self.chat_by_vendor(&plugin_id, &vendor));
-        let sid = match existing {
+        let (sid, adopted) = match existing {
             Some(sid) => {
                 let s = self
                     .chats
@@ -2664,7 +2741,11 @@ impl Daemon {
                 if s.meta.vendor_session != vendor {
                     return Err(err("session_mismatch", "that pane runs a different agent session"));
                 }
-                sid
+                if s.meta.handoff_from.as_deref() == Some(pane.as_str()) {
+                    // Already showing this pane's turn.
+                    return Ok(json!({ "type": "chat_info", "session": s.info() }));
+                }
+                (sid, false)
             }
             None => {
                 // Adopt the pane's session as a new chat (login checked at its first start).
@@ -2692,11 +2773,78 @@ impl Daemon {
                 let mut s = Session::new(meta, EventLog::open(&dir), dir);
                 s.save();
                 self.chats.sessions.insert(sid.clone(), s);
-                sid
+                (sid, true)
             }
         };
-        // The pane's agent ends; the CLI keeps the conversation under its id.
-        if let Ok(closed) = self.state.close_pane(&pane) {
+        // Which part of the transcript is new: all of it for a session the chat never had, the
+        // lines after what it showed or wrote itself otherwise. A chat that never knew where its
+        // session is kept cannot tell its own turns from the terminal's: it says so instead.
+        let unknown = {
+            let s = self.chats.sessions.get_mut(&sid).expect("checked");
+            match &found {
+                Some(path) if adopted || s.meta.transcript == *path => {
+                    s.meta.transcript = path.clone();
+                    false
+                }
+                Some(path) => {
+                    s.meta.transcript = path.clone();
+                    s.meta.transcript_read = transcript::len(path);
+                    true
+                }
+                None => true,
+            }
+        };
+        if !busy {
+            // The pane's agent ends; the CLI keeps the conversation under its id.
+            self.chat_close_pane(&pane).await;
+        }
+        {
+            let s = self.chats.sessions.get_mut(&sid).expect("checked");
+            s.meta.status = "parked".into();
+            s.meta.pane_id = None;
+            s.meta.started = true;
+            if busy {
+                s.meta.handoff_from = Some(pane.clone());
+            }
+        }
+        self.chat_emit(
+            &sid,
+            ChatBody::SessionHandoff {
+                to: "chat".into(),
+                pane_id: Some(pane.clone()),
+            },
+            None,
+            0,
+        )
+        .await;
+        if unknown {
+            self.chat_notice(
+                &sid,
+                "terminal_turns",
+                "Turns taken in the terminal are not shown here; the agent remembers them.".into(),
+            )
+            .await;
+        }
+        if busy {
+            // Mid-turn: the chat shows the turn so far, working, and takes over when it ends
+            // (`chat_pane_turn_over`); a message sent meanwhile waits for it.
+            self.chat_import(&sid, None).await;
+            if self.chats.sessions[&sid].meta.turn.is_none() {
+                self.chat_import_turn_open(&sid).await;
+            }
+            crate::log!("chat {sid}: shows the turn running in {pane}");
+        } else {
+            self.chat_import(&sid, Some("completed")).await;
+        }
+        self.chat_save(&sid);
+        self.chat_offers_changed().await;
+        let s = &self.chats.sessions[&sid];
+        Ok(json!({ "type": "chat_info", "session": s.info() }))
+    }
+
+    /// Close a pane whose agent session a chat takes (its CLI keeps the conversation).
+    async fn chat_close_pane(&mut self, pane: &str) {
+        if let Ok(closed) = self.state.close_pane(pane) {
             self.kill_panes(&closed.panes);
             self.emit_closed(&closed);
             if self.state.workspaces.is_empty() {
@@ -2704,32 +2852,213 @@ impl Daemon {
             }
             self.commit_topology().await;
         }
+    }
+
+    // ── the agent's own transcript (chat/transcript.rs) ──────────────────
+
+    /// The transcript of agent session `vendor` of plugin `plugin_id`, if its chat reads one:
+    /// the file a hook named (`hint`), else the one where the agent keeps it
+    /// (`claude-jsonl`: `$CLAUDE_CONFIG_DIR` or `~/.claude`, `projects/*/<id>.jsonl`).
+    fn chat_transcript_find(&self, plugin_id: &str, vendor: &str, hint: Option<&str>) -> Option<String> {
+        let p = self.chat_plugin(plugin_id).ok()?;
+        if p.manifest().chat.as_ref()?.transcript != transcript::CLAUDE_JSONL {
+            return None;
+        }
+        if let Some(h) = hint.filter(|h| transcript::valid_path(h, vendor)) {
+            return Some(h.to_string());
+        }
+        let base = std::env::var_os("CLAUDE_CONFIG_DIR")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".claude")))?;
+        std::fs::read_dir(base.join("projects"))
+            .ok()?
+            .flatten()
+            .take(10_000)
+            .filter_map(|e| e.path().join(format!("{vendor}.jsonl")).to_str().map(str::to_owned))
+            .find(|p| transcript::valid_path(p, vendor) && Path::new(p).is_file())
+    }
+
+    /// The chat's session leaves for a terminal: what it has shown or written so far is marked
+    /// read (the terminal's turns are the lines after). The transcript's path, when known.
+    fn chat_transcript_mark(&mut self, sid: &str) -> Option<String> {
+        let (plugin, vendor, known) = {
+            let m = &self.chats.sessions.get(sid)?.meta;
+            (m.plugin.clone(), m.vendor_session.clone(), m.transcript.clone())
+        };
+        let path = self.chat_transcript_find(&plugin, &vendor, Some(known.as_str()).filter(|k| !k.is_empty()))?;
+        let s = self.chats.sessions.get_mut(sid)?;
+        s.meta.transcript_read = transcript::len(&path);
+        s.meta.transcript = path.clone();
+        Some(path)
+    }
+
+    /// A hook in `pane` named its session's transcript: a chat continuing there that did not
+    /// know it yet marks it read from here on (its own turns are already shown).
+    pub(crate) fn chat_pane_transcript(&mut self, pane: &str, vendor: Option<&str>, path: &str) {
+        for s in self.chats.sessions.values_mut() {
+            let m = &mut s.meta;
+            if m.status == "terminal"
+                && m.pane_id.as_deref() == Some(pane)
+                && vendor.is_none_or(|v| v == m.vendor_session)
+                && m.transcript != path
+                && transcript::valid_path(path, &m.vendor_session)
+            {
+                m.transcript = path.to_string();
+                m.transcript_read = transcript::len(path);
+                s.save();
+            }
+        }
+    }
+
+    /// Show what the transcript says since the chat last read it: each prompt typed in the
+    /// terminal opens a turn (its words, `turn.started`), the agent's messages and calls follow.
+    /// `end`: the last turn is over (`turn.done` with that status); None leaves it running.
+    async fn chat_import(&mut self, sid: &str, end: Option<&str>) {
+        let Some(s) = self.chats.sessions.get_mut(sid) else {
+            return;
+        };
+        let ok = self
+            .plugins
+            .get(&s.meta.plugin)
+            .and_then(|p| {
+                p.manifest()
+                    .chat
+                    .as_ref()
+                    .map(|c| c.transcript == transcript::CLAUDE_JSONL)
+            })
+            .unwrap_or(false);
+        let path = s.meta.transcript.clone();
+        if ok && !path.is_empty() && transcript::valid_path(&path, &s.meta.vendor_session) {
+            if let Some((bytes, at, skipped)) = transcript::read_from(&path, s.meta.transcript_read) {
+                s.meta.import_tr.now_ms = crate::util::now_ms();
+                let items = transcript::translate(&bytes, &mut s.meta.import_tr);
+                s.meta.transcript_read = at;
+                if skipped {
+                    self.chat_notice(
+                        sid,
+                        "earlier_turns",
+                        "Earlier turns taken in the terminal are not shown here; the agent remembers them.".into(),
+                    )
+                    .await;
+                }
+                for it in items {
+                    match it {
+                        transcript::Item::Prompt(text) => {
+                            self.chat_import_turn_end(sid, "completed").await;
+                            self.chat_import_turn_open_with(sid, Some(text)).await;
+                        }
+                        transcript::Item::Emit(e) => {
+                            if self.chats.sessions[sid].meta.turn.is_none() {
+                                self.chat_import_turn_open(sid).await;
+                            }
+                            self.chat_emit(sid, e.body, e.agent_path, 0).await;
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(status) = end {
+            self.chat_import_turn_end(sid, status).await;
+        }
+    }
+
+    async fn chat_import_turn_open(&mut self, sid: &str) {
+        self.chat_import_turn_open_with(sid, None).await;
+    }
+
+    /// A turn taken in the terminal begins (with its prompt, when the transcript has it).
+    async fn chat_import_turn_open_with(&mut self, sid: &str, prompt: Option<String>) {
         {
-            let s = self.chats.sessions.get_mut(&sid).expect("checked");
-            s.meta.status = "parked".into();
-            s.meta.pane_id = None;
-            s.meta.started = true;
+            let Some(s) = self.chats.sessions.get_mut(sid) else {
+                return;
+            };
+            s.meta.turns += 1;
+            s.meta.turn = Some(format!("t{}", s.meta.turns));
+        }
+        if let Some(text) = prompt {
+            self.chat_emit(
+                sid,
+                ChatBody::MessageUser {
+                    message_id: format!("u{}", &crate::util::random_id()[..12]),
+                    text,
+                    attachments: vec![],
+                    by: None,
+                    client_msg_id: None,
+                    queued: false,
+                },
+                None,
+                0,
+            )
+            .await;
+        }
+        self.chat_emit(sid, ChatBody::TurnStarted {}, None, 0).await;
+    }
+
+    /// The terminal's turn shown in the chat is over.
+    async fn chat_import_turn_end(&mut self, sid: &str, status: &str) {
+        let open = {
+            let Some(s) = self.chats.sessions.get_mut(sid) else {
+                return;
+            };
+            if s.meta.turn.is_none() {
+                return;
+            }
+            if status == "completed" {
+                vec![]
+            } else {
+                s.meta.import_tr.cancel_open()
+            }
+        };
+        for e in open {
+            self.chat_emit(sid, e.body, e.agent_path, 0).await;
         }
         self.chat_emit(
-            &sid,
-            ChatBody::SessionHandoff {
-                to: "chat".into(),
-                pane_id: Some(pane),
+            sid,
+            ChatBody::TurnDone {
+                status: status.into(),
+                error: (status == "failed").then(|| "The turn in the terminal did not finish.".to_string()),
+                usage: None,
             },
             None,
             0,
         )
         .await;
-        self.chat_notice(
-            &sid,
-            "terminal_turns",
-            "Turns taken in the terminal are not shown here; the agent remembers them.".into(),
-        )
-        .await;
+        if let Some(s) = self.chats.sessions.get_mut(sid) {
+            s.meta.turn = None;
+            s.meta.import_tr = claude::TState::default();
+            s.meta.last_at = iso_now();
+        }
+    }
+
+    /// The turn of `pane` a chat was showing ended there (`failed`: it did not finish): the chat
+    /// shows the rest of it, takes the session (the pane closes) and sends what waited.
+    pub(crate) async fn chat_pane_turn_over(&mut self, pane: &str, failed: bool) {
+        let Some(sid) = self
+            .chats
+            .sessions
+            .values()
+            .find(|s| s.meta.handoff_from.as_deref() == Some(pane))
+            .map(|s| s.meta.id.clone())
+        else {
+            return;
+        };
+        self.chat_import(&sid, Some(if failed { "failed" } else { "completed" }))
+            .await;
+        if let Some(s) = self.chats.sessions.get_mut(&sid) {
+            s.meta.handoff_from = None;
+            s.meta.status = "parked".into();
+        }
+        self.chat_close_pane(pane).await;
+        crate::log!("chat {sid}: the turn in {pane} ended; the chat has the session");
+        let next = self.chats.sessions.get_mut(&sid).and_then(|s| s.queue.pop_front());
+        if let Some(text) = next {
+            match self.chat_spawn(&sid).await {
+                Ok(()) => self.chat_deliver(&sid, &text).await,
+                Err(e) => self.chat_notice(&sid, &e.code, e.message).await,
+            }
+        }
         self.chat_save(&sid);
         self.chat_offers_changed().await;
-        let s = &self.chats.sessions[&sid];
-        Ok(json!({ "type": "chat_info", "session": s.info() }))
     }
 
     // ── a chat follows its agent session through panes (design §5.1) ──────
@@ -2802,6 +3131,7 @@ impl Daemon {
             s.meta.status = "parked".into();
             s.meta.pane_id.take()
         };
+        let known = !self.chats.sessions[sid].meta.transcript.is_empty();
         crate::log!("chat {sid}: released from {} ({code})", pane.as_deref().unwrap_or("?"));
         self.chat_emit(
             sid,
@@ -2813,12 +3143,19 @@ impl Daemon {
             0,
         )
         .await;
-        self.chat_notice(
-            sid,
-            code,
-            format!("{why} You can carry on here: the agent remembers the conversation, turns taken in the terminal included."),
-        )
-        .await;
+        if known {
+            // The turns taken there are shown from the agent's transcript.
+            self.chat_import(sid, Some("completed")).await;
+            self.chat_notice(sid, code, format!("{why} You can carry on here."))
+                .await;
+        } else {
+            self.chat_notice(
+                sid,
+                code,
+                format!("{why} You can carry on here: the agent remembers the conversation, turns taken in the terminal included."),
+            )
+            .await;
+        }
         self.chat_save(sid);
         self.chat_offers_changed().await;
     }
@@ -2862,6 +3199,8 @@ impl Daemon {
             source.unwrap_or("?"),
             if alive { "; the chat was driving it: paused" } else { "" }
         );
+        // What the chat showed so far is read; the terminal's turns are the lines after.
+        self.chat_transcript_mark(&sid);
         let dropped = {
             let s = self.chats.sessions.get_mut(&sid).expect("found");
             s.meta.status = "terminal".into();
@@ -2922,6 +3261,8 @@ impl Daemon {
 
     /// `session.ended` in a pane: a chat bound to it (on that session) is released.
     pub(crate) async fn chat_pane_ended(&mut self, pane: &str, vendor: Option<&str>) {
+        // A turn the chat was showing ended with the agent: the chat has the session now.
+        self.chat_pane_turn_over(pane, true).await;
         let bound: Vec<String> = self
             .chats
             .sessions

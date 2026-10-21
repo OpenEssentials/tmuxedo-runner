@@ -1,0 +1,248 @@
+{
+  "comment": "Session recording and replay's replay.* contract (docs/design/sharing-and-integrations.md §3, §7; docs/protocol.md \"Recording and replay\"). packages/protocol/src/replay.ts and runner/crates/protocol/src/replay.rs are both held to these rows.",
+  "feature": "replay",
+  "methods": [
+    "replay.list",
+    "replay.set",
+    "replay.read",
+    "replay.delete"
+  ],
+  "limits": {
+    "sessionId": 128,
+    "readBytes": 524288,
+    "readBytesDefault": 262144,
+    "retentionDays": 14,
+    "maxBytes": 1073741824,
+    "segmentBytes": 16777216,
+    "segmentMs": 21600000
+  },
+  "markers": [
+    "prompt",
+    "needs",
+    "approved",
+    "error",
+    "done",
+    "idle"
+  ],
+  "params": {
+    "valid": [
+      {
+        "method": "replay.list",
+        "params": {}
+      },
+      {
+        "method": "replay.list",
+        "params": {
+          "pane": "w1:p1"
+        }
+      },
+      {
+        "method": "replay.set",
+        "params": {
+          "pane": "w1:p1",
+          "on": true
+        }
+      },
+      {
+        "method": "replay.set",
+        "params": {
+          "pane": "w1:p1",
+          "on": false,
+          "extra": 1
+        }
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1"
+        }
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "from_ms": 1760000000000
+        }
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "cursor": "1760000000000.4096.120000",
+          "limit_bytes": 65536
+        }
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "markers_only": true
+        }
+      },
+      {
+        "method": "replay.delete",
+        "params": {
+          "pane": "w1:p1"
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "method": "replay.list",
+        "params": [],
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.list",
+        "params": {
+          "pane": "w1/p1"
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.set",
+        "params": {
+          "pane": "w1:p1"
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.set",
+        "params": {
+          "pane": "w1:p1",
+          "on": "yes"
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.set",
+        "params": {
+          "on": true
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": ""
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "from_ms": -1
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "from_ms": 1.5
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "cursor": "../x"
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "cursor": "1.2.3",
+          "from_ms": 5
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "limit_bytes": 0
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "limit_bytes": 524289
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.read",
+        "params": {
+          "pane": "w1:p1",
+          "markers_only": 1
+        },
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.delete",
+        "params": {},
+        "code": "invalid_params"
+      },
+      {
+        "method": "replay.other",
+        "params": {
+          "pane": "w1:p1"
+        },
+        "code": "invalid_params"
+      }
+    ]
+  },
+  "markerOf": [
+    {
+      "label": "status:working",
+      "marker": "prompt"
+    },
+    {
+      "label": "blocked",
+      "marker": "needs"
+    },
+    {
+      "label": "needs_resolved",
+      "marker": "approved"
+    },
+    {
+      "label": "done",
+      "marker": "done"
+    },
+    {
+      "label": "idle",
+      "marker": "idle"
+    },
+    {
+      "label": "memory_stopped",
+      "marker": "error"
+    },
+    {
+      "label": "auth_failed",
+      "marker": "error"
+    },
+    {
+      "label": "auth_expired",
+      "marker": "error"
+    },
+    {
+      "label": "needs_opened",
+      "marker": null
+    },
+    {
+      "label": "status:blocked",
+      "marker": null
+    },
+    {
+      "label": "something_new",
+      "marker": null
+    }
+  ]
+}

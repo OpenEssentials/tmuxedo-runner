@@ -44,6 +44,10 @@
       "types": "./dist/plugin-set.d.ts",
       "default": "./dist/plugin-set.js"
     },
+    "./addon": {
+      "types": "./dist/addon.d.ts",
+      "default": "./dist/addon.js"
+    },
     "./when": {
       "types": "./dist/when.d.ts",
       "default": "./dist/when.js"
@@ -87,6 +91,14 @@
     "./roles": {
       "types": "./dist/roles.d.ts",
       "default": "./dist/roles.js"
+    },
+    "./seal": {
+      "types": "./dist/seal.d.ts",
+      "default": "./dist/seal.js"
+    },
+    "./queued": {
+      "types": "./dist/queued.d.ts",
+      "default": "./dist/queued.js"
     }
   },
   "files": [
@@ -106,5 +118,10 @@
     "@types/node": "^24.0.0",
     "typescript": "~5.9.3",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0"
   }
 }

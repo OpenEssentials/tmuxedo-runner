@@ -175,3 +175,32 @@ fn launch_summary_follows_each_builtin_schema() {
     assert_eq!(danger, vec!["Never ask before commands".to_string()]);
     assert_eq!(agent_settings::agent_label("unknown"), "unknown");
 }
+
+#[test]
+fn the_add_ons_on_the_machine_are_listed_with_where_each_sends() {
+    let mut a = app();
+    open(&mut a);
+    let mut v = effective();
+    v["addons"] = json!([
+        {"name":"example-telemetry","title":"Example telemetry","from":"workspace",
+         "sendsTo":["https://telemetry.example.com","http://192.0.2.10:8080"],"agents":[]},
+        {"name":"local-notes","title":"Local\u{1b}[2J notes","from":"machine","sendsTo":[],"agents":[]}
+    ]);
+    a.on_agent_settings("m1", Ok(v));
+    let rows: Vec<String> = agent_settings::rows(a.agent_settings.as_ref().unwrap())
+        .into_iter()
+        .map(|(_, t)| t)
+        .collect();
+    let s = rows.join("\n");
+    for want in [
+        "Add-ons on this machine",
+        "  Example telemetry: sends data to telemetry.example.com, 192.0.2.10:8080 (workspace)",
+        "  Local [2J notes: sends nothing off the machine (this machine)",
+    ] {
+        assert!(s.contains(want), "no {want:?} in\n{s}");
+    }
+    // An older server sends no list: no heading.
+    a.on_agent_settings("m1", Ok(effective()));
+    let rows = agent_settings::rows(a.agent_settings.as_ref().unwrap());
+    assert!(!rows.iter().any(|(_, t)| t.contains("Add-ons")));
+}

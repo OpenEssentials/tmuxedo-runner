@@ -6,6 +6,7 @@
 //! fixtures in `packages/protocol/fixtures/` that the TypeScript side
 //! generates, so the two implementations cannot drift silently.
 
+pub mod addon;
 pub mod chat;
 pub mod checkpoint;
 pub mod codec;
@@ -17,12 +18,14 @@ pub mod needs;
 pub mod plugin_set;
 pub mod plugins;
 pub mod queued;
+pub mod replay;
 pub mod review;
 pub mod role_set;
 pub mod roles;
 pub mod stats;
 pub mod subagents;
 pub mod usage;
+pub mod wake;
 pub mod when;
 
 pub use chat::ChatFrame;

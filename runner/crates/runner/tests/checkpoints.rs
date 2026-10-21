@@ -270,6 +270,59 @@ async fn not_available_and_pruned() {
     assert!(store.list(&dir, &guard(), "chat:x").await.ok().unwrap().is_empty());
 }
 
+/// The away digest's facts: what changed in the folder since the first
+/// checkpoint at or after `since`, and the chat turns recorded since then.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_summary_counts_what_changed_since() {
+    let tmp = tempfile::tempdir().unwrap();
+    let plain = tmp.path().join("plain");
+    std::fs::create_dir_all(&plain).unwrap();
+    let store = Store::new(Some(tmp.path().join("checkpoints")));
+    assert_eq!(
+        store
+            .summary(&plain, &guard(), "chat:c1", None)
+            .await
+            .err()
+            .unwrap()
+            .reason,
+        "not_a_repo"
+    );
+    let dir = repo(tmp.path());
+    // Nothing recorded yet: no facts.
+    let s = store.summary(&dir, &guard(), "chat:c1", None).await.ok().unwrap();
+    assert_eq!(s, json!({"turns": 0, "files": null}));
+
+    let t1 = store
+        .snapshot_turn(&dir, &guard(), "chat:c1", "turn", Some("t1"), None)
+        .await
+        .unwrap()
+        .unwrap();
+    std::fs::write(dir.join("a.txt"), b"the agent was here\n").unwrap();
+    std::fs::write(dir.join("made.txt"), b"new\n").unwrap();
+    std::fs::remove_file(dir.join("gone.txt")).unwrap();
+    store
+        .snapshot_turn(&dir, &guard(), "chat:c1", "turn", Some("t2"), None)
+        .await
+        .unwrap()
+        .unwrap();
+    std::fs::write(dir.join("a.txt"), b"and again\n").unwrap();
+
+    let s = store.summary(&dir, &guard(), "chat:c1", None).await.ok().unwrap();
+    assert_eq!(s["turns"], 2, "{s}");
+    assert_eq!(s["files"], json!({"added": 1, "modified": 1, "removed": 1}), "{s}");
+    assert_eq!(s["from"], t1.at, "{s}");
+    // Since a moment after every checkpoint: nothing to compare with.
+    let later = t1.at + 3_600_000;
+    let s = store
+        .summary(&dir, &guard(), "chat:c1", Some(later))
+        .await
+        .ok()
+        .unwrap();
+    assert_eq!(s, json!({"turns": 0, "files": null}));
+    // Reading a summary changes nothing: no new checkpoint.
+    assert_eq!(store.list(&dir, &guard(), "chat:c1").await.ok().unwrap().len(), 2);
+}
+
 /// Through the daemon: a terminal agent's prompt submit records the folder
 /// before the hook is answered; the gateway lists, previews and restores;
 /// a working agent's folder is not restored under it; the local socket is
@@ -289,6 +342,7 @@ async fn a_turn_is_recorded_and_undone_through_the_gateway() {
     let mut c = gw.accept(s).await.expect("runner dials out");
     let hello = c.hello(s).await;
     assert!(hello.to_string().contains("\"checkpoints\""), "{hello}");
+    assert!(hello.to_string().contains("\"session_summary\""), "{hello}");
     c.text_t(s, "topology").await;
     c.send(json!({"t":"welcome","machineId":"m1","userId":"u1"})).await;
     let h = LocalH::attach_to(&sock).await;
@@ -337,6 +391,22 @@ async fn a_turn_is_recorded_and_undone_through_the_gateway() {
         "{p}"
     );
 
+    // The away digest's facts for this pane, through the gateway.
+    c.send(json!({"t":"req","id":"s","method":"session.summary","params":{"pane": "w1:p1", "since": 0}}))
+        .await;
+    let sm = c.res("s").await;
+    assert_eq!(sm["result"]["type"], "session_summary", "{sm}");
+    assert_eq!(
+        sm["result"]["files"],
+        json!({"added": 1, "modified": 1, "removed": 0}),
+        "{sm}"
+    );
+    assert!(sm["result"].get("line").is_none(), "{sm}");
+    common::schema_check("success_response", &json!({"id": "s", "result": sm["result"]})).unwrap();
+    c.send(json!({"t":"req","id":"s404","method":"session.summary","params":{"pane": "w9:p9"}}))
+        .await;
+    assert_eq!(c.res("s404").await["error"]["code"], "not_found");
+
     // The agent is still working: no restore under it.
     c.send(json!({"t":"req","id":"busy","method":"checkpoint.restore","params":{"pane": "w1:p1", "id": 1}}))
         .await;
@@ -360,5 +430,115 @@ async fn a_turn_is_recorded_and_undone_through_the_gateway() {
         h.raw("checkpoint.list", json!({"pane": "w1:p1"})).await["error"]["code"],
         "not_supported"
     );
+    assert_eq!(
+        h.raw("session.summary", json!({"pane": "w1:p1"})).await["error"]["code"],
+        "not_supported"
+    );
+    task.abort();
+}
+
+/// A chat turn names its checkpoint; a turn that finds the folder as the
+/// last one left it adds its name to that checkpoint instead of a copy.
+#[tokio::test(flavor = "multi_thread")]
+async fn chat_turns_name_their_checkpoint() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = repo(tmp.path());
+    let store = Store::new(Some(tmp.path().join("checkpoints")));
+    let take = |turn: &'static str| {
+        let (store, dir) = (store.clone(), dir.clone());
+        async move {
+            store
+                .snapshot_turn(&dir, &guard(), "chat:c1", "turn", Some(turn), None)
+                .await
+                .unwrap()
+        }
+    };
+    assert_eq!(take("t1").await.unwrap().turns, vec!["t1".to_string()]);
+    assert!(take("t2").await.is_none(), "same folder: no copy");
+    std::fs::write(dir.join("a.txt"), b"changed\n").unwrap();
+    assert_eq!(take("t3").await.unwrap().turns, vec!["t3".to_string()]);
+    // A name that is not a turn's is not kept.
+    std::fs::write(dir.join("a.txt"), b"again\n").unwrap();
+    let odd = store
+        .snapshot_turn(&dir, &guard(), "chat:c1", "turn", Some("x;y"), None)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(odd.turns.is_empty());
+    let l = store.list(&dir, &guard(), "chat:c1").await.ok().unwrap();
+    let turns: Vec<_> = l.iter().map(|i| (i.id, i.turns.clone())).collect();
+    assert_eq!(
+        turns,
+        vec![
+            (3, vec![]),
+            (2, vec!["t3".to_string()]),
+            (1, vec!["t1".to_string(), "t2".to_string()])
+        ]
+    );
+    assert_eq!(l[2].json()["turns"], json!(["t1", "t2"]));
+    assert!(l[0].json().get("turns").is_none());
+    // The renamed checkpoint still restores its folder.
+    let r = store.restore(&dir, &guard(), "chat:c1", 1).await.unwrap();
+    assert_eq!(r["type"], "checkpoint_restored", "{r}");
+    assert_eq!(std::fs::read(dir.join("a.txt")).unwrap(), b"one\ntwo\nthree\n");
+}
+
+/// Headless: a command task's folder is recorded before the command runs,
+/// so the run can be undone, also after its pane is gone.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_headless_command_is_recorded_and_undone() {
+    let dir = common::tempdir();
+    let proj = repo(dir.path());
+    let holder = start_holder(dir.path());
+    let gw = FakeGateway::start().await;
+    let mut o = options(dir.path(), &gw.url, holder);
+    o.automation_labels = vec!["ci".into()];
+    let sock = o.runner_socket.clone();
+    let task = tokio::spawn(tmuxedo_runner::daemon::run(o));
+    let s = std::time::Duration::from_secs(10);
+    let mut c = gw.accept(s).await.expect("runner dials out");
+    c.hello(s).await;
+    c.text_t(s, "topology").await;
+    c.send(json!({"t":"welcome","machineId":"m1","userId":"u1"})).await;
+    let h = LocalH::attach_to(&sock).await;
+    let before = state(&proj);
+    let root = proj.to_string_lossy().into_owned();
+    let r = h
+        .raw(
+            "task.start",
+            json!({ "task_id": "undo1", "kind": "command", "labels": ["ci"], "cwd": root, "roots": [root],
+                "argv": ["/bin/sh", "-c", "echo changed > a.txt; echo new > made.txt"], "allowed_commands": ["/bin/sh"] }),
+        )
+        .await;
+    let pane = r["result"]["task"]["pane_id"].as_str().expect("a pane").to_string();
+    let until = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    loop {
+        let t = h.raw("task.get", json!({ "task_id": "undo1" })).await;
+        if t["result"]["task"]["status"] != "running" {
+            assert_eq!(t["result"]["task"]["status"], "done", "{t}");
+            break;
+        }
+        assert!(std::time::Instant::now() < until, "the task never ended: {t}");
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    assert_eq!(std::fs::read(proj.join("a.txt")).unwrap(), b"changed\n");
+
+    c.send(json!({"t":"req","id":"l","method":"checkpoint.list","params":{"pane": pane}}))
+        .await;
+    let l = c.res("l").await;
+    assert_eq!(l["result"]["checkpoints"][0]["kind"], "turn", "{l}");
+    c.send(json!({"t":"req","id":"p","method":"checkpoint.preview","params":{"pane": pane, "id": 1}}))
+        .await;
+    let p = c.res("p").await;
+    assert_eq!(
+        p["result"]["files"],
+        json!([{"path": "a.txt", "change": "modified"}, {"path": "made.txt", "change": "removed"}]),
+        "{p}"
+    );
+    c.send(json!({"t":"req","id":"r","method":"checkpoint.restore","params":{"pane": pane, "id": 1}}))
+        .await;
+    let r = c.res("r").await;
+    assert_eq!(r["result"]["type"], "checkpoint_restored", "{r}");
+    assert_eq!(state(&proj), before);
     task.abort();
 }

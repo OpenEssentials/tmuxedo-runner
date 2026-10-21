@@ -44,6 +44,12 @@ pub struct LaunchConfig {
     /// `config.projects`: env per project (crate::project), on top of `shell.env`.
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub projects: crate::project::Projects,
+    /// `config.keepAwake`: None = on (the default), Some(false) = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keep_awake: Option<bool>,
+    /// `config.memoryWarn`: None = on (the default), Some(false) = off.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory_warn: Option<bool>,
 }
 
 /// `config.projects`: keys ≤ 512 printable bytes; names as shell env names

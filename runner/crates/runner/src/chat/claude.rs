@@ -880,12 +880,20 @@ impl TState {
         if let Some(d) = v.get("duration_ms").and_then(Value::as_u64) {
             usage.insert("durationMs".into(), json!(d));
         }
+        // Words for people, never the CLI's own codes: its message (`result`, else the first
+        // of `errors`), or a sentence for the kind of failure.
         let error = (status == "failed").then(|| {
             let r = s(v, "result");
-            if r.is_empty() {
-                sub.to_string()
-            } else {
-                one_line(r, 200)
+            let first = v["errors"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .find(|e| !e.trim().is_empty());
+            match (r.is_empty(), first) {
+                (false, _) => one_line(r, 200),
+                (true, Some(e)) => one_line(e, 200),
+                (true, None) => failure_words(sub).to_string(),
             }
         });
         out.push(top(ChatBody::TurnDone {
@@ -894,6 +902,16 @@ impl TState {
             usage: (!usage.is_empty()).then_some(Value::Object(usage)),
         }));
         out
+    }
+}
+
+/// A sentence for a turn that failed with CLI result `subtype` and no message of its own.
+pub fn failure_words(subtype: &str) -> &'static str {
+    match subtype {
+        "error_max_turns" => "The agent reached its turn limit.",
+        "error_max_budget_usd" => "The agent reached its spending limit.",
+        "error_during_execution" => "The agent hit an error while working.",
+        _ => "The agent's turn failed.",
     }
 }
 
@@ -1719,6 +1737,32 @@ mod tests {
 
     /// A state saved by a runner from before these fields still loads, and
     /// the clock is not part of what is saved.
+    #[test]
+    fn a_failed_turn_says_so_in_words() {
+        let no = |_: &str| false;
+        let mut t = TState::default();
+        for (line, want) in [
+            (
+                json!({"type":"result","subtype":"error_during_execution","is_error":true}),
+                "The agent hit an error while working.",
+            ),
+            (
+                json!({"type":"result","subtype":"error_during_execution","is_error":true,"errors":["", "No conversation found"]}),
+                "No conversation found",
+            ),
+            (
+                json!({"type":"result","subtype":"error_max_turns","is_error":true}),
+                "The agent reached its turn limit.",
+            ),
+            (
+                json!({"type":"result","subtype":"error_x","is_error":true}),
+                "The agent's turn failed.",
+            ),
+        ] {
+            let e = t.line(&line, &no);
+            assert_eq!(serde_json::to_value(&e[0].body).unwrap()["error"], want);
+        }
+    }
     #[test]
     fn an_older_saved_state_still_loads() {
         let old = json!({"vendor_session":"S","tools":{"toolu_1":"Bash"},"interrupting":true,"edits":{}});

@@ -32,9 +32,21 @@ pub enum Action {
     RenamePane,
     Arrange,
     EvenOut,
+    /// Move the focused terminal's divider to the next snap target (the web's `resize_snap_*`).
+    ResizeSnapLeft,
+    ResizeSnapRight,
+    ResizeSnapUp,
+    ResizeSnapDown,
+    /// Move it one cell (`resize_cell_*`).
+    ResizeCellLeft,
+    ResizeCellRight,
+    ResizeCellUp,
+    ResizeCellDown,
+    /// The command palette (`prefix k`; super::palette, the web's `open_palette`).
+    OpenPalette,
 }
 
-pub const ACTIONS: [(Action, &str, &str); 15] = [
+pub const ACTIONS: [(Action, &str, &str); 24] = [
     (Action::NewTab, "new_tab", "c"),
     (Action::SplitRight, "split_right", "%"),
     (Action::SplitDown, "split_down", "\""),
@@ -50,6 +62,28 @@ pub const ACTIONS: [(Action, &str, &str); 15] = [
     (Action::RenamePane, "rename_pane", "P"),
     (Action::Arrange, "arrange", "space"),
     (Action::EvenOut, "even_out", "E"),
+    (Action::ResizeSnapLeft, "resize_snap_left", "alt+left"),
+    (Action::ResizeSnapRight, "resize_snap_right", "alt+right"),
+    (Action::ResizeSnapUp, "resize_snap_up", "alt+up"),
+    (Action::ResizeSnapDown, "resize_snap_down", "alt+down"),
+    (Action::ResizeCellLeft, "resize_cell_left", "ctrl+left"),
+    (Action::ResizeCellRight, "resize_cell_right", "ctrl+right"),
+    (Action::ResizeCellUp, "resize_cell_up", "ctrl+up"),
+    (Action::ResizeCellDown, "resize_cell_down", "ctrl+down"),
+    (Action::OpenPalette, "open_palette", "k"),
+];
+
+/// The resize actions (web/src/lib/keybindings.ts `RESIZE_ACTIONS`): in the
+/// full key sheet, not the quick overlay.
+pub const RESIZE_ACTIONS: [Action; 8] = [
+    Action::ResizeSnapLeft,
+    Action::ResizeSnapRight,
+    Action::ResizeSnapUp,
+    Action::ResizeSnapDown,
+    Action::ResizeCellLeft,
+    Action::ResizeCellRight,
+    Action::ResizeCellUp,
+    Action::ResizeCellDown,
 ];
 
 /// Actions added after keybindings shipped (queue 3c, names). A document that
@@ -58,12 +92,29 @@ pub const ACTIONS: [(Action, &str, &str); 15] = [
 /// free key here instead of the whole keymap falling back to the defaults.
 /// Same rule as web/src/lib/keybindings.ts `LATER_ACTIONS`.
 pub const LATER_FALLBACKS: &[&str] = &["f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9"];
-const LATER_ACTIONS: [Action; 5] = [
+/// Only the resize actions go on to these (the web's `MORE_FALLBACKS`).
+fn more_fallbacks() -> Vec<String> {
+    let mut v: Vec<String> = ["f10", "f11", "f12"].map(String::from).into();
+    for m in ["alt", "ctrl"] {
+        v.extend((1..=12).map(|i| format!("{m}+f{i}")));
+    }
+    v
+}
+const LATER_ACTIONS: [Action; 14] = [
     Action::RenameTab,
     Action::RenameWorkspace,
     Action::RenamePane,
     Action::Arrange,
     Action::EvenOut,
+    Action::ResizeSnapLeft,
+    Action::ResizeSnapRight,
+    Action::ResizeSnapUp,
+    Action::ResizeSnapDown,
+    Action::ResizeCellLeft,
+    Action::ResizeCellRight,
+    Action::ResizeCellUp,
+    Action::ResizeCellDown,
+    Action::OpenPalette,
 ];
 
 pub const DEFAULT_PREFIX: &str = "ctrl+b";
@@ -271,11 +322,15 @@ impl Keymap {
             if !taken {
                 continue;
             }
-            let free = LATER_FALLBACKS
-                .iter()
-                .find(|f| **f != self.prefix && !self.actions.iter().any(|(_, key)| key == *f));
+            let mut pool: Vec<String> = LATER_FALLBACKS.iter().map(|f| f.to_string()).collect();
+            if RESIZE_ACTIONS.contains(&a) {
+                pool.extend(more_fallbacks());
+            }
+            let free = pool
+                .into_iter()
+                .find(|f| *f != self.prefix && !self.actions.iter().any(|(_, key)| key == f));
             if let Some(f) = free {
-                self.set(a, f.to_string());
+                self.set(a, f);
             }
         }
     }
@@ -427,5 +482,50 @@ mod tests {
         // A document that sets them is taken as is.
         let km = Keymap::from_json(&json!({"version": 1, "bindings": {"rename_tab": "R", "rename_pane": "f9"}}));
         assert_eq!((km.key(Action::RenameTab), km.key(Action::RenamePane)), ("R", "f9"));
+    }
+
+    #[test]
+    fn resize_keys_are_known_so_no_fallback_lands_on_one() {
+        let km = Keymap::default();
+        assert_eq!(km.key(Action::ResizeSnapLeft), "alt+left");
+        assert_eq!(km.key(Action::ResizeCellDown), "ctrl+down");
+        assert_eq!(
+            km.action(&k(KeyCode::Right, KeyModifiers::ALT)),
+            Some(Action::ResizeSnapRight)
+        );
+        assert_eq!(
+            km.action(&k(KeyCode::Up, KeyModifiers::CONTROL)),
+            Some(Action::ResizeCellUp)
+        );
+        // The web moved a resize action onto f2 and the arrange key onto f3; an older
+        // document leaves out even_out, whose default `E` the user gave to zoom. Even out
+        // must not be handed f2 or f3: it goes to f4.
+        let km = Keymap::from_json(&json!({
+            "version": 1, "isDefault": false,
+            "bindings": {"zoom": "E", "resize_snap_left": "f2", "arrange": "f3"}
+        }));
+        assert_eq!(km.source, "your keybindings");
+        assert_eq!(km.key(Action::ResizeSnapLeft), "f2");
+        assert_eq!(km.key(Action::EvenOut), "f4");
+        // A resize action whose default is taken (and f2..f9 too) goes on to f10 and beyond.
+        let mut b = serde_json::Map::new();
+        b.insert("zoom".into(), json!("alt+left"));
+        let names = [
+            "new_tab",
+            "split_right",
+            "split_down",
+            "close_pane",
+            "detach",
+            "rename_tab",
+            "rename_workspace",
+            "rename_pane",
+        ];
+        for (i, name) in names.iter().enumerate() {
+            b.insert(name.to_string(), json!(format!("f{}", i + 2)));
+        }
+        let km = Keymap::from_json(&json!({"version": 1, "bindings": b}));
+        assert_eq!(km.source, "your keybindings");
+        assert_eq!(km.key(Action::Zoom), "alt+left");
+        assert_eq!(km.key(Action::ResizeSnapLeft), "f10");
     }
 }

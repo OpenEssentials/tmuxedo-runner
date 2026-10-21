@@ -411,6 +411,11 @@ pub struct ChatSection {
     pub hooks: Vec<Register>,
     #[serde(default)]
     pub holds: Vec<ChatHold>,
+    /// The format of the agent's own transcript (the file its hooks name), read
+    /// to show turns taken in the terminal and to know whether the session has
+    /// a conversation yet. `claude-jsonl` or empty (unknown: not read).
+    #[serde(default)]
+    pub transcript: String,
     /// The oldest agent CLI version that has this structured mode; an older one gets no chat
     /// (the terminal only, with the reason). Empty or an unknown version: no check.
     #[serde(default)]
@@ -482,6 +487,65 @@ pub struct LaunchSection {
     /// without asking and the flag that hands it the files instructions file.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub files: Option<LaunchFiles>,
+    /// A system-prompt flag pair the CLI reads only the last of (Claude:
+    /// `--append-system-prompt` and `--append-system-prompt-file`, each of
+    /// which only its last copy counts). The shim joins every copy into one
+    /// text flag, so tmuxedo's files note, the plugin set's instructions, a
+    /// role's and the person's own all reach the model.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub join_prompt: Option<JoinPrompt>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct JoinPrompt {
+    /// The flag whose value is the text, e.g. `--append-system-prompt`.
+    pub text: String,
+    /// The flag whose value is a file holding the text, e.g. `--append-system-prompt-file`.
+    pub file: String,
+}
+
+impl JoinPrompt {
+    /// The shim's lines that rewrite `"$@"`: every `text` / `file` flag
+    /// (also as `--flag=value`, never after `--`) becomes part of one `text`
+    /// flag at the front, joined by a blank line in the order given. A file
+    /// that cannot be read keeps its flag. Empty when a flag is not
+    /// `--[a-z-]+` (never interpolated).
+    pub fn shell_fragment(&self) -> String {
+        let ok =
+            |s: &str| s.len() > 2 && s.starts_with("--") && s[2..].bytes().all(|b| b.is_ascii_lowercase() || b == b'-');
+        if !ok(&self.text) || !ok(&self.file) || self.text == self.file {
+            return String::new();
+        }
+        let (t, f) = (&self.text, &self.file);
+        format!(
+            r#"    tmuxedo_p=; tmuxedo_w=; tmuxedo_e=; tmuxedo_n=1; tmuxedo_nl='
+'
+    for tmuxedo_a in "$@"; do
+      [ "$tmuxedo_n" = 1 ] && set -- && tmuxedo_n=
+      if [ -z "$tmuxedo_w$tmuxedo_e" ]; then
+        case $tmuxedo_a in
+          --) tmuxedo_e=1 ;;
+          {f}) tmuxedo_w=f; continue ;;
+          {t}) tmuxedo_w=t; continue ;;
+          {f}=*) tmuxedo_w=f; tmuxedo_a=${{tmuxedo_a#*=}} ;;
+          {t}=*) tmuxedo_w=t; tmuxedo_a=${{tmuxedo_a#*=}} ;;
+        esac
+      fi
+      if [ "$tmuxedo_w" = f ]; then
+        if tmuxedo_v=$(cat -- "$tmuxedo_a" 2>/dev/null); then tmuxedo_w=t; tmuxedo_a=$tmuxedo_v
+        else set -- "$@" {f} "$tmuxedo_a"; tmuxedo_w=; continue; fi
+      fi
+      if [ "$tmuxedo_w" = t ]; then
+        tmuxedo_p=${{tmuxedo_p:+$tmuxedo_p$tmuxedo_nl$tmuxedo_nl}}$tmuxedo_a; tmuxedo_w=; continue
+      fi
+      set -- "$@" "$tmuxedo_a"
+    done
+    [ "$tmuxedo_n" = 1 ] && set --
+    case $tmuxedo_w in f) set -- "$@" {f} ;; t) set -- "$@" {t} ;; esac
+    [ -n "$tmuxedo_p" ] && set -- {t} "$tmuxedo_p" "$@"
+"#
+        )
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -547,6 +611,10 @@ pub struct HooksSection {
     pub cwd_field: String,
     #[serde(default)]
     pub source_field: String,
+    /// Where a hook names the session's transcript file (an absolute path,
+    /// kept as the pane's `session_path`; Claude: `transcript_path`).
+    #[serde(default)]
+    pub transcript_field: String,
     /// Native events to register with the agent (the `hook-settings` builder).
     #[serde(default)]
     pub register: Vec<Register>,
@@ -697,6 +765,10 @@ pub struct Resume {
     pub argv: Vec<String>,
     #[serde(default)]
     pub assign_session_id: Vec<String>,
+    /// Start the session under the given id when it has no conversation yet
+    /// (nothing to resume: Claude writes its transcript from the first turn).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub new_argv: Vec<String>,
     /// A session recorded in `$HOME` itself resumes in the runner's default
     /// working folder (`config.workDir`, `~/work`) instead. For an agent that
     /// finds its sessions by id from any folder but asks again about a
@@ -1106,7 +1178,7 @@ impl Manifest {
             if r.argv.is_empty() {
                 e.push("resume.argv is empty".into());
             }
-            for t in r.argv.iter().chain(&r.assign_session_id) {
+            for t in r.argv.iter().chain(&r.assign_session_id).chain(&r.new_argv) {
                 self.check_placeholders("resume", t, &mut e);
             }
         }
@@ -1624,5 +1696,69 @@ limits = { max_concurrency = "has space" }
             };
             assert_eq!(m.contract_major(), want, "{s}");
         }
+    }
+
+    /// The shim's prompt join, run by /bin/sh: every copy of either flag
+    /// (also `--flag=value`) becomes one text flag at the front, in order; a
+    /// file that cannot be read keeps its flag; nothing after `--` is touched.
+    /// Found by the Phase 17 gate run: Claude Code reads only the last of each.
+    #[test]
+    fn the_prompt_join_keeps_every_copy_in_order() {
+        let j = JoinPrompt {
+            text: "--append-system-prompt".into(),
+            file: "--append-system-prompt-file".into(),
+        };
+        let dir = std::env::temp_dir().join(format!("tmuxedo-join-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.md"), "FILE A\n").unwrap();
+        std::fs::write(dir.join("b.md"), "FILE 'B' $HOME\n\n").unwrap();
+        let script = format!("{}for x in \"$@\"; do printf '<%s>' \"$x\"; done\n", j.shell_fragment());
+        let run = |args: &[&str]| {
+            let out = std::process::Command::new("/bin/sh")
+                .arg("-c")
+                .arg(&script)
+                .arg("sh")
+                .args(args)
+                .current_dir(&dir)
+                .output()
+                .unwrap();
+            String::from_utf8(out.stdout).unwrap()
+        };
+        assert_eq!(
+            run(&[
+                "--append-system-prompt-file",
+                "a.md",
+                "--settings",
+                "s",
+                "--append-system-prompt",
+                "in line",
+                "-p",
+                "hi there",
+                "--append-system-prompt-file=b.md"
+            ]),
+            "<--append-system-prompt><FILE A\n\nin line\n\nFILE 'B' $HOME><--settings><s><-p><hi there>"
+        );
+        assert_eq!(
+            run(&[
+                "--append-system-prompt-file",
+                "missing.md",
+                "--",
+                "--append-system-prompt",
+                "x"
+            ]),
+            "<--append-system-prompt-file><missing.md><--><--append-system-prompt><x>"
+        );
+        assert_eq!(run(&[]), "");
+        assert_eq!(run(&["", "a b"]), "<><a b>");
+        assert_eq!(run(&["-p", "--append-system-prompt"]), "<-p><--append-system-prompt>");
+        // One flag alone is still handed over as text: same prompt, one flag.
+        assert_eq!(run(&["--append-system-prompt", "x"]), "<--append-system-prompt><x>");
+        let _ = std::fs::remove_dir_all(&dir);
+        // A flag name that could break out of the script is never used.
+        let bad = JoinPrompt {
+            text: "--x;id".into(),
+            file: "--y".into(),
+        };
+        assert_eq!(bad.shell_fragment(), "");
     }
 }

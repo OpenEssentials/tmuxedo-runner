@@ -19,7 +19,10 @@ fn claude_status(marker: &str) -> String {
         "model": { "id": "model-x", "display_name": "Opus" },
         "workspace": { "current_dir": "/w", "project_dir": "/nonexistent-project" },
         "cost": { "total_cost_usd": 1.25 },
-        "context_window": { "used_percentage": 34, "context_window_size": 200000 },
+        "context_window": {
+            "used_percentage": 34, "context_window_size": 200000,
+            "total_input_tokens": 15234, "total_output_tokens": 4521,
+        },
         "rate_limits": {
             "five_hour": { "used_percentage": 62.44, "resets_at": NOW + 3600 },
             "seven_day": { "used_percentage": 41, "resets_at": NOW + 400_000 },
@@ -38,7 +41,10 @@ fn codex_line(primary: f64, resets: u64) -> String {
         "type": "event_msg",
         "payload": {
             "type": "token_count",
-            "info": { "total_token_usage": { "input_tokens": 10 }, "model_context_window": 272000 },
+            "info": {
+                "total_token_usage": { "input_tokens": 1000, "cached_input_tokens": 400, "output_tokens": 200, "total_tokens": 1200 },
+                "model_context_window": 272000,
+            },
             "rate_limits": {
                 "limit_id": "codex", "plan_type": "Plus",
                 "primary": { "used_percent": primary, "window_minutes": 300, "resets_at": resets },
@@ -302,7 +308,9 @@ impl Rig {
     fn sent(&self) -> Option<String> {
         let (s, _) = self.listener.accept().ok()?;
         s.set_nonblocking(false).unwrap();
-        s.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+        // macOS refuses socket options (EINVAL) once the peer has closed; the
+        // read then returns what was sent at once, so the timeout is not needed.
+        let _ = s.set_read_timeout(Some(Duration::from_secs(2)));
         let mut line = String::new();
         BufReader::new(s).read_line(&mut line).ok()?;
         Some(line)
@@ -557,6 +565,7 @@ fn reading(pct: f64) -> Reading {
         }],
         context: Some((10.0, None)),
         plan: None,
+        tokens: None,
     }
 }
 
@@ -676,4 +685,156 @@ fn the_report_waits_for_the_runner_so_its_caller_check_finds_it_alive() {
         "returned before the runner answered: {took:?}"
     );
     assert!(took < Duration::from_secs(2), "{took:?}");
+}
+
+// ── what one session used (session.summary's `usage`) ────────────────────
+
+#[test]
+fn the_sources_name_a_sessions_running_token_total() {
+    let v: Value = serde_json::from_str(&claude_status("x")).unwrap();
+    assert_eq!(extract(&statusline(), &v, NOW).tokens, Some(15234 + 4521));
+    let codex = section("codex").sources[0].clone();
+    let v: Value = serde_json::from_str(&codex_line(10.0, NOW + 100)).unwrap();
+    assert_eq!(extract(&codex, &v, NOW).tokens, Some(1200));
+    // Missing or not a whole number: left out, never guessed.
+    let v = json!({"context_window": {"total_input_tokens": "lots"}});
+    assert_eq!(extract(&statusline(), &v, NOW).tokens, None);
+    let v = json!({"context_window": {"total_input_tokens": -4, "total_output_tokens": 3}});
+    assert_eq!(extract(&statusline(), &v, NOW).tokens, Some(3));
+}
+
+#[test]
+fn a_manifest_names_at_most_four_token_fields() {
+    let base = "[usage]\nmodes = [\"plan\"]\n[[usage.sources]]\nkind = \"statusline\"\nwindows = [{ at = \"a.b\", pct = \"p\", id = \"5h\" }]\n";
+    let lint = |extra: &str| Manifest::parse(&format!("{DEMO}{base}{extra}")).unwrap().lint();
+    assert_eq!(lint("tokens = [\"t.in\", \"t.out\"]\n"), Vec::<String>::new());
+    assert!(lint("tokens = [\"t..in\"]\n")
+        .iter()
+        .any(|e| e.contains("not a field path")));
+    assert!(lint("tokens = [\"a\", \"b\", \"c\", \"d\", \"e\"]\n")
+        .iter()
+        .any(|e| e.contains("more than 4 token fields")));
+}
+
+fn spent_reading(pct: f64, resets: u64, tokens: Option<u64>) -> Reading {
+    let mut r = reading(pct);
+    r.windows[0].resets_at = Some(resets);
+    r.tokens = tokens;
+    r
+}
+
+#[test]
+fn a_session_is_credited_with_the_rise_its_own_readings_show() {
+    let d = tempfile::tempdir().unwrap();
+    let mut st = Store::new(d.path());
+    let sec = section("claude");
+    let ms = NOW * 1000;
+    let reset = NOW + 3600;
+    // The first reading on this machine: where the account stood, nothing credited.
+    st.note(
+        &sec,
+        "claude",
+        Some("w1:p1"),
+        spent_reading(10.0, reset, Some(1000)),
+        ms,
+    );
+    // p1 again: +4 points, and its running total says 3000 tokens.
+    st.note(
+        &sec,
+        "claude",
+        Some("w1:p1"),
+        spent_reading(14.0, reset, Some(3000)),
+        ms + 1000,
+    );
+    // p2's first reading: +1.5 since p1's, and its 500 tokens.
+    st.note(
+        &sec,
+        "claude",
+        Some("w2:p1"),
+        spent_reading(15.5, reset, Some(500)),
+        ms + 2000,
+    );
+    // An older number than the newest (another device lags): nothing is taken back.
+    st.note(
+        &sec,
+        "claude",
+        Some("w1:p1"),
+        spent_reading(15.0, reset, Some(3000)),
+        ms + 3000,
+    );
+    let p1 = st.spent("w1:p1", 0).expect("p1 used some");
+    assert_eq!(p1.plugin, "claude");
+    assert_eq!(p1.windows.len(), 1);
+    assert_eq!(
+        (
+            p1.windows[0].id.as_str(),
+            p1.windows[0].spent_pct,
+            p1.windows[0].window_mins
+        ),
+        ("5h", 4.0, Some(300))
+    );
+    assert_eq!(p1.tokens, Some(3000));
+    assert!(p1.ok());
+    let p2 = st.spent("w2:p1", 0).unwrap();
+    assert_eq!((p2.windows[0].spent_pct, p2.tokens), (1.5, Some(500)));
+    assert_eq!(st.spent("w9:p9", 0), None);
+
+    // The window resets: a new one starts at 0, and p1's first reading in it counts whole.
+    let later = (reset + 10) * 1000;
+    st.note(
+        &sec,
+        "claude",
+        Some("w1:p1"),
+        spent_reading(3.0, reset + 18_000, Some(3400)),
+        later,
+    );
+    let p1 = st.spent("w1:p1", 0).unwrap();
+    assert_eq!((p1.windows[0].spent_pct, p1.tokens), (7.0, Some(3400)));
+    // Only what came after `since`.
+    let since = st.spent("w1:p1", later).unwrap();
+    assert_eq!((since.windows[0].spent_pct, since.tokens), (3.0, Some(400)));
+    assert_eq!(st.spent("w1:p1", later + 1), None);
+    // The agent restarted in the pane: its total starts again, and counts.
+    st.note(
+        &sec,
+        "claude",
+        Some("w1:p1"),
+        spent_reading(3.0, reset + 18_000, Some(250)),
+        later + 1000,
+    );
+    assert_eq!(st.spent("w1:p1", later + 1).unwrap().tokens, Some(250));
+
+    // Turning AI usage off forgets what each session used.
+    st.forget("claude");
+    assert_eq!(st.spent("w1:p1", 0), None);
+}
+
+#[test]
+fn what_sessions_used_is_bounded() {
+    let d = tempfile::tempdir().unwrap();
+    let mut st = Store::new(d.path());
+    let sec = section("claude");
+    let ms = NOW * 1000;
+    for i in 0..(SPENT_PANES_MAX as u64 + 10) {
+        st.note(
+            &sec,
+            "claude",
+            Some(&format!("w{i}:p1")),
+            spent_reading(1.0, NOW + 3600, Some(i + 1)),
+            ms + i,
+        );
+    }
+    assert_eq!(st.spent("w0:p1", 0), None, "the oldest session is let go");
+    assert!(st.spent(&format!("w{}:p1", SPENT_PANES_MAX + 9), 0).is_some());
+    for i in 0..(SPENT_EVENTS_MAX as u64 * 2) {
+        st.note(
+            &sec,
+            "claude",
+            Some("w1:p9"),
+            spent_reading(1.0, NOW + 3600, Some(i + 1)),
+            ms + 1000 + i,
+        );
+    }
+    // Each step was one token; only the newest SPENT_EVENTS_MAX steps are kept.
+    assert_eq!(st.spent("w1:p9", 0).unwrap().tokens, Some(SPENT_EVENTS_MAX as u64));
 }

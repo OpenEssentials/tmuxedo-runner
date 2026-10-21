@@ -103,3 +103,30 @@ export function parseUsageFrame(v: unknown): UsageFrame | null {
 
 /** The key a holder of records files one under. */
 export const usageKey = (r: Pick<UsageRecord, 'plugin' | 'accountKey'>): string => `${r.plugin}\n${r.accountKey}`;
+
+/**
+ * What one session used (`session.summary`'s `usage`; runner/crates/protocol/src/usage.rs
+ * `SessionUsage`): per limit window, the rise in the account's percentage that the session's own
+ * readings showed (an estimate: other use of the same account in between counts too), and the
+ * tokens its agent reported. Never empty.
+ */
+export interface SpentWindow { id: string; spentPct: number; windowMins?: number }
+export interface SessionUsage { plugin: string; windows: SpentWindow[]; tokens?: number }
+export const SESSION_TOKENS_MAX = 1_000_000_000_000;
+
+/** A `session.summary`'s `usage`, checked and rebuilt, or null. Never throws. */
+export function parseSessionUsage(v: unknown): SessionUsage | null {
+  if (!obj(v) || !str(v.plugin, PLUGIN)) return null;
+  const ws = v.windows === undefined ? [] : v.windows;
+  if (!Array.isArray(ws) || ws.length > USAGE_WINDOWS_MAX) return null;
+  const out: SessionUsage = { plugin: v.plugin, windows: [] };
+  for (const w of ws) {
+    if (!obj(w) || !str(w.id, ID) || !num(w.spentPct, 0, 100_000) || w.spentPct === 0) return null;
+    const sw: SpentWindow = { id: w.id, spentPct: w.spentPct };
+    if (w.windowMins !== undefined) { if (!int(w.windowMins, 1, 527_040)) return null; sw.windowMins = w.windowMins; }
+    out.windows.push(sw);
+  }
+  if (v.tokens !== undefined) { if (!int(v.tokens, 1, SESSION_TOKENS_MAX)) return null; out.tokens = v.tokens; }
+  return out.windows.length || out.tokens !== undefined ? out : null;
+}
+

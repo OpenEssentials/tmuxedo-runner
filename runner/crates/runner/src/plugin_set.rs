@@ -9,6 +9,7 @@
 use std::path::Path;
 
 use serde_json::Value;
+use tmuxedo_protocol::addon;
 use tmuxedo_protocol::plugin_set::parse_plugin_set;
 use tmuxedo_protocol::plugin_set::PluginSet;
 
@@ -20,13 +21,25 @@ pub const FILE: &str = "plugin-set.json";
 pub const MAX_DEFINITION_BYTES: usize = 96 * 1024;
 
 /// Drop what is over the limits: an item whose definition is too large (and
-/// every mention of it), and settings that break the schema dialect's value
-/// limits. Returns what was dropped, by name.
+/// every mention of it; an add-on may be up to `addon::MAX_BYTES`, and all
+/// add-ons together up to `addon::MAX_TOTAL_BYTES`), and settings that
+/// break the schema dialect's value limits. Returns what was dropped, by name.
 pub fn bound(set: &mut PluginSet) -> Vec<String> {
     let mut dropped: Vec<String> = Vec::new();
     let mut gone: Vec<String> = Vec::new();
+    let mut addon_bytes = 0usize;
     for i in &set.items {
-        if i.definition.to_string().len() > MAX_DEFINITION_BYTES {
+        let len = i.definition.to_string().len();
+        let over = if i.kind == addon::KIND {
+            addon_bytes += len;
+            len > addon::MAX_BYTES || addon_bytes > addon::MAX_TOTAL_BYTES
+        } else {
+            len > MAX_DEFINITION_BYTES
+        };
+        if over {
+            if i.kind == addon::KIND {
+                addon_bytes -= len;
+            }
             gone.push(i.id.clone());
             dropped.push(format!("{} {}", i.kind, i.name));
         }
@@ -180,5 +193,29 @@ mod tests {
         let codex = set.entry("codex", None).unwrap();
         assert!(codex.items.is_empty());
         assert_eq!(codex.values["launch"]["args"][0], "-v");
+    }
+
+    #[test]
+    fn an_addon_may_be_larger_than_an_item_but_all_addons_have_a_total() {
+        let def = |n: usize| json!({ "agents": { "claude": { "env": { "A": "1" } } }, "description": "x".repeat(n) });
+        let item =
+            |id: &str, n: usize| json!({ "id": id, "kind": "addon", "name": id, "version": 1, "definition": def(n) });
+        let received = json!({
+            "v": 1,
+            "items": [
+                item("a1", 200 * 1024),
+                item("a2", 200 * 1024),
+                item("a3", 100 * 1024),
+                item("a4", 300 * 1024)
+            ],
+            "machine": { "claude": { "items": ["a1", "a2", "a3", "a4"], "values": {} } },
+            "projects": {}
+        });
+        let mut set = parse_plugin_set(&received).unwrap();
+        let dropped = bound(&mut set);
+        // a1 (200 KiB, over an item's 96) stays; a2 would take the add-ons
+        // past 384 KiB; a3 still fits; a4 is over one add-on's 256 KiB.
+        assert_eq!(dropped, ["addon a2", "addon a4"]);
+        assert_eq!(set.entry("claude", None).unwrap().items, ["a1", "a3"]);
     }
 }

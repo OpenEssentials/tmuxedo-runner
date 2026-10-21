@@ -65,6 +65,8 @@ fn ctx(r: &Repo) -> Ctx {
             own: vec![],
         },
         masker: Masker::default(),
+        gh: PathBuf::from("gh"),
+        env: vec![],
     }
 }
 
@@ -172,6 +174,8 @@ async fn not_a_repository_and_too_broad_are_refused_plainly() {
         cwd: plain.clone(),
         guard: Guard::default(),
         masker: Masker::default(),
+        gh: PathBuf::from("gh"),
+        env: vec![],
     };
     assert_eq!(status(&c).await.unwrap_err().code, "not_a_repo");
     // A repository whose top is the home folder covers too much.

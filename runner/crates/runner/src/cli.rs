@@ -11,6 +11,7 @@
 //!   local runner socket (`$TMUXEDO_SOCKET_PATH`).
 
 pub mod attach;
+pub mod changes;
 pub mod files;
 pub mod filter;
 pub mod keys;
@@ -519,6 +520,7 @@ const HELP: &str = "tmuxedo — terminals on your machines, from anywhere (CLI: 
   tmuxedo logout
   tmuxedo machines                                list your machines
   tmuxedo attach <machine>[:<pane>] [--observe]   attach to a pane (detach: ctrl-b d)
+  tmuxedo changes <machine>[:<pane>] [--diff PATH] what a session changed: files and counts
   tmuxedo login-callback <address> [--pane M:P]  finish a pane's browser login: the localhost
                                                   address your browser ended on, delivered once
   tmuxedo workspace|tab|pane|agent <verb> …       runner API verbs on this machine
@@ -550,6 +552,7 @@ pub const TOP_COMMANDS: &[&str] = &[
     "machines",
     "tui",
     "attach",
+    "changes",
     "login-callback",
     "files",
     "upload",
@@ -702,6 +705,7 @@ pub fn main(args: Vec<String>) -> i32 {
                 None => Err("attach <machine>[:<pane>]".into()),
             }
         }
+        "changes" => changes::run(rest),
         "login-callback" => login_callback::run(rest),
         "files" => files::run(rest),
         "upload" => files::upload(rest),

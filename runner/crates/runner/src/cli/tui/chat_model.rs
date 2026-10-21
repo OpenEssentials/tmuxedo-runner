@@ -62,6 +62,19 @@ pub fn safe_text(text: &str) -> Vec<String> {
 
 /// Agent text as one safe line (web's `oneLine`): a line break shows as `⏎`,
 /// cut at `max` characters with `…`.
+/// Why a turn failed, in words: the agent's message, never a code of its CLI (a runner sends
+/// words; an older one may send `error_during_execution` and the like).
+pub fn turn_error_words(error: &str) -> String {
+    let e = error.trim();
+    if e.starts_with("error_")
+        && e.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+    {
+        return crate::chat::claude::failure_words(e).to_string();
+    }
+    e.to_string()
+}
+
 pub fn safe_line(text: &str, max: usize) -> String {
     let clean = strip_controls(text);
     let mut out = String::new();
@@ -1708,5 +1721,16 @@ pub fn output_preview(t: &ToolView, max: usize) -> OutputPreview {
         total,
         note,
         attachments,
+    }
+}
+
+#[cfg(test)]
+mod turn_error_tests {
+    #[test]
+    fn a_failed_turn_is_said_in_words() {
+        use super::turn_error_words as w;
+        assert_eq!(w("error_during_execution"), "The agent hit an error while working.");
+        assert_eq!(w("error_new_kind"), "The agent's turn failed.");
+        assert_eq!(w("No conversation found"), "No conversation found");
     }
 }

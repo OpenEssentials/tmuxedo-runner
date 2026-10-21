@@ -50,10 +50,17 @@ pub enum Out {
     Level(&'static str),
 }
 
+/// Free space (percent) above which a disk problem counts as over (the hysteresis of `disk_low`;
+/// the server clears its open problem at the same line, docs/protocol.md "Files").
+pub const DISK_REARM_PERCENT: u64 = 8;
+
 pub struct Worker {
     pub store: Store,
     last_disk: Option<(u64, u64, u64, &'static str)>,
     last_disk_check: Option<Instant>,
+    /// `disk_low` is raised once per problem: disarmed when raised, re-armed only after the
+    /// disk has had more than DISK_REARM_PERCENT free (a disk hovering at 5 % stays one problem).
+    disk_armed: bool,
     last_partial_sweep: Instant,
     last_file_sweep: Option<Instant>,
     started: Instant,
@@ -66,6 +73,7 @@ impl Worker {
             store,
             last_disk: None,
             last_disk_check: None,
+            disk_armed: true,
             last_partial_sweep: Instant::now(),
             last_file_sweep: None,
             started: Instant::now(),
@@ -162,12 +170,14 @@ impl Worker {
             if force || moved {
                 out(Out::Text(DiskFrame::new(free, total, files).to_json()));
             }
-            let prev_level = prev.map(|p| p.3).unwrap_or("ok");
             if prev.is_none_or(|p| p.3 != level) {
                 out(Out::Level(level));
             }
-            let serious = |l: &str| l == "critical" || l == "alert";
-            if serious(level) && !serious(prev_level) {
+            if total > 0 && free.saturating_mul(100) > total.saturating_mul(DISK_REARM_PERCENT) {
+                self.disk_armed = true;
+            }
+            if (level == "critical" || level == "alert") && self.disk_armed {
+                self.disk_armed = false;
                 crate::log!("disk almost full: {free} of {total} bytes free ({level})");
                 out(Out::Event(Note {
                     pane_id: String::new(),

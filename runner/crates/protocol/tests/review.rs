@@ -29,6 +29,10 @@ fn methods_and_limits_match_the_fixture() {
     assert_eq!(l["statusFiles"], STATUS_FILES_MAX);
     assert_eq!(l["patchBytes"], PATCH_MAX);
     assert_eq!(l["largeLines"], LARGE_LINES);
+    assert_eq!(l["messageBytes"], MESSAGE_MAX);
+    assert_eq!(l["branchBytes"], BRANCH_MAX);
+    assert_eq!(strs(&f["methods"]["web"]), WEB_METHODS);
+    assert!(WEB_METHODS.iter().all(|m| MUTATING_METHODS.contains(m)));
 }
 
 #[test]
@@ -43,4 +47,37 @@ fn params_match_the_fixture() {
         let e = parse_read_params(m, &row["params"]).expect_err(&row.to_string());
         assert_eq!(e.0, row["code"].as_str().unwrap(), "{row}");
     }
+}
+
+#[test]
+fn ship_params_match_the_fixture() {
+    let f = fx();
+    for row in f["ship"]["valid"].as_array().unwrap() {
+        let m = row["method"].as_str().unwrap();
+        assert!(parse_ship_params(m, &row["params"]).is_ok(), "{row}");
+    }
+    for row in f["ship"]["invalid"].as_array().unwrap() {
+        let m = row["method"].as_str().unwrap();
+        let e = parse_ship_params(m, &row["params"]).expect_err(&row.to_string());
+        assert_eq!(e.0, row["code"].as_str().unwrap(), "{row}");
+    }
+    let long = "x".repeat(MESSAGE_MAX + 1);
+    let e = parse_ship_params("git.commit", &serde_json::json!({ "pane": "p", "message": long })).unwrap_err();
+    assert_eq!(e.0, "invalid_params");
+    let p = parse_ship_params("git.discard", &serde_json::json!({ "chat": "c" })).unwrap();
+    assert_eq!(
+        p,
+        ShipParams::Discard {
+            target: Target::Chat("c".into())
+        }
+    );
+    let p = parse_ship_params("git.push", &serde_json::json!({ "pane": "p" })).unwrap();
+    assert_eq!(
+        p,
+        ShipParams::Push {
+            target: Target::Pane("p".into()),
+            pr: false,
+            base: None
+        }
+    );
 }

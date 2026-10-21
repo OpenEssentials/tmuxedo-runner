@@ -5,6 +5,7 @@
  * number in that session.
  */
 import { validSessionId } from './review.js';
+import { parseSessionUsage, type SessionUsage } from './usage.js';
 
 export const FEATURE_CHECKPOINTS = 'checkpoints';
 export const CHECKPOINT_LIST = 'checkpoint.list';
@@ -52,4 +53,43 @@ export function parseCheckpointParams(method: string, params: unknown): Checkpoi
   }
   if (method === CHECKPOINT_PREVIEW || method === CHECKPOINT_RESTORE) return { ok: false, reason: 'id is required' };
   return { ok: true, target };
+}
+
+/**
+ * `session.summary` (the away digest's facts; runner/crates/protocol/src/checkpoint.rs): what a
+ * session's folder changed since the first checkpoint at or after `since`, the chat turns recorded
+ * since then, and the agent's last line (masked by the runner). Web asks for it; never a client socket.
+ */
+export const SESSION_SUMMARY = 'session.summary';
+export const FEATURE_SESSION_SUMMARY = 'session_summary';
+export const SESSION_SUMMARY_LINE_MAX = 120;
+
+export interface SessionSummary {
+  turns: number;
+  /** Files the agent added, changed and deleted; null when nothing was recorded to compare with. */
+  files: { added: number; modified: number; removed: number } | null;
+  line: string | null;
+  /** The chat turn the line ended (`t3`), for a link to it. */
+  turn: string | null;
+  /** What the session used of its AI plan (AI usage on, a pane's agent reported it); absent otherwise. */
+  usage?: SessionUsage;
+}
+
+const count = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 1_000_000_000;
+
+/** A runner's `session.summary` answer, or null when it is not one. */
+export function parseSessionSummary(v: unknown): SessionSummary | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const r = v as Record<string, unknown>;
+  if (r.type !== 'session_summary' || !count(r.turns)) return null;
+  let files: SessionSummary['files'] = null;
+  if (r.files !== null && r.files !== undefined) {
+    const f = r.files as Record<string, unknown>;
+    if (typeof f !== 'object' || !count(f.added) || !count(f.modified) || !count(f.removed)) return null;
+    files = { added: f.added, modified: f.modified, removed: f.removed };
+  }
+  const line = typeof r.line === 'string' && r.line.trim() ? r.line.trim().slice(0, SESSION_SUMMARY_LINE_MAX) : null;
+  const turn = typeof r.turn === 'string' && /^t\d{1,23}$/.test(r.turn) ? r.turn : null;
+  const usage = parseSessionUsage(r.usage);
+  return usage ? { turns: r.turns, files, line, turn, usage } : { turns: r.turns, files, line, turn };
 }

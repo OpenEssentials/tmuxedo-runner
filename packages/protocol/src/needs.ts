@@ -93,6 +93,8 @@ export interface NeedsYou {
     markdown?: string;
     /** A `file` item: where the upload goes and the request it answers. */
     upload?: FileRequestDetail;
+    /** A `limit` item (a usage alert, machine-level): the window, the level reached (80, 95, 100), the use now, its reset (Unix s), agents planned to resume. */
+    usage?: { window: string; level: number; usedPct: number; resetsAt?: number; resume?: number };
   };
   /** What came before it this turn ("read upload screenshot.png"). */
   context?: string[];

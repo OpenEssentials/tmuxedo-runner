@@ -179,6 +179,18 @@ pub fn draw(app: &App, f: &mut Frame) {
         draw_agent_settings(v, *top, a.main, buf);
         return;
     }
+    if let Mode::Command(st) = &app.mode {
+        super::palette::draw(app, st, a.main, buf);
+        return;
+    }
+    if let (Mode::Search, Some(v)) = (&app.mode, &app.search) {
+        super::search::draw(v, a.main, buf);
+        return;
+    }
+    if let (Mode::Files, Some(v)) = (&app.mode, &app.files) {
+        draw_files(v, a.main, buf);
+        return;
+    }
     if let Some((pane, _, agent)) = app.active_prompt().filter(|_| app.chat.is_none()) {
         draw_prompt(app, &pane, agent, a.main, buf);
     } else if let (Some(c), Mode::Normal) = (cursor, &app.mode) {
@@ -276,6 +288,46 @@ fn draw_agent_settings(v: &super::agent_settings::View, top: u16, main: Rect, bu
     );
 }
 
+/// `prefix F` (super::browse): the machine's files, read only, over the panes.
+fn draw_files(v: &super::browse::View, main: Rect, buf: &mut Buffer) {
+    use super::browse::Tone;
+    let w = main.width.saturating_sub(4).max(10);
+    let h = main.height.saturating_sub(1);
+    if main.width < 14 || h < 4 {
+        return;
+    }
+    let r = Rect::new(main.x + 2, main.y + 1.min(main.height - h), w, h);
+    buf.set_style(r, Style::default().bg(Color::Indexed(235)));
+    for x in r.left()..r.right() {
+        for y in r.top()..r.bottom() {
+            buf[(x, y)].set_symbol(" ");
+        }
+    }
+    let inner = w.saturating_sub(2) as usize;
+    let title: String = v.title().chars().take(inner).collect();
+    buf.set_string(r.x + 1, r.y, title, Style::default().add_modifier(Modifier::BOLD));
+    let rows = v.rows(inner);
+    let room = h.saturating_sub(2) as usize;
+    // A list keeps the selected row in sight; a file's rows already start at its first line shown.
+    let skip = if matches!(v.place, super::browse::Place::File { .. }) {
+        0
+    } else {
+        v.cursor.saturating_sub(room.saturating_sub(1))
+    };
+    for (i, (tone, text)) in rows.iter().skip(skip).take(room).enumerate() {
+        let style = match tone {
+            Tone::Selected => Style::default().add_modifier(Modifier::REVERSED),
+            Tone::Plain => Style::default(),
+            Tone::Danger => Style::default().fg(Color::Red),
+            Tone::Muted => Style::default().fg(Color::DarkGray),
+        };
+        let text: String = text.chars().take(inner).collect();
+        buf.set_string(r.x + 1, r.y + 1 + i as u16, text, style);
+    }
+    let foot: String = v.hint().chars().take(inner).collect();
+    buf.set_string(r.x + 1, r.bottom() - 1, foot, Style::default().fg(Color::DarkGray));
+}
+
 fn draw_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
     if area.width == 0 {
         return;
@@ -303,6 +355,10 @@ fn draw_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
                     spans.push(Span::styled(" ✕ claude off", Style::default().fg(Color::Red)));
                 } else if let Some((badge, c)) = auth_badge(m.auth.as_ref().map(|a| a.0.as_str())) {
                     spans.push(Span::styled(format!(" {badge}"), Style::default().fg(c)));
+                }
+                // Kept awake while agents work (super::wake).
+                if let Some(b) = super::wake::badge(m) {
+                    spans.push(Span::styled(format!(" {b}"), Style::default().fg(Color::Yellow)));
                 }
                 // Needs you (Phase 13): how many items wait; prefix ! lists them.
                 if let Some(n) = super::needs::badge(m) {
@@ -351,15 +407,57 @@ fn draw_sidebar(app: &App, area: Rect, buf: &mut Buffer) {
                 let text = a
                     .map(|a| format!("{name} {} {}", a.kind, status_word(a.status)))
                     .unwrap_or_default();
-                let mut spans = vec![
-                    Span::raw("    "),
-                    Span::styled(g, Style::default().fg(c)),
-                    Span::raw(text),
-                ];
+                let mut spans = vec![Span::raw("    "), Span::styled(g, Style::default().fg(c))];
+                // Someone else can see this session (Phase 27): a mark that fits the narrow
+                // sidebar; the status line spells it out for the focused pane.
+                if app.shares.is_shared(&app.machines[*i].id, pane) {
+                    spans.push(Span::styled("⇄", Style::default().fg(Color::Cyan)));
+                }
+                spans.push(Span::raw(text));
                 for (b, tone) in super::plugins::badges(&app.machines[*i], Some(pane)) {
                     spans.push(Span::styled(format!(" [{b}]"), Style::default().fg(tone_color(&tone))));
                 }
                 (Line::from(spans), *i == app.sel && app.focus.as_ref() == Some(pane))
+            }
+            Item::SharedHeader => (
+                Line::from(Span::styled(
+                    "Shared with me",
+                    Style::default().add_modifier(Modifier::BOLD),
+                )),
+                false,
+            ),
+            Item::SharedWithMe(n) => {
+                let s = &app.shares.with_me[*n];
+                (
+                    Line::from(vec![
+                        Span::styled("  ↗ ", Style::default().fg(Color::Cyan)),
+                        Span::raw(super::shares::row_text(s, super::shares::now_ms())),
+                    ]),
+                    false,
+                )
+            }
+            Item::AwayHeader => (
+                Line::from(Span::styled(
+                    "While you were away",
+                    Style::default().add_modifier(Modifier::BOLD),
+                )),
+                false,
+            ),
+            Item::Away(n) => {
+                let c = &app.away.cards[*n];
+                let tone = match c.group.as_str() {
+                    "needs_you" => Color::Magenta,
+                    "finished" => Color::Green,
+                    _ => Color::Red,
+                };
+                (
+                    Line::from(vec![
+                        Span::raw("  "),
+                        Span::styled(super::away::glyph(&c.group), Style::default().fg(tone)),
+                        Span::raw(format!(" {}", super::away::row_text(c))),
+                    ]),
+                    false,
+                )
             }
         };
         let row_area = Rect::new(area.x, y, area.width, 1);
@@ -400,15 +498,15 @@ fn draw_tabbar(app: &App, area: Rect, buf: &mut Buffer) {
 fn draw_panes(app: &App, area: Rect, buf: &mut Buffer) -> Option<Position> {
     let Some(tab) = app.tab() else {
         let msg = match app.machine() {
-            None => "no machines: connect one with tmuxedo-runner enrol",
-            Some(m) if matches!(m.link, Link::Stopped(_)) => "machine removed",
-            Some(m) if !m.online => "machine offline: waiting for it",
-            Some(_) => "connecting…",
+            None => "no machines: connect one with tmuxedo-runner enrol".to_string(),
+            Some(m) if matches!(m.link, Link::Stopped(_)) => "machine removed".to_string(),
+            Some(m) if !m.online => super::wake::offline_text(m),
+            Some(_) => "connecting…".to_string(),
         };
         buf.set_stringn(
             area.x + 1,
             area.y + 1.min(area.height),
-            msg,
+            &msg,
             area.width as usize,
             Style::default().fg(Color::DarkGray),
         );
@@ -515,11 +613,21 @@ fn draw_status(app: &App, area: Rect, buf: &mut Buffer) {
             "needs you: ↑↓ choose · a approve · d deny · r reply · 1-9 choice · enter go to pane · esc close"
                 .to_string()
         }
-        Mode::Arrange(_) => "arrange: 1-4 pick · ←→ move · enter apply · E even out · esc close".to_string(),
+        Mode::Arrange(_) => {
+            let pick = match app.arrange_patterns().len().min(9) {
+                0 => String::new(),
+                n => format!("1-{n} pick · "),
+            };
+            format!("arrange: {pick}←→ move · enter apply · E even out · s save · esc close")
+        }
+        Mode::SaveFavourite(buf) => app.save_line(buf),
         Mode::Reply(item, buf) => app.reply_line(item, buf),
         Mode::AgentSettings(_) => {
             "agent settings (read only): e edit on the web · r reload · ↑↓ scroll · esc close".to_string()
         }
+        Mode::Command(_) => app.command_line(),
+        Mode::Search => app.search_line(),
+        Mode::Files => app.files.as_ref().map_or("", |v| v.hint()).to_string(),
         Mode::Confirm(p) => format!("close pane {p}? (y/n)"),
         Mode::Scroll(p) => format!("scroll {p}: {} lines up  PgUp/PgDn ↑↓ g/G  q exit", app.scroll_pos(p)),
         Mode::Sidebar => "workspaces: ↑↓ move  enter select  esc back".to_string(),
@@ -547,13 +655,19 @@ fn draw_status(app: &App, area: Rect, buf: &mut Buffer) {
             };
             // The focused pane by its name when it has one.
             let focus = app.focus.clone().unwrap_or_default();
+            let focus_id = focus.clone();
             let label = app.topo().and_then(|t| t.pane(&focus)).and_then(|p| p.label.clone());
             let shown = match label {
                 Some(l) => format!("{l} ({focus})"),
                 None => focus,
             };
             let line = app.plugin_status().map(|s| format!(" · {s}")).unwrap_or_default();
-            format!(" {shown}{line} · {state}{auth} ")
+            let shared = if app.shares.is_shared(&m.id, &focus_id) {
+                " · shared"
+            } else {
+                ""
+            };
+            format!(" {shown}{shared}{line} · {state}{auth} ")
         }
         None => String::new(),
     };

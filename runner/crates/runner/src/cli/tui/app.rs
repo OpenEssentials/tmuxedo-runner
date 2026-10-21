@@ -129,6 +129,12 @@ pub struct Machine {
     pub plugins: super::plugins::PluginState,
     /// Needs-you items (super::needs, PLAN Phase 13).
     pub needs: super::needs::NeedsState,
+    /// The relay that can wake it while offline (super::wake).
+    pub wake_via: Option<String>,
+    /// Offline and nothing on its network can wake it.
+    pub wake_blocked: bool,
+    /// Agents working while it is kept awake for them.
+    pub kept_awake: Option<u64>,
 }
 
 impl Machine {
@@ -208,10 +214,18 @@ pub enum Mode {
     Needs(usize),
     /// `prefix Space`: the Arrange popup (super::arrange_ui), the selected picture or favourite.
     Arrange(usize),
+    /// `s` in that popup: typing the favourite's name, the text so far.
+    SaveFavourite(String),
     /// `r` in that list: typing a reply to item (id), the text so far.
     Reply(String, String),
     /// `prefix S`: the agents' settings on this machine, read only (super::agent_settings); the first row shown.
     AgentSettings(u16),
+    /// `prefix F`: the machine's files, read only (super::browse).
+    Files,
+    /// `prefix k` (`open_palette`): the command palette (super::palette), the query and the selected row.
+    Command(super::palette::State),
+    /// `prefix /`: search everything (super::search; the state is `App::search`).
+    Search,
 }
 
 /// What is being renamed, and the name typed so far (docs/protocol.md "Names").
@@ -286,6 +300,14 @@ pub enum Item {
     Machine(usize),
     Workspace(usize, String),
     Agent(usize, String),
+    /// "Shared with me" (super::shares), only when someone shared a session with you.
+    SharedHeader,
+    /// A session shared with you, by its index in `shares.with_me`: Enter opens it in the browser.
+    SharedWithMe(usize),
+    /// "While you were away" (super::away), only when there is news: Enter opens the digest in the browser.
+    AwayHeader,
+    /// A session with news, by its index in `away.cards`: Enter goes to its pane.
+    Away(usize),
 }
 
 #[derive(Debug, Clone)]
@@ -348,12 +370,34 @@ pub struct App {
     pub prefix_at: Option<std::time::Instant>,
     /// Prefix overlay setting changes for the account (`PUT /api/me/prefix-overlay`), sent by the event loop.
     pub settings_out: Vec<Value>,
+    /// The palette's Recent (the account's list, `GET /api/me/palette-recent`; newest first).
+    pub recent: Vec<super::palette::RecentPlace>,
+    /// Read Recent from web (set when the palette opens).
+    pub recent_fetch: bool,
+    /// Places to add to the account's Recent (`POST /api/me/palette-recent`), sent by the event loop.
+    pub recent_out: Vec<Value>,
     /// `prefix S`'s view (super::agent_settings), while open.
     pub agent_settings: Option<super::agent_settings::View>,
     /// Machines whose agent settings the event loop fetches (`GET …/plugins/effective`).
     pub agent_settings_out: Vec<String>,
+    /// `prefix F`'s view (super::browse), while open.
+    pub files: Option<super::browse::View>,
+    /// Requests for the event loop: (machine id, API path).
+    pub files_out: Vec<super::browse::Request>,
+    /// Machines to wake (`prefix W`, super::wake).
+    pub wake_out: Vec<String>,
+    /// `prefix /`: search everything (super::search); kept after Esc.
+    pub search: Option<super::search::View>,
+    /// Search requests for the event loop.
+    pub search_out: Vec<super::search::Request>,
+    /// A pane result just opened: the line to scroll to once the pane is drawn.
+    pub search_find: Option<super::search::Find>,
     /// The web app's address (cli.toml `server`), for `e` in that view.
     pub web_url: String,
+    /// Shared sessions (Phase 27): yours wear `[shared]`; others' are listed under "Shared with me".
+    pub shares: super::shares::Shares,
+    /// "While you were away" (PLAN 802): the sessions with news since you were last here.
+    pub away: super::away::Away,
     /// Arrange's undo, the account's favourites and a restore in progress.
     pub layouts: super::arrange_ui::Layouts,
     pending: HashMap<String, Pending>,
@@ -397,11 +441,22 @@ impl App {
             login_callbacks: vec![],
             prefix_at: None,
             settings_out: vec![],
+            recent: vec![],
+            recent_fetch: false,
+            recent_out: vec![],
             agent_settings: None,
             agent_settings_out: vec![],
+            files: None,
+            files_out: vec![],
+            wake_out: vec![],
+            search: None,
+            search_out: vec![],
+            search_find: None,
             web_url: String::new(),
             layouts: Default::default(),
             pending: HashMap::new(),
+            shares: Default::default(),
+            away: Default::default(),
             pending_focus: None,
             next_id: 1,
             chat: None,
@@ -484,7 +539,24 @@ impl App {
                 }
             }
         }
+        if !self.shares.with_me.is_empty() {
+            v.push(Item::SharedHeader);
+            v.extend((0..self.shares.with_me.len()).map(Item::SharedWithMe));
+        }
+        if !self.away.cards.is_empty() {
+            v.push(Item::AwayHeader);
+            v.extend((0..self.away.cards.len()).map(Item::Away));
+        }
         v
+    }
+
+    /// A new digest: the sidebar cursor stays on a row that still exists.
+    pub fn on_away(&mut self, a: super::away::Away) {
+        self.away = a;
+        let n = self.sidebar_items().len();
+        if self.sidebar_cursor >= n {
+            self.sidebar_cursor = n.saturating_sub(1);
+        }
     }
 
     /// The focused pane's held permission prompt, unless answered here: (pane, promptId, agent).
@@ -519,6 +591,9 @@ impl App {
                     .or_else(|| old.as_ref().and_then(|o| o.auth.clone())),
                 plugins: old.as_ref().map(|o| o.plugins.clone()).unwrap_or_default(),
                 needs: old.as_ref().map(|o| o.needs.clone()).unwrap_or_default(),
+                wake_via: super::wake::wake_via(it),
+                wake_blocked: super::wake::wake_blocked(it),
+                kept_awake: super::wake::kept_awake(it),
                 link: old.map(|o| o.link).unwrap_or(Link::Down),
             });
         }
@@ -840,6 +915,7 @@ impl App {
 
     /// Periodic: acknowledge whatever was processed since the last ack.
     pub fn tick(&mut self) {
+        self.search_tick(std::time::Instant::now());
         for ((mid, pane), t) in self.terms.iter_mut() {
             if let Some(p) = t.processed.filter(|p| *p > t.acked && t.attached) {
                 t.acked = p;
@@ -975,6 +1051,30 @@ impl App {
     }
 
     pub fn activate(&mut self, item: &Item) {
+        match item {
+            Item::SharedHeader => return,
+            // A guest's terminal is the browser's (a token cannot open a share): open it there.
+            Item::SharedWithMe(i) => {
+                if let Some(s) = self.shares.with_me.get(*i) {
+                    self.open_urls.push(super::shares::open_url(&self.web_url, &s.id));
+                    self.note = Some(format!("opening {} in your browser", s.session));
+                }
+                return;
+            }
+            Item::AwayHeader => {
+                self.open_urls.push(super::away::open_url(&self.web_url));
+                self.note = Some("opening While you were away in your browser".into());
+                return;
+            }
+            Item::Away(i) => {
+                let Some(c) = self.away.cards.get(*i) else { return };
+                if c.gone || !self.machines.iter().any(|m| m.id == c.machine) {
+                    self.note = Some(format!("{} is not open here any more", c.title));
+                    return;
+                }
+            }
+            _ => {}
+        }
         // Going to a pane leaves the chat screen (the chat keeps running).
         if self.chat.is_some() {
             self.chat_close();
@@ -990,6 +1090,17 @@ impl App {
                 self.select_machine(*i);
                 self.pending_focus = Some(pane.clone());
             }
+            Item::Away(i) => {
+                let (machine, pane) = {
+                    let c = &self.away.cards[*i];
+                    (c.machine.clone(), c.pane.clone())
+                };
+                if let Some(m) = self.machines.iter().position(|m| m.id == machine) {
+                    self.select_machine(m);
+                    self.pending_focus = Some(pane);
+                }
+            }
+            Item::SharedHeader | Item::SharedWithMe(_) | Item::AwayHeader => {}
         }
         self.fix_selection();
         self.sync(false);
@@ -1132,6 +1243,8 @@ impl App {
             // The chat screen covers the panes: the mouse does not reach them.
             Event::Mouse(_) if self.chat.is_some() => {}
             Event::Mouse(m) => self.on_mouse(m),
+            Event::Paste(s) if matches!(self.mode, Mode::SaveFavourite(_)) => self.save_paste(&s),
+            Event::Paste(s) if self.mode == Mode::Search => self.search_paste(&s),
             Event::Paste(s) if matches!(self.mode, Mode::Rename(_)) => {
                 if let Mode::Rename(r) = &mut self.mode {
                     for c in s.chars() {
@@ -1189,8 +1302,12 @@ impl App {
             }
             Mode::Needs(cursor) => self.needs_key(cursor, k),
             Mode::Arrange(sel) => self.arrange_key(sel, k),
+            Mode::SaveFavourite(buf) => self.save_key(buf, k),
             Mode::Reply(item, buf) => self.reply_key(item, buf, k),
             Mode::AgentSettings(top) => self.agent_settings_key(top, k),
+            Mode::Files => self.files_key(k),
+            Mode::Command(st) => self.command_key(st, k),
+            Mode::Search => self.search_key(k),
             Mode::Confirm(pane) => {
                 self.mode = Mode::Normal;
                 if matches!(k.code, KeyCode::Char('y') | KeyCode::Char('Y')) {
@@ -1321,6 +1438,9 @@ impl App {
             KeyCode::Char('N') if super::overlay::free(&self.keymap, "N") => self.needs_open(),
             // Phase 17: what each agent gets on this machine, read only.
             KeyCode::Char('S') if super::overlay::free(&self.keymap, "S") => self.agent_settings_open(),
+            KeyCode::Char('F') if super::overlay::free(&self.keymap, "F") => self.files_open(),
+            KeyCode::Char('W') if super::overlay::free(&self.keymap, "W") => self.wake_open(),
+            KeyCode::Char('/') if super::overlay::free(&self.keymap, "/") => self.search_open(),
             KeyCode::Char('n') => self.cycle_tab(1),
             KeyCode::Char('p') => self.cycle_tab(-1),
             KeyCode::Char(c @ '1'..='9') => {
@@ -1334,6 +1454,14 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    /// A palette row runs what its overlay row would (super::palette).
+    pub(super) fn run_action(&mut self, a: Action, focus: Option<String>) {
+        self.action(a, focus)
+    }
+    pub(super) fn run_prefix_key(&mut self, k: KeyEvent) {
+        self.prefix_key(k, false)
     }
 
     /// A keybinding action (after the prefix).
@@ -1372,8 +1500,17 @@ impl App {
                 }
             }
             Action::Detach => self.detach_all(),
+            Action::OpenPalette => self.command_open(),
             Action::Arrange => self.arrange_open(),
             Action::EvenOut => self.even_out(),
+            Action::ResizeSnapLeft
+            | Action::ResizeSnapRight
+            | Action::ResizeSnapUp
+            | Action::ResizeSnapDown
+            | Action::ResizeCellLeft
+            | Action::ResizeCellRight
+            | Action::ResizeCellUp
+            | Action::ResizeCellDown => self.resize_key(a),
             Action::RenameTab | Action::RenameWorkspace | Action::RenamePane => self.start_rename(a, focus),
             Action::FocusLeft | Action::FocusRight | Action::FocusUp | Action::FocusDown => {
                 if self.zoomed_pane().is_some() {

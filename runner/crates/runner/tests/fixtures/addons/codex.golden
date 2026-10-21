@@ -1,0 +1,38 @@
+== addon-env.json 600
+{
+  "env": {
+    "EXAMPLE_TELEMETRY_TOKEN": "EXAMPLE_TELEMETRY_TOKEN"
+  },
+  "plugin": "codex",
+  "v": 1
+}
+== argv.sh 600
+eval "$('/opt/tmuxedo/tmuxedo-runner' cli secret addon-env '<scope>/addon-env.json' 2>/dev/null)"
+set -- '-c' 'otel.environment="dev"' '-c' 'otel.exporter={ otlp-http = { endpoint = "https://telemetry.example.com/v1/logs", protocol = "json" } }' '-c' 'otel.log_user_prompt=false' '-c' 'hooks.SessionStart=[{hooks=[{type="command",command="tmuxedo hook"}]},{hooks=[{type="command",command="'\''<scope>/files/telemetry/bin/hook'\'' start"}]}]' "$@"
+== files/ 700
+== files/telemetry/ 700
+== files/telemetry/README.txt 600
+Installed by tmuxedo.
+== files/telemetry/bin/ 700
+== files/telemetry/bin/hook 700
+#!/bin/sh
+echo "$1" >>"${EXAMPLE_TELEMETRY_LOG:-/dev/null}"
+== files/telemetry/bin/statusline 700
+#!/bin/sh
+cat >/dev/null
+echo telemetry
+== report.json 600
+{
+  "items": [
+    {
+      "kind": "addon",
+      "name": "telemetry",
+      "sendsTo": [
+        "https://telemetry.example.com"
+      ],
+      "status": "built"
+    }
+  ],
+  "plugin": "codex",
+  "v": 1
+}

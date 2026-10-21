@@ -23,7 +23,8 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use tmuxedo_protocol::usage::{
-    usage_plan_ok, UsageContext, UsageRecord, UsageWindow, USAGE_MIN_INTERVAL_MS, USAGE_WINDOWS_MAX,
+    usage_plan_ok, SessionUsage, SpentWindow, UsageContext, UsageRecord, UsageWindow, SESSION_TOKENS_MAX,
+    USAGE_MIN_INTERVAL_MS, USAGE_WINDOWS_MAX,
 };
 
 /// The most status-line JSON read (a real one is a few KiB). More than this:
@@ -54,6 +55,9 @@ pub struct Reading {
     pub context: Option<(f64, Option<u64>)>,
     #[serde(default)]
     pub plan: Option<String>,
+    /// The session's running token total, as the agent reported it.
+    #[serde(default)]
+    pub tokens: Option<u64>,
 }
 
 /// The value at a dotted field path.
@@ -129,6 +133,17 @@ pub fn extract(source: &UsageSource, v: &Value, now_s: u64) -> Reading {
             r.context = Some((p, size));
         }
     }
+    let parts: Vec<u64> = source
+        .tokens
+        .iter()
+        .filter_map(|f| whole(at(v, f), 0, SESSION_TOKENS_MAX))
+        .collect();
+    r.tokens = (!parts.is_empty()).then(|| {
+        parts
+            .iter()
+            .fold(0u64, |a, b| a.saturating_add(*b))
+            .min(SESSION_TOKENS_MAX)
+    });
     r.plan = source
         .plan
         .as_ref()
@@ -387,21 +402,159 @@ struct Entry {
     sent: Option<Instant>,
 }
 
+/// Sessions whose use is remembered (the oldest is let go), and steps kept per session.
+pub const SPENT_PANES_MAX: usize = 64;
+pub const SPENT_EVENTS_MAX: usize = 256;
+
+/// One step in what a session used: a rise in a window, or tokens.
+struct Step {
+    at_ms: u64,
+    window: Option<(String, Option<u32>, f64)>,
+    tokens: u64,
+}
+
+/// What one pane's agent used, step by step (the away digest asks "since when").
+#[derive(Default)]
+struct Spent {
+    plugin: String,
+    last_ms: u64,
+    tokens_now: Option<u64>,
+    steps: std::collections::VecDeque<Step>,
+}
+
+impl Spent {
+    fn push(&mut self, s: Step) {
+        if self.steps.len() >= SPENT_EVENTS_MAX {
+            self.steps.pop_front();
+        }
+        self.steps.push_back(s);
+    }
+}
+
+/// Credit `pane` with what this reading shows it used: the rise of each
+/// window since the newest reading from any pane (a window whose reset
+/// passed starts again from 0; a first reading on this machine is only
+/// where the account stood), and the change in its running token total
+/// (a smaller total is a new agent session, counted whole).
+fn credit(
+    spent: &mut BTreeMap<String, Spent>,
+    plugin: &str,
+    pane: &str,
+    old: &[UsageWindow],
+    new: &[UsageWindow],
+    tokens: Option<u64>,
+    now_ms: u64,
+) {
+    let now_s = now_ms / 1000;
+    if !spent.contains_key(pane) && spent.len() >= SPENT_PANES_MAX {
+        let oldest = spent.iter().min_by_key(|(_, s)| s.last_ms).map(|(k, _)| k.clone());
+        if let Some(k) = oldest {
+            spent.remove(&k);
+        }
+    }
+    let s = spent.entry(pane.to_string()).or_default();
+    if s.plugin != plugin {
+        *s = Spent {
+            plugin: plugin.to_string(),
+            ..Default::default()
+        };
+    }
+    s.last_ms = now_ms;
+    for w in new {
+        let Some(o) = old.iter().find(|o| o.id == w.id) else {
+            continue;
+        };
+        let rise = if o.resets_at.is_some_and(|t| t <= now_s) {
+            w.used_pct
+        } else {
+            w.used_pct - o.used_pct
+        };
+        if rise > 0.0 {
+            s.push(Step {
+                at_ms: now_ms,
+                window: Some((w.id.clone(), w.window_mins, rise)),
+                tokens: 0,
+            });
+        }
+    }
+    if let Some(t) = tokens {
+        let used = match s.tokens_now {
+            Some(prev) if t >= prev => t - prev,
+            _ => t,
+        };
+        s.tokens_now = Some(t);
+        if used > 0 {
+            s.push(Step {
+                at_ms: now_ms,
+                window: None,
+                tokens: used,
+            });
+        }
+    }
+}
+
+/// A window with no reset time is trusted from disk for this long.
+const NO_RESET_KEEP_MS: u64 = 5 * 3600 * 1000;
+
+/// The records saved by an earlier run, with every window whose reset has
+/// passed left out (a record with none left is dropped). Each is sent again.
+fn load_latest(path: &Path, now_ms: u64) -> BTreeMap<String, Entry> {
+    let now_s = now_ms / 1000;
+    let saved: Vec<UsageRecord> = std::fs::read(path)
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default();
+    let mut out = BTreeMap::new();
+    for mut r in saved {
+        let fresh = now_ms.saturating_sub(r.observed_at) < NO_RESET_KEEP_MS;
+        r.windows.retain(|w| w.resets_at.map_or(fresh, |t| t > now_s));
+        r.reached = r.windows.iter().find(|w| w.used_pct >= 100.0).map(|w| w.id.clone());
+        r.context = None;
+        if r.windows.is_empty() || !r.ok() || out.len() >= ACCOUNTS_MAX || out.contains_key(&r.plugin) {
+            continue;
+        }
+        out.insert(
+            r.plugin.clone(),
+            Entry {
+                record: r,
+                dirty: true,
+                sent: None,
+            },
+        );
+    }
+    out
+}
+
 /// The newest record per plugin, and when each may be sent again.
 pub struct Store {
     salt_file: PathBuf,
+    /// The newest records, kept on disk so a restart still knows how full
+    /// each plan is (the gauge, and the restart-time lazy resume).
+    latest_file: PathBuf,
     salt: Option<String>,
     entries: BTreeMap<String, Entry>,
     tailed: BTreeMap<String, Instant>,
+    /// Per pane: what its session used (in memory only; a restart starts afresh).
+    spent: BTreeMap<String, Spent>,
 }
 
 impl Store {
     pub fn new(state_dir: &Path) -> Self {
+        let latest_file = state_dir.join("usage-latest.json");
+        let entries = load_latest(&latest_file, crate::util::now_ms());
         Self {
             salt_file: state_dir.join("usage-salt"),
+            latest_file,
             salt: None,
-            entries: BTreeMap::new(),
+            entries,
             tailed: BTreeMap::new(),
+            spent: BTreeMap::new(),
+        }
+    }
+
+    fn save(&self) {
+        if let Ok(b) = serde_json::to_vec(&self.records()) {
+            let _ = crate::config::write_private(&self.latest_file, &b);
         }
     }
 
@@ -512,6 +665,10 @@ impl Store {
         if !record.ok() {
             return false;
         }
+        if let Some(p) = pane {
+            let before = old.map_or(&[][..], |o| o.windows.as_slice());
+            credit(&mut self.spent, plugin, p, before, &record.windows, r.tokens, now_ms);
+        }
         let same = old.is_some_and(|o| {
             let mut o = o.clone();
             o.observed_at = now_ms;
@@ -533,7 +690,42 @@ impl Store {
                 );
             }
         }
+        if !same {
+            self.save();
+        }
         !same
+    }
+
+    /// What the session in `pane` used at or after `since_ms`; None when nothing is known.
+    pub fn spent(&self, pane: &str, since_ms: u64) -> Option<SessionUsage> {
+        let s = self.spent.get(pane)?;
+        let mut windows: Vec<SpentWindow> = vec![];
+        let mut tokens = 0u64;
+        for st in s.steps.iter().filter(|st| st.at_ms >= since_ms) {
+            tokens = tokens.saturating_add(st.tokens);
+            if let Some((id, mins, rise)) = &st.window {
+                if let Some(w) = windows.iter_mut().find(|w| &w.id == id) {
+                    w.spent_pct += rise;
+                    w.window_mins = mins.or(w.window_mins);
+                } else if windows.len() < USAGE_WINDOWS_MAX {
+                    windows.push(SpentWindow {
+                        id: id.clone(),
+                        spent_pct: *rise,
+                        window_mins: *mins,
+                    });
+                }
+            }
+        }
+        for w in &mut windows {
+            w.spent_pct = (w.spent_pct * 10.0).round() / 10.0;
+        }
+        windows.retain(|w| w.spent_pct > 0.0);
+        let u = SessionUsage {
+            plugin: s.plugin.clone(),
+            windows,
+            tokens: (tokens > 0).then_some(tokens.min(SESSION_TOKENS_MAX)),
+        };
+        u.ok().then_some(u)
     }
 
     /// The records to send now: changed, and none sent for that account within the interval.
@@ -550,6 +742,11 @@ impl Store {
         out
     }
 
+    /// The newest record per account (usage alerts read these).
+    pub fn records(&self) -> Vec<UsageRecord> {
+        self.entries.values().map(|e| e.record.clone()).collect()
+    }
+
     /// A new gateway connection knows nothing: every record goes again.
     pub fn resend(&mut self) {
         for e in self.entries.values_mut() {
@@ -560,14 +757,24 @@ impl Store {
 
     /// Drop what was read for a plugin (its AI usage was turned off).
     pub fn forget(&mut self, plugin: &str) {
-        self.entries.remove(plugin);
         self.tailed.remove(plugin);
+        self.spent.retain(|_, s| s.plugin != plugin);
+        if self.entries.remove(plugin).is_some() {
+            self.save();
+        }
     }
 
     pub fn has_dirty(&self) -> bool {
         self.entries.values().any(|e| e.dirty)
     }
 }
+
+/// The local and gateway methods (crate::api): the newest readings, for the TUI widget.
+pub const METHODS: &[&str] = &["usage.list"];
+
+pub mod alerts;
+mod alerts_daemon;
+pub mod lazy;
 
 #[cfg(test)]
 mod tests;

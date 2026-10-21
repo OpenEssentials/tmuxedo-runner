@@ -288,10 +288,54 @@ pub fn iso_ms(s: &str) -> Option<u64> {
     Some(secs * 1000 + u64::try_from(ms).unwrap_or(0))
 }
 
+/// One plan window of one AI account (`usage.list`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct UsageRow {
+    pub name: String,
+    /// "5-hour", "weekly".
+    pub label: String,
+    /// "5h", "7d".
+    pub short: String,
+    pub used: f64,
+    pub resets_in_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UsageData {
+    /// AI usage is on for some agent (Settings → AI usage).
+    pub on: bool,
+    pub rows: Vec<UsageRow>,
+}
+
+/// `usage.list`'s result → rows, in the runner's order.
+pub fn usage_from(result: &Value, now_ms: u64) -> UsageData {
+    let mut rows = vec![];
+    for r in result["records"].as_array().map(Vec::as_slice).unwrap_or_default() {
+        let name = clean(r["name"].as_str().or(r["plugin"].as_str()).unwrap_or(""))
+            .trim()
+            .to_string();
+        for x in r["windows"].as_array().map(Vec::as_slice).unwrap_or_default() {
+            let Some(used) = x["usedPct"].as_f64() else { continue };
+            let short = clean(x["id"].as_str().unwrap_or("")).trim().to_string();
+            rows.push(UsageRow {
+                name: name.clone(),
+                label: clean(x["label"].as_str().unwrap_or(&short)).trim().to_string(),
+                short,
+                used,
+                resets_in_ms: x["resetsAt"].as_u64().map(|t| (t * 1000).saturating_sub(now_ms)),
+            });
+        }
+    }
+    UsageData {
+        on: result["enabled"].as_bool().unwrap_or(false),
+        rows,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Data {
-    /// AI usage is not on this runner yet.
-    Usage,
+    /// AI usage (plan limits).
+    Usage(UsageData),
     Machine(MachineData),
     Agents(Vec<AgentRow>),
     Needs(Vec<NeedRow>),
@@ -610,13 +654,12 @@ pub fn lines(data: &Data, cols: u16, rows: u16, o: &Opts) -> Vec<L> {
     let port = portrait(cols, rows);
     let (c, r) = (cols as usize, rows as usize);
     match data {
-        Data::Usage => note(
+        Data::Usage(u) if !u.on => note(
             &[
-                "AI usage is not available on this runner",
-                "AI usage is not available",
-                "AI usage: not available",
-                "usage n/a",
-                "n/a",
+                "AI usage is off · turn it on in tmuxedo settings",
+                "AI usage is off",
+                "usage off",
+                "off",
                 "-",
             ],
             "Plan limits",
@@ -625,6 +668,20 @@ pub fn lines(data: &Data, cols: u16, rows: u16, o: &Opts) -> Vec<L> {
             r,
             o,
         ),
+        Data::Usage(u) if u.rows.is_empty() => note(
+            &[
+                "No reading yet · it shows after an agent's next reply",
+                "No reading yet",
+                "no reading",
+                "-",
+            ],
+            "Plan limits",
+            t,
+            c,
+            r,
+            o,
+        ),
+        Data::Usage(u) => usage(&u.rows, t, c, r, o),
         Data::NoRunner => note(
             &[
                 "tmuxedo-runner is not running on this machine",
@@ -643,6 +700,96 @@ pub fn lines(data: &Data, cols: u16, rows: u16, o: &Opts) -> Vec<L> {
         Data::Machine(m) => machine(m, t, port, c, r, o),
         Data::Agents(a) => agents(a, t, c, r, o),
         Data::Needs(n) => needs(n, t, c, r, o),
+    }
+}
+
+/// "2 h 15 m", "40 m", "3 d".
+fn until(ms: u64) -> String {
+    let m = ms / 60_000;
+    match m {
+        0 => "now".into(),
+        1..=59 => format!("{m} m"),
+        60..=1439 if m.is_multiple_of(60) => format!("{} h", m / 60),
+        60..=1439 => format!("{} h {} m", m / 60, m % 60),
+        _ if m % 1440 < 60 => format!("{} d", m / 1440),
+        _ => format!("{} d {} h", m / 1440, m % 1440 / 60),
+    }
+}
+
+type Detail<'a> = &'a dyn Fn(&UsageRow) -> Option<String>;
+
+/// Plan limits: one gauge per window (green, then yellow at 80 %, red at 95 %).
+fn usage(rows: &[UsageRow], t: Tier, c: usize, r: usize, o: &Opts) -> Vec<L> {
+    let g = o.glyphs;
+    let lv = |u: &UsageRow| level(u.used, 80.0, 95.0);
+    let styled = |s: String, l: Level| Line::from(Span::styled(s, tone(o, l.color())));
+    let mut fullest: Vec<&UsageRow> = rows.iter().collect();
+    fullest.sort_by(|a, b| b.used.total_cmp(&a.used));
+    let worst = fullest.first().map_or(Level::Calm, |u| lv(u));
+    match t {
+        Tier::Micro | Tier::Strip => {
+            let items: Vec<Vec<String>> = fullest
+                .iter()
+                .map(|u| {
+                    vec![
+                        format!("{} {} {}", u.name, u.label, pct(u.used)),
+                        format!("{} {}", u.short, pct(u.used)),
+                        pct(u.used),
+                    ]
+                })
+                .collect();
+            if t == Tier::Micro {
+                let mut v = stacked(&items, worst.glyph(g), c, r);
+                if let Some(l) = v.first_mut() {
+                    *l = l.clone().style(tone(o, worst.color()));
+                }
+                return v;
+            }
+            vec![styled(strip(&items, c).trim_end().to_string(), worst)]
+        }
+        _ => {
+            let lw = rows
+                .iter()
+                .map(|u| w(&format!("{} {}", u.name, u.label)))
+                .max()
+                .unwrap_or(0)
+                .min(c / 2)
+                + 1;
+            // Every row has the same columns: label, percent, a bar of one width, the reset.
+            let room = c.saturating_sub(lw + 8);
+            let long = |u: &UsageRow| u.resets_in_ms.map(|ms| format!("resets in {}", until(ms)));
+            let short = |u: &UsageRow| u.resets_in_ms.map(until);
+            let widest = |f: Detail| rows.iter().filter_map(f).map(|d| w(&d)).max();
+            let detail: Option<(Detail, usize)> = [&long as Detail, &short as Detail]
+                .into_iter()
+                .find_map(|f| widest(f).filter(|d| room >= d + 8).map(|d| (f, d)));
+            let n = detail.map_or(room, |(_, d)| room - d - 2).min(30);
+            let line = |u: &UsageRow| -> String {
+                let label = fit(
+                    &[
+                        format!("{} {}", u.name, u.label),
+                        format!("{} {}", u.name, u.short),
+                        u.short.clone(),
+                    ],
+                    lw,
+                )
+                .unwrap_or_default();
+                let d = detail
+                    .and_then(|(f, _)| f(u))
+                    .map(|d| format!("  {d}"))
+                    .unwrap_or_default();
+                format!(" {label:<lw$}{:>4}  {}{d}", pct(u.used), bar(u.used / 100.0, n, g))
+                    .trim_end()
+                    .to_string()
+            };
+            let body: Vec<L> = rows.iter().map(|u| styled(line(u), lv(u))).collect();
+            if t == Tier::Tiny {
+                let mut v: Vec<L> = fullest.iter().map(|u| styled(line(u), lv(u))).collect();
+                v.truncate(r);
+                return v;
+            }
+            framed("Plan limits", "", body, c, r, o, &[])
+        }
     }
 }
 
@@ -1103,7 +1250,10 @@ pub fn text(buf: &Buffer) -> String {
 /// Read the kind's data once (local only).
 fn fetch(kind: &str, sampler: &mut crate::stats::Sampler, machine: &mut MachineData) -> Data {
     match kind {
-        "usage" => Data::Usage,
+        "usage" => match super::call_local("usage.list", serde_json::json!({})) {
+            Ok(v) if v.get("result").is_some() => Data::Usage(usage_from(&v["result"], crate::util::now_ms())),
+            _ => Data::NoRunner,
+        },
         "machine" => {
             if let Some(s) = sampler.tick(Instant::now(), crate::util::now_ms()) {
                 machine.push(&s);
@@ -1160,7 +1310,7 @@ pub fn run(rest: &[String]) -> Result<(), String> {
     let mut last_input = Instant::now();
     let mut next = Instant::now();
     let mut shown: Option<(Data, (u16, u16), bool)> = None;
-    let mut data = Data::Usage;
+    let mut data = Data::NoRunner;
     let r = loop {
         let now = Instant::now();
         let size = term.size().map(|s| (s.width, s.height)).unwrap_or((80, 24));

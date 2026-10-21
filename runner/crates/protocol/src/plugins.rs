@@ -90,6 +90,9 @@ pub struct PluginConfig {
     /// runner's status-line command. Absent (an older web, which has no
     /// switch to turn it off again) = off.
     pub usage: Option<bool>,
+    /// Which usage alerts are on (`settings.usage.alerts`, a subset of
+    /// [`crate::usage::USAGE_ALERT_LEVELS`]); `None` = all of them.
+    pub usage_alerts: Option<Vec<u8>>,
 }
 
 /// `config.plugins` → (id, what it asks), junk dropped. `None` when absent
@@ -107,6 +110,7 @@ pub fn parse_config_plugins(v: &Value) -> Option<Vec<(String, PluginConfig)>> {
         let skill = Some(st["skill"]["enabled"].as_bool().unwrap_or(true));
         let keystroke = st["keystroke"]["enabled"].as_bool();
         let usage = st["usage"]["enabled"].as_bool();
+        let usage_alerts = crate::usage::parse_alert_levels(&st["usage"]["alerts"]);
         out.push((
             id.to_string(),
             PluginConfig {
@@ -114,6 +118,7 @@ pub fn parse_config_plugins(v: &Value) -> Option<Vec<(String, PluginConfig)>> {
                 skill,
                 keystroke,
                 usage,
+                usage_alerts,
             },
         ));
     }

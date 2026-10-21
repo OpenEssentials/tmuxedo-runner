@@ -39,10 +39,19 @@ on the first word of the message:
                subscription access for Claude Code"
 
 Terminal mode (no -p): calls the SessionStart hook with the session id from
---resume (source resume), the last session for --continue (source resume) or
-a new one (source startup), then waits for lines: "busy" (UserPromptSubmit),
-"done" (Stop), "orgoff" (prints the organization message), "bye" (SessionEnd,
-then exits).
+--resume (source resume), --session-id (source startup), the last session for
+--continue (source resume) or a new one (source startup), then waits for
+lines: "busy" (UserPromptSubmit), "done" (Stop), "say TEXT" (a whole turn:
+UserPromptSubmit, the answer "You said TEXT", Stop), "orgoff" (prints the
+organization message), "bye" (SessionEnd, then exits).
+
+The transcript (only when $FAKE_LOG is set, so nothing is written under a
+real home): like Claude Code, the conversation is kept as JSON lines in
+$FAKE_LOG/projects/<cwd with every non-alphanumeric as "-">/<session>.jsonl,
+written from the first turn on (a session nobody spoke in has none), and every
+hook names it (`transcript_path`). As Claude Code does, `-p --resume <id>`
+without that file fails ("No conversation found with session ID: <id>"), and
+`--session-id <id>` with it fails ("Session ID <id> is already in use").
 
 Every start appends its argv to $FAKE_LOG/argv.log (one JSON array a line).
 """
@@ -87,9 +96,48 @@ def hook_cmds(event, tool=None):
     return cmds
 
 
+def transcript():
+    """This session's transcript path (None without $FAKE_LOG)."""
+    if not log_dir:
+        return None
+    slug = "".join(c if c.isalnum() else "-" for c in os.getcwd())
+    return os.path.join(log_dir, "projects", slug, f"{session}.jsonl")
+
+
+def has_conversation():
+    t = transcript()
+    if not t or not os.path.exists(t):
+        return False
+    with open(t) as f:
+        return any(json.loads(l).get("type") in ("user", "assistant") for l in f if l.strip())
+
+
+def record(v):
+    """Append one conversation line to the transcript, as Claude Code keeps it."""
+    t = transcript()
+    if not t:
+        return
+    os.makedirs(os.path.dirname(t), exist_ok=True)
+    line = dict(v, sessionId=session, cwd=os.getcwd(), uuid=f"u{time.time_ns()}", isSidechain=False)
+    line.pop("session_id", None)
+    with open(t, "a") as f:
+        f.write(json.dumps(line) + "\n")
+
+
+def record_prompt(text):
+    record({"type": "user", "message": {"role": "user", "content": text}})
+
+
+def record_answer(text):
+    record({"type": "assistant", "message": {"id": f"msg_t{time.time_ns()}", "role": "assistant",
+            "content": [{"type": "text", "text": text}]}})
+
+
 def hook(event, payload, tool=None):
     """Run every matching hook; a deny from any wins, else the first decision."""
     payload = dict(payload, hook_event_name=event, session_id=session, cwd=os.getcwd())
+    if transcript():
+        payload["transcript_path"] = transcript()
     got = []
     for cmd in hook_cmds(event, tool):
         out = subprocess.run(cmd, shell=True, input=json.dumps(payload), capture_output=True, text=True).stdout.strip()
@@ -127,6 +175,12 @@ if "-p" not in argv:
     source = "resume"
     if arg("--resume"):
         print(f"FAKE TUI resumed {session}", flush=True)
+    elif arg("--session-id"):
+        if has_conversation():
+            print(f"Error: Session ID {session} is already in use.", file=sys.stderr, flush=True)
+            sys.exit(1)
+        source = "startup"
+        print(f"FAKE TUI started {session}", flush=True)
     elif "--continue" in argv and last and os.path.exists(last):
         session = open(last).read().strip()
         print(f"FAKE TUI continued {session}", flush=True)
@@ -146,11 +200,19 @@ if "-p" not in argv:
             hook("SessionEnd", {"reason": "prompt_input_exit"})
             break
         if line == "busy":
+            record_prompt("busy")
             hook("UserPromptSubmit", {"prompt": "busy"})
             print("FAKE TUI working", flush=True)
         elif line == "done":
+            record_answer("Done in the terminal.")
             hook("Stop", {})
             print("FAKE TUI done", flush=True)
+        elif line.startswith("say "):
+            record_prompt(line[4:])
+            hook("UserPromptSubmit", {"prompt": line[4:]})
+            record_answer("You said " + line[4:])
+            hook("Stop", {})
+            print("FAKE TUI said", flush=True)
         elif line == "orgoff":
             print("Your organization has disabled Claude subscription access for Claude Code", flush=True)
             print("· Use an Anthropic API key instead, or ask your admin to enable access", flush=True)
@@ -161,6 +223,8 @@ if "-p" not in argv:
 def out(v):
     sys.stdout.write(json.dumps(v) + "\n")
     sys.stdout.flush()
+    if v.get("type") in ("user", "assistant"):
+        record(v)
 
 
 interrupted = False
@@ -174,6 +238,16 @@ def on_int(_s, _f):
 signal.signal(signal.SIGINT, on_int)
 n_msg = 0
 mode = arg("--permission-mode") or "default"
+if arg("--resume") and log_dir and not has_conversation():
+    # Claude Code writes a session's transcript from its first turn on: nothing to reopen.
+    msg = f"No conversation found with session ID: {session}"
+    out({"type": "result", "subtype": "error_during_execution", "is_error": True, "session_id": session,
+         "errors": [msg]})
+    print(msg, file=sys.stderr, flush=True)
+    sys.exit(1)
+if arg("--session-id") and has_conversation():
+    print(f"Error: Session ID {session} is already in use.", file=sys.stderr, flush=True)
+    sys.exit(1)
 out({"type": "system", "subtype": "init", "session_id": session, "model": "fake-opus",
      "cwd": os.getcwd(), "permissionMode": mode, "tools": ["Bash", "Write"]})
 
@@ -237,6 +311,7 @@ for line in sys.stdin:
     msg = json.loads(line)
     content = msg["message"]["content"]
     text = content if isinstance(content, str) else "".join(b.get("text", "") for b in content)
+    record_prompt(text)
     words = text.split()
     cmd = words[0] if words else ""
     if cmd == "hello":

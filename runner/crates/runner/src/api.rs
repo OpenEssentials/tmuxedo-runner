@@ -496,6 +496,9 @@ impl Daemon {
 
     pub(crate) async fn request(&mut self, method: &str, params: Value, reply: ReplyTo) {
         let params = if params.is_null() { json!({}) } else { params };
+        if method == tmuxedo_protocol::wake::WOL_SEND_METHOD {
+            return self.wol_send(&params, reply);
+        }
         if crate::chat::METHODS.contains(&method) {
             return self.chat_request(method, &params, reply).await;
         }
@@ -505,11 +508,33 @@ impl Daemon {
         if tmuxedo_protocol::fs::is_fs_method(method) {
             return self.fs_request(method, &params, reply);
         }
+        if method == tmuxedo_protocol::checkpoint::METHOD_SUMMARY {
+            return self.session_summary(&params, reply);
+        }
         if tmuxedo_protocol::checkpoint::is_checkpoint_method(method) {
             return self.checkpoint_request(method, &params, reply);
         }
+        if method == crate::history::METHOD {
+            return self.search_request(&params, reply);
+        }
+        if method == crate::addon_test::METHOD {
+            return self.addon_test_request(&params, reply);
+        }
+        if method == crate::mcp_test::METHOD {
+            return self.mcp_test_request(&params, reply);
+        }
+        if method == crate::plugin_discover::METHOD {
+            return self.plugins_discover_request(reply);
+        }
         if tmuxedo_protocol::review::is_review_method(method) {
             return self.review_request(method, &params, reply);
+        }
+        if tmuxedo_protocol::replay::is_replay_method(method) {
+            return self.replay_request(method, &params, reply);
+        }
+        if crate::usage::METHODS.contains(&method) {
+            let v = self.usage_list();
+            return respond(reply, Ok(v), self);
         }
         if crate::needs::METHODS.contains(&method) {
             return self.needs_request(method, &params, reply).await;
@@ -872,6 +897,7 @@ impl Daemon {
                 let text = p["text"]
                     .as_str()
                     .ok_or_else(|| err("invalid_params", "text is required"))?;
+                self.usage_lazy_wake(&id);
                 let hid = self.hid(&id)?;
                 self.release_on_input(&id);
                 self.holder.input(&hid, text.as_bytes());
@@ -889,6 +915,7 @@ impl Daemon {
                             .ok_or_else(|| err("invalid_key", format!("unknown key {name}")))?,
                     );
                 }
+                self.usage_lazy_wake(&id);
                 let hid = self.hid(&id)?;
                 self.release_on_input(&id);
                 self.holder.input(&hid, &bytes);

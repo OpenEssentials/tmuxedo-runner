@@ -81,14 +81,14 @@ async fn review_reads_a_sessions_repository_through_the_gateway() {
     let d = c.res("d").await;
     assert!(d["result"]["patch"].as_str().unwrap().contains("+two"), "{d}");
 
-    // A path that escapes, a session that does not exist, and the methods not built.
+    // A path that escapes, a session that does not exist, and discard (not built).
     c.send(json!({"t":"req","id":"e","method":"git.diff","params":{"pane": pane, "path": "../x"}}))
         .await;
     assert_eq!(c.res("e").await["error"]["code"], "invalid_path");
     c.send(json!({"t":"req","id":"f","method":"git.status","params":{"pane": "w9:p9"}}))
         .await;
     assert_eq!(c.res("f").await["error"]["code"], "not_found");
-    c.send(json!({"t":"req","id":"g","method":"git.commit","params":{"pane": pane, "message": "x"}}))
+    c.send(json!({"t":"req","id":"g","method":"git.discard","params":{"pane": pane}}))
         .await;
     assert_eq!(c.res("g").await["error"]["code"], "not_supported");
     c.send(json!({"t":"req","id":"h","method":"git.status","params":{"pane": pane, "chat": "c1"}}))

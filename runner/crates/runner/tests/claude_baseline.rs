@@ -134,7 +134,33 @@ for d in $PATH; do
   [ "$abs" = "$shim_dir" ] && continue
   if [ -x "$d/claude" ] && [ ! -d "$d/claude" ]; then
     IFS=$old_ifs
-    exec "$d/claude" ${TMUXEDO_FILES_DIR:+--add-dir "$TMUXEDO_FILES_DIR" --append-system-prompt-file "$TMUXEDO_FILES_ROOT/.instructions.md"} '--model' 'opus' '--append-system-prompt' 'it'\''s $HOME' --settings '/st ate/claude-settings.json' "$@"
+    set -- ${TMUXEDO_FILES_DIR:+--add-dir "$TMUXEDO_FILES_DIR" --append-system-prompt-file "$TMUXEDO_FILES_ROOT/.instructions.md"} '--model' 'opus' '--append-system-prompt' 'it'\''s $HOME' --settings '/st ate/claude-settings.json' "$@"
+    tmuxedo_p=; tmuxedo_w=; tmuxedo_e=; tmuxedo_n=1; tmuxedo_nl='
+'
+    for tmuxedo_a in "$@"; do
+      [ "$tmuxedo_n" = 1 ] && set -- && tmuxedo_n=
+      if [ -z "$tmuxedo_w$tmuxedo_e" ]; then
+        case $tmuxedo_a in
+          --) tmuxedo_e=1 ;;
+          --append-system-prompt-file) tmuxedo_w=f; continue ;;
+          --append-system-prompt) tmuxedo_w=t; continue ;;
+          --append-system-prompt-file=*) tmuxedo_w=f; tmuxedo_a=${tmuxedo_a#*=} ;;
+          --append-system-prompt=*) tmuxedo_w=t; tmuxedo_a=${tmuxedo_a#*=} ;;
+        esac
+      fi
+      if [ "$tmuxedo_w" = f ]; then
+        if tmuxedo_v=$(cat -- "$tmuxedo_a" 2>/dev/null); then tmuxedo_w=t; tmuxedo_a=$tmuxedo_v
+        else set -- "$@" --append-system-prompt-file "$tmuxedo_a"; tmuxedo_w=; continue; fi
+      fi
+      if [ "$tmuxedo_w" = t ]; then
+        tmuxedo_p=${tmuxedo_p:+$tmuxedo_p$tmuxedo_nl$tmuxedo_nl}$tmuxedo_a; tmuxedo_w=; continue
+      fi
+      set -- "$@" "$tmuxedo_a"
+    done
+    [ "$tmuxedo_n" = 1 ] && set --
+    case $tmuxedo_w in f) set -- "$@" --append-system-prompt-file ;; t) set -- "$@" --append-system-prompt ;; esac
+    [ -n "$tmuxedo_p" ] && set -- --append-system-prompt "$tmuxedo_p" "$@"
+    exec "$d/claude" "$@"
   fi
 done
 IFS=$old_ifs
@@ -154,7 +180,7 @@ fn shim_script_is_exact() {
     // No launch args: `--settings` comes first.
     let bare = inject::shim_script(Path::new("/s/claude-settings.json"), &[]);
     assert!(
-        bare.contains("    exec \"$d/claude\" ${TMUXEDO_FILES_DIR:+--add-dir \"$TMUXEDO_FILES_DIR\" --append-system-prompt-file \"$TMUXEDO_FILES_ROOT/.instructions.md\"} --settings '/s/claude-settings.json' \"$@\"\n"),
+        bare.contains("    set -- ${TMUXEDO_FILES_DIR:+--add-dir \"$TMUXEDO_FILES_DIR\" --append-system-prompt-file \"$TMUXEDO_FILES_ROOT/.instructions.md\"} --settings '/s/claude-settings.json' \"$@\"\n"),
         "{bare}"
     );
 }
@@ -1079,11 +1105,14 @@ async fn config_frame_rewrites_the_shim_and_persists() {
     )
     .await;
     let text = r.h.wait_text("w1:p1", "<hi>").await.replace(['\r', '\n'], "");
-    // In a pane the files fragment (Phase 15) comes first: the files folder and the instructions.
+    // In a pane the files fragment (Phase 15) comes first: the files folder and
+    // the instructions, whose text the shim hands over as the one joined
+    // --append-system-prompt (Claude reads only the last of each prompt flag).
     assert!(
         text.contains(&format!("<--settings><{}><--print><hi>", settings.display()))
-            && text.contains("ARGV:<--add-dir><")
-            && text.contains("/.instructions.md><--settings>"),
+            && text.contains("ARGV:<--append-system-prompt><# Files from the person")
+            && text.contains("<--add-dir><")
+            && !text.contains("--append-system-prompt-file"),
         "{text}"
     );
     r.done().await;

@@ -50,6 +50,41 @@ impl Procs for System {
     }
 }
 
+/// A caller's parent chain as it was when its request was read. The check runs
+/// later, on the daemon's loop, and a caller that does not wait for the answer
+/// (the status line waits a moment, then exits) is gone by then: its chain
+/// would break and the report count as not from the pane. Read at once, the
+/// chain is also the one that sent the request, not a later process reusing
+/// the pid.
+#[derive(Debug, Clone, Default)]
+pub struct Snapshot(Vec<(u32, Option<u32>, Option<Process>)>);
+
+impl Snapshot {
+    /// The caller and its parents up to the root (at most [`MAX_DEPTH`] + 1).
+    pub fn take(procs: &dyn Procs, caller: u32) -> Snapshot {
+        let mut rows = vec![];
+        let mut at = caller;
+        while at > 0 && rows.len() <= MAX_DEPTH + 1 {
+            let parent = procs.parent(at);
+            rows.push((at, parent, procs.process(at)));
+            match parent {
+                Some(p) if p != at && !rows.iter().any(|r| r.0 == p) => at = p,
+                _ => break,
+            }
+        }
+        Snapshot(rows)
+    }
+}
+
+impl Procs for Snapshot {
+    fn parent(&self, pid: u32) -> Option<u32> {
+        self.0.iter().find(|r| r.0 == pid).and_then(|r| r.1)
+    }
+    fn process(&self, pid: u32) -> Option<Process> {
+        self.0.iter().find(|r| r.0 == pid).and_then(|r| r.2.clone())
+    }
+}
+
 /// Why a caller was refused (logged; never sent anywhere).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Refusal {
@@ -163,6 +198,25 @@ mod tests {
                 argv: a.iter().map(|s| s.to_string()).collect(),
             })
         }
+    }
+
+    #[test]
+    fn a_caller_gone_by_the_check_still_counts_from_its_snapshot() {
+        // claude's status line: claude → sh -c → hook, which exits before the loop checks it.
+        let mut t = tree();
+        let snap = Snapshot::take(&t, 22);
+        t.0.remove(&22);
+        let labels = ["claude".to_string()];
+        assert_eq!(check(&t, Some(22), 10, &labels), Err(Refusal::NotInPane));
+        assert_eq!(check(&snap, Some(22), 10, &labels), Ok((20, "claude".to_string())));
+        // Still the same verdicts as the live table for what it holds.
+        assert_eq!(check(&snap, Some(22), 5, &labels), Ok((20, "claude".to_string())));
+        assert_eq!(check(&snap, Some(22), 99, &labels), Err(Refusal::NotInPane));
+        // A pid with no process: nothing to walk.
+        assert_eq!(
+            check(&Snapshot::take(&t, 4242), Some(4242), 10, &labels),
+            Err(Refusal::NotInPane)
+        );
     }
 
     fn tree() -> Fake {

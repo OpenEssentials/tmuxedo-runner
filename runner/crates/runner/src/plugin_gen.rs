@@ -52,8 +52,10 @@ use crate::plugin::{sh_quote, toml_str};
 use crate::role_launch::{claude_tools_for_access, helper_name, model_for, safe_model};
 
 /// Part of every hash: raise it when a builder's output changes.
-pub const BUILDER: u32 = 3;
+pub const BUILDER: u32 = 4;
 pub const INDEX: &str = "index.json";
+/// Where `secret exec` finds the runner; a pane has it set.
+pub const SOCKET_ENV: &str = "TMUXEDO_SOCKET_PATH";
 pub const ARGV: &str = "argv.sh";
 pub const REPORT: &str = "report.json";
 /// Instruction text per launch: Codex reads 32 KiB; ours for the others.
@@ -82,6 +84,9 @@ pub struct Ctx<'a> {
     /// The generated tmuxedo skill's text while it is on (Codex: it shares
     /// `developer_instructions`, where the last one given wins).
     pub skill_text: Option<&'a str>,
+    /// What the plugin itself brings, for the add-ons (crate::addon_gen);
+    /// None builds them against nothing.
+    pub host: Option<&'a crate::addon_gen::AgentHost>,
 }
 
 /// One scope's output: files relative to its directory, the arguments, and
@@ -89,8 +94,17 @@ pub struct Ctx<'a> {
 #[derive(Debug, Default, PartialEq)]
 pub struct Built {
     pub files: BTreeMap<String, String>,
+    /// Files written 0700 (an add-on's programs).
+    pub exec: BTreeSet<String>,
     pub argv: Vec<String>,
     pub report: Vec<Value>,
+    /// Variables `argv.sh` exports (add-ons; plain values only).
+    pub env: BTreeMap<String, String>,
+    /// Variable → secret name, fetched at launch (never a value here).
+    pub secret_env: BTreeMap<String, String>,
+    /// The scope's own copy of the hook settings, which the shim passes
+    /// instead of the host's (relative to the scope's directory).
+    pub hook_settings: Option<String>,
 }
 
 impl Built {
@@ -156,29 +170,7 @@ pub type Stdio = (String, Vec<String>, Map<String, Value>);
 /// A stdio server, wrapped in `secret exec` when its environment names
 /// secrets. `Err` says why it cannot be built.
 pub fn stdio_command(plugin: &str, item: &PluginSetItem, exe: &Path) -> Result<Stdio, String> {
-    let command = strings(&item.definition["command"]);
-    if command.is_empty() {
-        return Err("it has no command".into());
-    }
-    let mut plain = Map::new();
-    // variable → secret
-    let mut secret: BTreeMap<String, String> = BTreeMap::new();
-    if let Some(env) = item.definition.get("env").and_then(Value::as_object) {
-        for (k, v) in env {
-            if !env_name(k) {
-                return Err("a variable's name is not allowed".into());
-            }
-            match (v.as_str(), secret_of(v)) {
-                (Some(text), _) => {
-                    plain.insert(k.clone(), json!(text));
-                }
-                (None, Some(name)) => {
-                    secret.insert(k.clone(), name.to_string());
-                }
-                _ => return Err(format!("{k} is neither text nor a secret's name")),
-            }
-        }
-    }
+    let (command, plain, secret) = stdio_parts(item)?;
     if secret.is_empty() {
         return Ok((command[0].clone(), command[1..].to_vec(), plain));
     }
@@ -202,6 +194,37 @@ pub fn stdio_command(plugin: &str, item: &PluginSetItem, exe: &Path) -> Result<S
     }
     args.extend(command);
     Ok((exe.to_string_lossy().into_owned(), args, plain))
+}
+
+/// A stdio server's parts: argv, plain environment, and variable → secret
+/// name (names only). `Err` says why it cannot be started.
+pub type StdioParts = (Vec<String>, Map<String, Value>, BTreeMap<String, String>);
+
+pub fn stdio_parts(item: &PluginSetItem) -> Result<StdioParts, String> {
+    let command = strings(&item.definition["command"]);
+    if command.is_empty() {
+        return Err("it has no command".into());
+    }
+    let mut plain = Map::new();
+    // variable → secret
+    let mut secret: BTreeMap<String, String> = BTreeMap::new();
+    if let Some(env) = item.definition.get("env").and_then(Value::as_object) {
+        for (k, v) in env {
+            if !env_name(k) {
+                return Err("a variable's name is not allowed".into());
+            }
+            match (v.as_str(), secret_of(v)) {
+                (Some(text), _) => {
+                    plain.insert(k.clone(), json!(text));
+                }
+                (None, Some(name)) => {
+                    secret.insert(k.clone(), name.to_string());
+                }
+                _ => return Err(format!("{k} is neither text nor a secret's name")),
+            }
+        }
+    }
+    Ok((command, plain, secret))
 }
 
 /// A remote server as (url, headers). One that needs a secret has no layer
@@ -598,6 +621,13 @@ fn build_codex(b: &mut Built, items: &[&PluginSetItem], helpers: &Helpers, ctx: 
                     if !env.is_empty() {
                         pairs.push(format!("{key}.env={}", toml_table(&env)));
                     }
+                    if Path::new(&command) == ctx.exe {
+                        // Codex starts a server with a short list of variables
+                        // (HOME, PATH, …), not its own environment, so without
+                        // this `secret exec` looks for the runner in the wrong
+                        // place and the server never starts.
+                        pairs.push(format!("{key}.env_vars={}", toml_list(&[SOCKET_ENV.to_string()])));
+                    }
                 }
                 Err(e) => {
                     b.skipped(i, &e);
@@ -792,7 +822,7 @@ pub fn build_scope(
         "claude" => build_claude(&mut b, &items, helpers, ctx, dir),
         "codex" => build_codex(&mut b, &items, helpers, ctx, dir),
         _ => {
-            for i in &items {
+            for i in items.iter().filter(|i| i.kind != tmuxedo_protocol::addon::KIND) {
                 b.skipped(i, "this agent has no layer for it yet");
             }
             build_roles(&mut b, plugin, helpers, dir);
@@ -810,6 +840,7 @@ pub fn build_scope(
         b.report
             .push(json!({ "kind": "settings", "name": plugin, "status": "skipped", "reason": p }));
     }
+    crate::addon_gen::apply(&mut b, plugin, &items, ctx.host, ctx.exe, dir);
     b
 }
 
@@ -832,6 +863,10 @@ pub fn scope_hash_with(plugin: &str, set: &PluginSet, entry: &PluginSetEntry, he
         "builder": BUILDER, "plugin": plugin, "items": items, "values": entry.values,
         "exe": ctx.exe.to_string_lossy(), "skill": ctx.skill_text,
     });
+    // Only with add-ons: a scope without them keeps its directory name.
+    if let Some(a) = crate::addon_gen::hash_input(&items, ctx.host) {
+        doc["addons"] = a;
+    }
     if !roles.is_empty() {
         doc["roles"] = json!(roles);
         doc["multiAgent"] = json!(helpers.multi_agent);
@@ -851,6 +886,10 @@ pub fn argv_line(argv: &[String]) -> String {
 }
 
 fn write_file(path: &Path, body: &str) -> std::io::Result<()> {
+    write_file_mode(path, body, 0o600)
+}
+
+fn write_file_mode(path: &Path, body: &str, mode: u32) -> std::io::Result<()> {
     use std::io::Write;
     if let Some(parent) = path.parent() {
         std::fs::DirBuilder::new().recursive(true).mode(0o700).create(parent)?;
@@ -859,9 +898,14 @@ fn write_file(path: &Path, body: &str) -> std::io::Result<()> {
         .create(true)
         .truncate(true)
         .write(true)
-        .mode(0o600)
+        .mode(mode)
         .open(path)?;
     f.write_all(body.as_bytes())
+}
+
+/// `argv.sh`: the add-ons' variables and settings copy, then the `set --` line.
+pub fn argv_script(b: &Built, exe: &Path, dir: &Path) -> String {
+    crate::addon_gen::prelude(b, exe, dir) + &argv_line(&b.argv)
 }
 
 /// Write one scope under `root`; returns its directory name, or None when
@@ -886,9 +930,13 @@ fn write_scope(
     let tmp = root.join(format!(".{hash}.tmp{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&tmp);
     for (rel, body) in &built.files {
-        write_file(&tmp.join(rel), body)?;
+        let mode = if built.exec.contains(rel) { 0o700 } else { 0o600 };
+        write_file_mode(&tmp.join(rel), body, mode)?;
     }
-    write_file(&tmp.join(ARGV), &argv_line(&built.argv))?;
+    if let Some(body) = crate::addon_gen::addon_env_file(plugin, &built) {
+        write_file(&tmp.join(crate::addon_gen::ADDON_ENV), &body)?;
+    }
+    write_file(&tmp.join(ARGV), &argv_script(&built, ctx.exe, &dir))?;
     let report = json!({ "v": 1, "plugin": plugin, "items": built.report });
     let report = serde_json::to_string_pretty(&report).unwrap_or_default() + "\n";
     write_file(&tmp.join(REPORT), &report)?;
@@ -1001,6 +1049,48 @@ pub fn lookup(root: &Path, cwd: &Path) -> Option<PathBuf> {
     argv.is_file().then_some(argv)
 }
 
+/// What the add-ons did on this machine, for web (the `addon_report` event,
+/// docs/protocol.md): each agent's machine scope's add-on rows from
+/// `report.json`, as `{items: [{plugin, name, status, reason?, refused?}]}`.
+/// Names and reasons only: secret names stay out, values are never here.
+pub fn addon_report(state_dir: &Path) -> Value {
+    let mut items = vec![];
+    for plugin in PLUGINS {
+        let root = root(state_dir, plugin);
+        let Some(index) = std::fs::read_to_string(root.join(INDEX))
+            .ok()
+            .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+        else {
+            continue;
+        };
+        let Some(hash) = index["default"]
+            .as_str()
+            .filter(|h| !h.is_empty() && h.bytes().all(|b| b.is_ascii_hexdigit()))
+        else {
+            continue;
+        };
+        let Some(report) = std::fs::read_to_string(root.join(hash).join(REPORT))
+            .ok()
+            .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+        else {
+            continue;
+        };
+        for r in report["items"].as_array().into_iter().flatten() {
+            if r["kind"] != tmuxedo_protocol::addon::KIND {
+                continue;
+            }
+            let mut row = json!({ "plugin": plugin, "name": r["name"], "status": r["status"] });
+            for k in ["reason", "refused"] {
+                if !r[k].is_null() {
+                    row[k] = r[k].clone();
+                }
+            }
+            items.push(row);
+        }
+    }
+    json!({ "items": items })
+}
+
 /// The line a shim runs before it starts the agent.
 pub fn shim_line(exe: &Path, root: &Path) -> String {
     format!(
@@ -1043,11 +1133,14 @@ pub fn rebuild_all_with(
     multi_agent: impl Fn(&str) -> Option<MultiAgentSection>,
 ) -> BTreeMap<String, String> {
     let mut lines = BTreeMap::new();
+    let home = std::env::var_os("HOME").filter(|h| !h.is_empty()).map(PathBuf::from);
     for plugin in PLUGINS {
         let skill = skill_text(plugin);
+        let host = crate::addon_gen::AgentHost::of(plugin, state_dir, exe, home.as_deref());
         let ctx = Ctx {
             exe,
             skill_text: skill.as_deref(),
+            host: Some(&host),
         };
         let ma = multi_agent(plugin);
         match rebuild_with(state_dir, plugin, set, roles, ma.as_ref(), machine, &ctx) {
@@ -1148,6 +1241,7 @@ mod tests {
         let ctx = Ctx {
             exe: Path::new("/x"),
             skill_text: None,
+            host: None,
         };
         let b = build(
             "claude",

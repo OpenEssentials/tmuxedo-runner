@@ -1,0 +1,206 @@
+=== 1x1 (micro) ===
+-
+=== 7x2 (micro) ===
+-
+
+=== 12x1 (strip) ===
+no reading
+=== 20x1 (strip) ===
+No reading yet
+=== 20x3 (tiny) ===
+No reading yet · it
+shows after an
+agent's next reply
+=== 33x5 (tiny) ===
+No reading yet · it shows after
+an agent's next reply
+
+
+
+=== 40x8 (small) ===
+ Plan limits
+ ──────────────────────────────────────
+ No reading yet · it shows after an
+ agent's next reply
+
+
+
+                                 q quit
+=== 44x30 (small, portrait) ===
+ Plan limits
+ ──────────────────────────────────────────
+ No reading yet · it shows after an agent's
+ next reply
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                     q quit
+=== 80x24 (medium) ===
+ Plan limits
+ ──────────────────────────────────────────────────────────────────────────────
+ No reading yet · it shows after an agent's next reply
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                         q quit
+=== 120x40 (large) ===
+ Plan limits
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ No reading yet · it shows after an agent's next reply
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                 q quit
+=== 300x80 (large) ===
+ Plan limits
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ No reading yet · it shows after an agent's next reply
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                                                                                                                                     q quit

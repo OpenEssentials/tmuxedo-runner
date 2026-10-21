@@ -22,6 +22,8 @@
 pub mod agent_settings;
 pub mod app;
 pub mod arrange_ui;
+pub mod away;
+pub mod browse;
 pub mod chat;
 pub mod chat_app;
 pub mod chat_model;
@@ -31,13 +33,19 @@ pub mod keys;
 pub mod needs;
 pub mod net;
 pub mod overlay;
+pub mod palette;
 pub mod plugins;
+pub mod search;
+pub mod shares;
 pub mod view;
+pub mod wake;
 
 #[cfg(test)]
 mod agent_settings_tests;
 #[cfg(test)]
 mod arrange_tests;
+#[cfg(test)]
+mod browse_tests;
 #[cfg(test)]
 mod chat_tests;
 #[cfg(test)]
@@ -45,7 +53,11 @@ mod needs_tests;
 #[cfg(test)]
 mod plugins_tests;
 #[cfg(test)]
+mod search_tests;
+#[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod wake_tests;
 
 use super::{load_cli_config, machines, CliConfig};
 use app::App;
@@ -171,6 +183,38 @@ fn flush(app: &mut App, conns: &HashMap<String, Conn>, cfg: &CliConfig, ev: &mps
             let _ = tx.send(NetEvent::AgentSettings(mid, r));
         });
     }
+    // `prefix W`: wake an offline machine through its relay (super::wake).
+    for mid in app.wake_out.drain(..) {
+        let (cfg, tx) = (cfg.clone(), ev.clone());
+        std::thread::spawn(move || {
+            let r = match super::api(&cfg, "POST", &wake::path(&mid), Some(serde_json::json!({}))) {
+                Ok((200, v)) => Ok(v["result"]["relay"]["name"].as_str().unwrap_or("its relay").to_string()),
+                Ok((_, v)) => Err(super::api_error(&v)),
+                Err(e) => Err(format!("offline: {e}")),
+            };
+            let _ = tx.send(NetEvent::Wake(mid, r));
+        });
+    }
+    // `prefix /`: search everything (super::search); the answer goes back raw, decoded there.
+    for req in app.search_out.drain(..) {
+        let (cfg, tx) = (cfg.clone(), ev.clone());
+        std::thread::spawn(move || {
+            let r = super::api(&cfg, "GET", &req.path, None);
+            let _ = tx.send(NetEvent::Search(req.gen, req.target, r));
+        });
+    }
+    // `prefix F`: the machine's files, read from web in the background (super::browse).
+    for (mid, req) in app.files_out.drain(..) {
+        let (cfg, tx) = (cfg.clone(), ev.clone());
+        std::thread::spawn(move || {
+            let r = match super::api(&cfg, "GET", &req, None) {
+                Ok((200, v)) => Ok(v["result"].clone()),
+                Ok((code, v)) => Err((Some(code), v["error"]["code"].as_str().unwrap_or("").to_string())),
+                Err(_) => Err((None, String::new())),
+            };
+            let _ = tx.send(NetEvent::Files(mid, req, r));
+        });
+    }
     // The account's layout favourites for the Arrange popup, read with the CLI token in the background.
     if std::mem::take(&mut app.layouts.fetch) {
         let (cfg, tx) = (cfg.clone(), ev.clone());
@@ -178,11 +222,38 @@ fn flush(app: &mut App, conns: &HashMap<String, Conn>, cfg: &CliConfig, ev: &mps
             let _ = tx.send(NetEvent::Favourites(fetch_favourites(&cfg)));
         });
     }
+    // "Save this layout" in the Arrange popup: posted with the CLI token (it needs the write scope).
+    if let Some(body) = app.layouts.save_out.take() {
+        let (cfg, tx) = (cfg.clone(), ev.clone());
+        app.layouts.saving = true;
+        std::thread::spawn(move || {
+            let r = super::api(&cfg, "POST", "/api/me/layouts", Some(body)).map_err(|e| e.to_string());
+            let _ = tx.send(NetEvent::FavouriteSaved(r));
+        });
+    }
     // "Don't show this again" in the prefix overlay: the account's setting, in the background.
     for body in app.settings_out.drain(..) {
         let cfg = cfg.clone();
         std::thread::spawn(move || {
             let _ = super::api(&cfg, "PUT", "/api/me/prefix-overlay", Some(body));
+        });
+    }
+    // The palette's Recent: read when it opens, and each place chosen is added (the account's list, every device).
+    if std::mem::take(&mut app.recent_fetch) {
+        let (cfg, tx) = (cfg.clone(), ev.clone());
+        std::thread::spawn(move || {
+            let r = match super::api(&cfg, "GET", palette::RECENT_PATH, None) {
+                Ok((200, v)) => Ok(v),
+                Ok((code, _)) => Err(format!("recent: HTTP {code}")),
+                Err(e) => Err(format!("offline: {e}")),
+            };
+            let _ = tx.send(NetEvent::Recent(r));
+        });
+    }
+    for body in app.recent_out.drain(..) {
+        let cfg = cfg.clone();
+        std::thread::spawn(move || {
+            let _ = super::api(&cfg, "POST", palette::RECENT_PATH, Some(body));
         });
     }
     // OSC 52 and the like go to the local terminal (between frames).
@@ -220,8 +291,30 @@ pub fn apply(app: &mut App, e: NetEvent) {
         NetEvent::Stopped(mid, why) => app.on_link_stopped(&mid, &why),
         NetEvent::ControlRefused(mid, why) => app.on_control_refused(&mid, &why),
         NetEvent::AgentSettings(mid, r) => app.on_agent_settings(&mid, r),
+        NetEvent::Files(mid, req, r) => app.on_files(&mid, &req, r),
+        NetEvent::Wake(mid, r) => app.on_wake(&mid, r),
+        NetEvent::Search(gen, target, r) => app.on_search(gen, target, r),
         NetEvent::Favourites(r) => app.on_favourites(r),
+        NetEvent::FavouriteSaved(r) => app.on_favourite_saved(r),
+        // Offline: keep the last lists (the machines' own note says so).
+        NetEvent::Shares(Ok(s)) => app.shares = s,
+        NetEvent::Shares(Err(_)) => {}
+        NetEvent::Away(Ok(a)) => app.on_away(a),
+        NetEvent::Away(Err(_)) => {}
+        // Offline or an older server: keep what this machine remembers.
+        NetEvent::Recent(Ok(v)) => app.recent = palette::parse_recent(&v["recent"]),
+        NetEvent::Recent(Err(_)) => {}
     }
+}
+
+/// Shared sessions (super::shares), read in the background with the machines.
+fn shares_now(cfg: &CliConfig, ev: &mpsc::UnboundedSender<NetEvent>) {
+    let (cfg, tx) = (cfg.clone(), ev.clone());
+    tokio::task::spawn_blocking(move || {
+        let _ = tx.send(NetEvent::Shares(shares::fetch(&cfg)));
+        // The away digest (PLAN 802) on the same poll.
+        let _ = tx.send(NetEvent::Away(away::fetch(&cfg)));
+    });
 }
 
 async fn event_loop(
@@ -235,6 +328,7 @@ async fn event_loop(
     let mut tick = tokio::time::interval(Duration::from_millis(250));
     let mut poll = tokio::time::interval(Duration::from_secs(15));
     poll.tick().await;
+    shares_now(&cfg, &ev_tx);
     loop {
         reconcile(&mut conns, app, &cfg, &ev_tx);
         flush(app, &conns, &cfg, &ev_tx);
@@ -258,6 +352,7 @@ async fn event_loop(
             }
             _ = tick.tick() => app.tick(),
             _ = poll.tick() => {
+                shares_now(&cfg, &ev_tx);
                 let (cfg, tx) = (cfg.clone(), ev_tx.clone());
                 tokio::task::spawn_blocking(move || { let _ = tx.send(NetEvent::Machines(machines(&cfg))); });
             }

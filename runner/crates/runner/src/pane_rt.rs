@@ -66,6 +66,8 @@ pub struct PaneRt {
     pub masks: crate::secrets::Shared,
     /// Opt-in saved history: when it was last written and the stream end then.
     pub history_saved: Option<(Instant, u64)>,
+    /// Recording, when the owner turned it on for this session (crate::replay).
+    pub rec: Option<crate::replay::store::Recorder>,
 }
 
 impl PaneRt {
@@ -97,6 +99,7 @@ impl PaneRt {
             restarting: false,
             masks,
             history_saved: None,
+            rec: None,
         }
     }
 
@@ -228,8 +231,59 @@ impl PaneRt {
         true
     }
 
-    /// Masked bytes into the emulator, the mirror and (when viewed) live output.
+    /// Masked bytes into the recording (when on), the emulator, the mirror
+    /// and (when viewed) live output.
     fn process(&mut self, bytes: &[u8], holder: &HolderClient, out: &mut Vec<Out>) {
+        let mut bytes = bytes;
+        if let Some(from) = self.record_from() {
+            let at = self.end();
+            let end = at + bytes.len() as u64;
+            if end > from {
+                // Bytes before `from` were recorded already, or came before
+                // the emulator caught up: they only feed the screen.
+                let skip = from.saturating_sub(at) as usize;
+                if skip > 0 {
+                    self.feed(&bytes[..skip], holder, out);
+                    bytes = &bytes[skip..];
+                }
+                self.record(bytes);
+            }
+        }
+        self.feed(bytes, holder, out);
+    }
+
+    /// The stream offset recording takes bytes from: past what it has and
+    /// past the holder ring's end at attach (so a re-read is not taken twice).
+    fn record_from(&self) -> Option<u64> {
+        let rec = self.rec.as_ref()?;
+        let caught = self.base + self.catchup?;
+        Some(rec.upto.max(caught))
+    }
+
+    fn record(&mut self, bytes: &[u8]) {
+        let at = self.end();
+        let now = crate::replay::store::now_ms();
+        let Some(rec) = self.rec.as_mut() else { return };
+        let emu = &mut self.emu;
+        let (cols, rows) = (self.cols, self.rows);
+        rec.output(at, bytes, now, || crate::replay::snap(emu, cols, rows));
+    }
+
+    /// Open a part now if the screen is whole (recording was just turned on).
+    pub fn record_start(&mut self) {
+        if self.catchup.is_none_or(|e| self.holder_pos.unwrap_or(0) < e) {
+            return; // the first byte after catching up opens it
+        }
+        let now = crate::replay::store::now_ms();
+        let end = self.end();
+        let Some(rec) = self.rec.as_mut() else { return };
+        rec.upto = rec.upto.max(end);
+        let emu = &mut self.emu;
+        let (cols, rows) = (self.cols, self.rows);
+        rec.start(now, || crate::replay::snap(emu, cols, rows));
+    }
+
+    fn feed(&mut self, bytes: &[u8], holder: &HolderClient, out: &mut Vec<Out>) {
         let mut bytes = bytes;
         while !bytes.is_empty() {
             let (n, ev) = self.emu.feed_until_event(bytes);

@@ -19,6 +19,9 @@
 use std::path::{Path, PathBuf};
 
 pub const THRESHOLD: f64 = 0.90;
+/// Where the warning starts (machine-hud.md §6): the next victim is named
+/// before the watchdog acts (crate::memory_warn).
+pub const WARN: f64 = 0.85;
 
 /// `memory.current` and a numeric `memory.max` of one cgroup directory.
 pub fn read_usage(dir: &Path) -> Option<(u64, u64)> {
@@ -58,6 +61,22 @@ pub fn limited_cgroup(cgroup_root: &Path, rel: &Path) -> Option<PathBuf> {
 
 pub fn over_threshold(current: u64, max: u64) -> bool {
     max > 0 && current as f64 > THRESHOLD * max as f64
+}
+
+/// `current` is at least `frac` of `max`.
+pub fn at_least(current: u64, max: u64, frac: f64) -> bool {
+    max > 0 && current as f64 >= frac * max as f64
+}
+
+/// The command name of process `pid` from its `stat` (`pid (name) …`): printable,
+/// at most 32 characters; None when it is gone or unreadable.
+pub fn command_of(proc_root: &Path, pid: u32) -> Option<String> {
+    let stat = std::fs::read_to_string(proc_root.join(pid.to_string()).join("stat")).ok()?;
+    let (_, rest) = stat.split_once('(')?;
+    let (name, _) = rest.rsplit_once(')')?;
+    let name: String = name.chars().filter(|c| !c.is_control()).take(32).collect();
+    let name = name.trim().to_string();
+    (!name.is_empty()).then_some(name)
 }
 
 /// (pid, pgrp, session, rss pages) of one process.
@@ -148,6 +167,17 @@ pub struct Victim {
     pub pane_rss: u64,
     pub current: u64,
     pub max: u64,
+    /// The command name of the group's leader (or of its largest process), for the warning.
+    pub command: Option<String>,
+}
+
+/// One look at the limit: (current, max), and the pane and group the
+/// watchdog would stop, found only at or above [`WARN`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Assessment {
+    pub current: u64,
+    pub max: u64,
+    pub victim: Option<Victim>,
 }
 
 /// The cgroup limiting the holder: (current, max), when it has a numeric limit.
@@ -159,9 +189,22 @@ pub fn usage_for(cgroup_root: &Path, proc_root: &Path, holder_pid: u32) -> Optio
 /// One check: `panes` are (pane id, shell pid = session id). None below the
 /// threshold (two small file reads; /proc is scanned only above it).
 pub fn check(cgroup_root: &Path, proc_root: &Path, holder_pid: u32, panes: &[(String, u32)]) -> Option<Victim> {
+    assess(cgroup_root, proc_root, holder_pid, panes)
+        .filter(|a| over_threshold(a.current, a.max))
+        .and_then(|a| a.victim)
+}
+
+/// The limit and, at or above [`WARN`], the would-be victim. None without a
+/// numeric limit. Below [`WARN`] it reads only the two cgroup files.
+pub fn assess(cgroup_root: &Path, proc_root: &Path, holder_pid: u32, panes: &[(String, u32)]) -> Option<Assessment> {
     let (cur, max) = usage_for(cgroup_root, proc_root, holder_pid)?;
-    if !over_threshold(cur, max) {
-        return None;
+    let mut out = Assessment {
+        current: cur,
+        max,
+        victim: None,
+    };
+    if !at_least(cur, max, WARN) {
+        return Some(out);
     }
     let ps = page_size();
     let procs = scan(proc_root);
@@ -173,17 +216,29 @@ pub fn check(cgroup_root: &Path, proc_root: &Path, holder_pid: u32, panes: &[(St
         .iter()
         .map(|(id, _, g)| (id.clone(), g.iter().map(|x| x.1).sum()))
         .collect();
-    let (pane, pane_rss) = pick_victim(&totals)?;
-    let (_, sid, groups) = per_pane.into_iter().find(|(id, _, _)| *id == pane)?;
-    let (pgid, group_rss) = groups.first().copied().unwrap_or((sid, pane_rss));
-    Some(Victim {
-        pane,
-        pgid,
-        group_rss,
-        pane_rss,
-        current: cur,
-        max,
-    })
+    out.victim = (|| {
+        let (pane, pane_rss) = pick_victim(&totals)?;
+        let (_, sid, groups) = per_pane.into_iter().find(|(id, _, _)| *id == pane)?;
+        let (pgid, group_rss) = groups.first().copied().unwrap_or((sid, pane_rss));
+        // The leader names the job; when it has gone, the group's largest process.
+        let command = command_of(proc_root, pgid).or_else(|| {
+            procs
+                .iter()
+                .filter(|p| p.1 == pgid)
+                .max_by_key(|p| p.3)
+                .and_then(|p| command_of(proc_root, p.0))
+        });
+        Some(Victim {
+            pane,
+            pgid,
+            group_rss,
+            pane_rss,
+            current: cur,
+            max,
+            command,
+        })
+    })();
+    Some(out)
 }
 
 #[cfg(test)]
@@ -292,5 +347,40 @@ mod tests {
         fs::write(cg.join("a/memory.max"), "max").unwrap();
         assert!(check(&cg, &pr, 42, &[("p".into(), 100)]).is_none());
         assert!(pick_victim(&[("x".into(), 0)]).is_none());
+    }
+
+    #[test]
+    fn assess_names_the_next_victim_from_the_warning_level() {
+        let t = tempfile::tempdir().unwrap();
+        let (cg, pr) = (t.path().join("cg"), t.path().join("proc"));
+        fs::create_dir_all(cg.join("a")).unwrap();
+        fs::write(cg.join("a/memory.max"), "1000").unwrap();
+        fs::write(cg.join("a/memory.current"), "849").unwrap();
+        fake_proc_sid(
+            &pr,
+            &[(77, "bash", 77, 77, 5), (100, "cargo (build)", 100, 77, 900)],
+            (42, "a"),
+        );
+        let panes = [("w1:p1".to_string(), 77)];
+        let a = assess(&cg, &pr, 42, &panes).unwrap();
+        assert_eq!((a.current, a.max, a.victim), (849, 1000, None), "below 85 %: no scan");
+        fs::write(cg.join("a/memory.current"), "850").unwrap();
+        let v = assess(&cg, &pr, 42, &panes).unwrap().victim.unwrap();
+        assert_eq!((v.pane.as_str(), v.pgid), ("w1:p1", 100));
+        assert_eq!(v.command.as_deref(), Some("cargo (build)"));
+        assert!(
+            check(&cg, &pr, 42, &panes).is_none(),
+            "85 % warns; only above 90 % acts"
+        );
+        // The leader gone: the group's largest process names it.
+        fs::remove_dir_all(pr.join("100")).unwrap();
+        let d = pr.join("101");
+        fs::create_dir_all(&d).unwrap();
+        fs::write(d.join("stat"), stat(101, "node\u{7}", 100, 77, 400)).unwrap();
+        let v = assess(&cg, &pr, 42, &panes).unwrap().victim.unwrap();
+        assert_eq!(v.command.as_deref(), Some("node"), "control characters dropped");
+        // No limit: nothing to assess.
+        fs::write(cg.join("a/memory.max"), "max").unwrap();
+        assert!(assess(&cg, &pr, 42, &panes).is_none());
     }
 }

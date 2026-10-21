@@ -367,6 +367,7 @@ pub fn start_holder(dir: &Path) -> PathBuf {
 pub fn options(dir: &Path, url: &str, holder: PathBuf) -> RunOptions {
     let mut o = RunOptions::new(url.into(), TOKEN.into());
     o.state_dir = dir.join("state");
+    o.recordings_dir = dir.join("recordings");
     o.holder_socket = holder;
     o.legacy_holder_socket = None;
     o.runner_socket = dir.join("runner.sock");

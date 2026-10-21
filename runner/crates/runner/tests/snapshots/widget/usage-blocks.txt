@@ -1,37 +1,37 @@
 === 1x1 (micro) ===
--
+●
 === 7x2 (micro) ===
-n/a
-
+5h 100%
+5h 81%
 === 12x1 (strip) ===
-usage n/a
+5h 100% +2
 === 20x1 (strip) ===
-usage n/a
+Codex 5-hour 100% +2
 === 20x3 (tiny) ===
-AI usage is not
-available on this
-runner
+ Codex 5h   100%  █
+ 5h          81%  █
+ 7d          34%  ░
 === 33x5 (tiny) ===
-AI usage is not available on this
-runner
-
+ Codex 5-hour     100%  ████████
+ Claude Code 5h    81%  ███████░
+ Claude Code 7d    34%  ███░░░░░
 
 
 === 40x8 (small) ===
  Plan limits
  ──────────────────────────────────────
- AI usage is not available on this
- runner
-
+ Claude Code 5-hour  81%  ███████████░░
+ Claude Code weekly  34%  ████░░░░░░░░░
+ Codex 5-hour       100%  █████████████
 
 
                                  q quit
 === 44x30 (small, portrait) ===
  Plan limits
  ──────────────────────────────────────────
- AI usage is not available on this runner
-
-
+ Claude Code 5-hour  81%  ██████░  2 h 15 m
+ Claude Code weekly  34%  ██░░░░░  3 d
+ Codex 5-hour       100%  ███████  40 m
 
 
 
@@ -60,9 +60,9 @@ runner
 === 80x24 (medium) ===
  Plan limits
  ──────────────────────────────────────────────────────────────────────────────
- AI usage is not available on this runner
-
-
+ Claude Code 5-hour  81%  ████████████████████████░░░░░░  resets in 2 h 15 m
+ Claude Code weekly  34%  ██████████░░░░░░░░░░░░░░░░░░░░  resets in 3 d
+ Codex 5-hour       100%  ██████████████████████████████  resets in 40 m
 
 
 
@@ -85,9 +85,9 @@ runner
 === 120x40 (large) ===
  Plan limits
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- AI usage is not available on this runner
-
-
+ Claude Code 5-hour  81%  ████████████████████████░░░░░░  resets in 2 h 15 m
+ Claude Code weekly  34%  ██████████░░░░░░░░░░░░░░░░░░░░  resets in 3 d
+ Codex 5-hour       100%  ██████████████████████████████  resets in 40 m
 
 
 
@@ -126,9 +126,9 @@ runner
 === 300x80 (large) ===
  Plan limits
  ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- AI usage is not available on this runner
-
-
+ Claude Code 5-hour  81%  ████████████████████████░░░░░░  resets in 2 h 15 m
+ Claude Code weekly  34%  ██████████░░░░░░░░░░░░░░░░░░░░  resets in 3 d
+ Codex 5-hour       100%  ██████████████████████████████  resets in 40 m
 
 
 

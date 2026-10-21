@@ -1189,3 +1189,135 @@ fn a_login_link_with_a_localhost_callback_shows_how_to_finish_it() {
 // The prefix overlay (queue 3j): snapshots and keys, in their own file.
 #[path = "overlay_tests.rs"]
 mod overlay_tests;
+
+/// Phase 27: your shared session wears `[shared]`; "Shared with me" lists
+/// others' sessions only when there is one, and Enter opens one in the browser.
+#[test]
+fn shared_sessions_in_the_sidebar() {
+    let mut app = wide("control");
+    app.web_url = "https://app.example.test".into();
+    let (lines, _) = render(&app);
+    assert!(!lines
+        .iter()
+        .any(|l| l.contains("Shared with me") || l.contains("⇄") || l.contains("· shared")));
+
+    super::apply(
+        &mut app,
+        super::net::NetEvent::Shares(Ok(super::shares::Shares::from_json(
+            &json!({"shares":[{"machineId":"m1","paneId":"w1:p2"}]}),
+            &json!({"shares":[{"id":"s1","sessionName":"build","owner":{"name":"Owner"},"role":"watch","expiresAt":"2999-01-01T00:00:00.000Z"}]}),
+        ))),
+    );
+    let (lines, _) = render(&app);
+    let shared: Vec<&String> = lines.iter().filter(|l| l.contains("⇄")).collect();
+    assert_eq!(shared.len(), 1, "{}", lines.join("\n"));
+    assert!(shared[0].starts_with("    ●⇄ claude working"), "{}", shared[0]);
+    assert!(lines.iter().any(|l| l.starts_with("Shared with me")));
+    assert!(lines.iter().any(|l| l.contains("↗ build · Owner")));
+    // The focused pane, when shared, says so on the status line.
+    app.focus = Some("w1:p2".into());
+    assert!(
+        status_line(&app).contains("w1:p2 · shared · control"),
+        "{}",
+        status_line(&app)
+    );
+
+    // Enter on the row: the guest page in the browser; the panes stay as they were.
+    let items = app.sidebar_items();
+    let at = items
+        .iter()
+        .position(|i| matches!(i, super::app::Item::SharedWithMe(0)))
+        .unwrap();
+    let before = (app.sel, app.ws.clone());
+    app.mode = Mode::Sidebar;
+    app.sidebar_cursor = at;
+    app.on_key(key(KeyCode::Enter));
+    assert_eq!(app.open_urls, vec!["https://app.example.test/shared/s1".to_string()]);
+    assert_eq!((app.sel, app.ws.clone()), before);
+    assert_eq!(app.mode, Mode::Normal);
+
+    // An offline poll keeps the last lists.
+    super::apply(&mut app, super::net::NetEvent::Shares(Err("offline".into())));
+    assert_eq!(app.shares.with_me.len(), 1);
+}
+
+/// PLAN 802: "While you were away" in the sidebar (GET /api/away): a row per
+/// session with news, what it did and the files it touched; Enter on a row
+/// goes to its pane, Enter on the heading opens the full digest in the browser.
+#[test]
+fn away_digest_in_the_sidebar() {
+    let mut app = wide("control");
+    app.web_url = "https://app.example.test".into();
+    let (lines, _) = render(&app);
+    assert!(!lines.iter().any(|l| l.contains("While you were away")));
+
+    let card = |pane: &str, group: &str, extra: Value| {
+        let mut c = json!({"key": format!("m1/{pane}"), "machineId":"m1","paneId":pane,"group":group,"title":"build",
+            "agent":"Claude","machineName":"box","online":true,"turns":3,"asked":0,"line":"","gone":false});
+        for (k, v) in extra.as_object().unwrap() {
+            c[k] = v.clone();
+        }
+        c
+    };
+    let digest = json!({"digest": {"window": {"from":"2026-10-13T23:40:00Z","until":"2026-10-14T08:00:00Z"}, "hasNews": true,
+    "counts": {"needs_you":0,"finished":1,"failed":1,"working":1},
+    "groups": [
+        {"key":"failed","cards":[card("w1:p3","failed", json!({"title":"docs","turns":0}))]},
+        {"key":"finished","cards":[card("w1:p2","finished", json!({"files":{"added":2,"modified":1,"removed":0}}))]},
+        {"key":"working","cards":[card("w1:p1","working", json!({}))]}
+    ]}});
+    super::apply(
+        &mut app,
+        super::net::NetEvent::Away(Ok(super::away::Away::from_json(&digest))),
+    );
+    let (lines, _) = render(&app);
+    let at = |s: &str| lines.iter().position(|l| l.contains(s));
+    assert!(
+        lines.iter().any(|l| l.starts_with("While you were away")),
+        "{}",
+        lines.join("\n")
+    );
+    assert!(at("✗ docs").is_some(), "{}", lines.join("\n"));
+    let done = &lines[at("✓ build").expect("finished row")];
+    assert!(done.contains("✓ build · +2 ~1"), "{done}");
+    // Still working is the web's to show; the sidebar has the news only.
+    assert_eq!(
+        lines.iter().filter(|l| l.contains("build")).count(),
+        1,
+        "{}",
+        lines.join("\n")
+    );
+
+    // Enter on a row: its pane.
+    let items = app.sidebar_items();
+    let row = items
+        .iter()
+        .position(|i| matches!(i, super::app::Item::Away(1)))
+        .unwrap();
+    app.mode = Mode::Sidebar;
+    app.sidebar_cursor = row;
+    app.on_key(key(KeyCode::Enter));
+    assert_eq!(app.focus.as_deref(), Some("w1:p2"));
+
+    // Enter on the heading: the whole digest in the browser.
+    let head = app
+        .sidebar_items()
+        .iter()
+        .position(|i| matches!(i, super::app::Item::AwayHeader))
+        .unwrap();
+    app.mode = Mode::Sidebar;
+    app.sidebar_cursor = head;
+    app.on_key(key(KeyCode::Enter));
+    assert_eq!(app.open_urls, vec!["https://app.example.test/away".to_string()]);
+
+    // An offline poll keeps the last digest; one with no news clears it.
+    super::apply(&mut app, super::net::NetEvent::Away(Err("offline".into())));
+    assert_eq!(app.away.cards.len(), 2);
+    super::apply(
+        &mut app,
+        super::net::NetEvent::Away(Ok(super::away::Away::from_json(
+            &json!({"digest": {"window": null, "hasNews": false, "groups": []}}),
+        ))),
+    );
+    assert!(app.away.cards.is_empty());
+}

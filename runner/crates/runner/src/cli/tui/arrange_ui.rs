@@ -3,10 +3,13 @@
 //! `prefix Space` opens a popup over the panes: the first-view suggestions
 //! for this many terminals (`crate::arrange::offered`, the twin of
 //! `offered()` in `packages/layouts`), drawn in box characters and numbered
-//! 1–4, then the account's favourites. `1`–`4` apply a picture, arrows /
-//! Space / Tab move, Enter applies or restores the selected one, `E` evens
-//! out, `u` undoes the last arrangement made here, Esc closes. `prefix E`
-//! evens out without the popup.
+//! 1–4, then the account's favourites. `m` opens "More layouts" (the rest
+//! of the patterns for this count, numbered on from 5), `1`–`9` apply a
+//! picture, arrows / Space / Tab move, Enter applies or restores the
+//! selected one, `E` evens out, `u` undoes the last arrangement made here,
+//! `s` saves the tab's layout as a favourite (one name prompt, prefilled),
+//! `t` moves the focused terminal to a new tab (`pane.move`; nothing is
+//! closed), Esc closes. `prefix E` evens out without the popup.
 //!
 //! Everything goes through `layout.arrange` (never `layout.apply`): nothing is
 //! ever closed. A favourite's restore shows what it will do first (the
@@ -46,6 +49,8 @@ pub enum LayoutReq {
     Agent(String),
     /// A restore's last step.
     RestoreArrange,
+    /// "Move to new tab" (`t`): the terminal's name.
+    Move(String),
 }
 
 /// What the last arrangement made here can be undone with.
@@ -83,6 +88,12 @@ pub struct Layouts {
     pub fetch: bool,
     pub undo: Option<Undo>,
     pub restore: Option<Restore>,
+    /// "More layouts" is open in the popup.
+    pub more: bool,
+    /// A favourite to save: the event loop posts it to `/api/me/layouts` (CLI token) and hands the answer to `on_favourite_saved`.
+    pub save_out: Option<Value>,
+    /// That post is on its way.
+    pub saving: bool,
 }
 
 /// One thing the popup offers.
@@ -168,6 +179,13 @@ pub fn pattern_art(pattern: &'static str, count: usize, area: (u16, u16)) -> Vec
     box_art(&boxes, THUMB_W, THUMB_H)
 }
 
+/// One character typed into the name prompt: no control characters, at most 40.
+fn save_push(buf: &mut String, c: char) {
+    if !c.is_control() && buf.chars().count() < fav::NAME_MAX {
+        buf.push(c);
+    }
+}
+
 /// No control characters from a name reach the terminal.
 fn shown(s: &str) -> String {
     s.chars().map(|c| if c.is_control() { ' ' } else { c }).collect()
@@ -183,6 +201,11 @@ fn cut(s: &str, n: usize) -> String {
 }
 
 impl App {
+    /// A resize key (`prefix Alt/Ctrl+arrow`): not in this TUI yet.
+    pub(super) fn resize_key(&mut self, _a: super::keymap::Action) {
+        self.note = Some("Resize keys work on the web for now.".into());
+    }
+
     /// The pane area in cells: what a picture is fitted to and what the runner checks sizes against.
     pub fn arrange_area(&self) -> (u16, u16) {
         let m = view::areas(self.size).main;
@@ -197,8 +220,18 @@ impl App {
     }
 
     /// The first-view pictures for this tab (none for one pane).
+    /// With "More layouts" open, the rest follow.
     pub fn arrange_patterns(&self) -> Vec<&'static str> {
-        arrange::offered(self.tab_panes().len(), self.arrange_area()).0
+        let (mut first, more) = arrange::offered(self.tab_panes().len(), self.arrange_area());
+        if self.layouts.more {
+            first.extend(more);
+        }
+        first
+    }
+
+    /// How many patterns "More layouts" holds for this tab.
+    pub fn arrange_more(&self) -> usize {
+        arrange::offered(self.tab_panes().len(), self.arrange_area()).1.len()
     }
 
     /// Is the tab already arranged as `pattern`?
@@ -255,6 +288,7 @@ impl App {
         if self.layouts.favourites.is_none() {
             self.layouts.fetch = true;
         }
+        self.layouts.more = false;
         self.mode = Mode::Arrange(0);
     }
 
@@ -264,7 +298,7 @@ impl App {
         let pick = |i: usize| items.get(i).cloned();
         match k.code {
             KeyCode::Esc | KeyCode::Char('q') => self.mode = Mode::Normal,
-            KeyCode::Char(c @ '1'..='4') => {
+            KeyCode::Char(c @ '1'..='9') => {
                 if let Some(Pick::Pattern(p)) = pick(c as usize - '1' as usize) {
                     self.mode = Mode::Normal;
                     self.arrange_pattern(p);
@@ -295,8 +329,166 @@ impl App {
                 self.mode = Mode::Normal;
                 self.arrange_undo();
             }
+            KeyCode::Char('m') if self.arrange_more() > 0 => {
+                let was = pick(sel);
+                self.layouts.more = !self.layouts.more;
+                // The selection stays on what it was on (a favourite moves down or up the list).
+                let items = self.arrange_items();
+                let at = was.and_then(|w| items.iter().position(|i| *i == w)).unwrap_or(0);
+                self.mode = Mode::Arrange(at);
+            }
+            KeyCode::Char('s') => self.save_open(),
+            KeyCode::Char('t') if self.tab_panes().len() > 1 => {
+                self.mode = Mode::Normal;
+                self.move_to_new_tab();
+            }
             _ => {}
         }
+    }
+
+    /// What "Save this layout" would save (the API's body, with the name filled in later) and the name
+    /// to prefill, or why it cannot (`saveDraft` on the web).
+    pub fn save_draft(&self) -> Result<(Value, String), String> {
+        let Some(t) = self.tab() else {
+            return Err("There is no layout to save yet.".into());
+        };
+        let open = self.open_panes();
+        let Some(shape_only) = fav::favourite_from(&t.layout, &open, true) else {
+            return Err(format!(
+                "A favourite holds up to {} terminals. This tab has more.",
+                fav::MAX_SLOTS
+            ));
+        };
+        let (shape, slots) = fav::favourite_from(&t.layout, &open, false).unwrap_or(shape_only);
+        let draft = Favourite {
+            id: String::new(),
+            name: String::new(),
+            shape: shape.clone(),
+            slots: slots.clone(),
+        };
+        let what = contents(&draft);
+        let (first, more) = arrange::offered(open.len(), self.arrange_area());
+        let base = first
+            .into_iter()
+            .chain(more)
+            .find(|p| self.arrange_current(p))
+            .map(|p| arrange::label(p).to_string())
+            .unwrap_or_else(|| fav::count(slots.len(), "terminal"));
+        let name = fav::parse_name(&if what.is_empty() {
+            base.clone()
+        } else {
+            format!("{base} · {what}")
+        })
+        .or_else(|| fav::parse_name(&base))
+        .unwrap_or_else(|| "My layout".into());
+        Ok((fav::favourite_json("", &shape, &slots), name))
+    }
+
+    /// `s` in the popup: the name prompt, prefilled.
+    fn save_open(&mut self) {
+        if self.layouts.save_out.is_some() || self.layouts.saving {
+            self.note = Some("Still saving the last one.".into());
+            return;
+        }
+        match self.save_draft() {
+            Ok((_, name)) => self.mode = Mode::SaveFavourite(name),
+            Err(why) => {
+                self.mode = Mode::Normal;
+                self.note = Some(why);
+            }
+        }
+    }
+
+    /// Typing the favourite's name. Enter saves, Esc goes back to the popup.
+    pub(super) fn save_key(&mut self, mut buf: String, k: KeyEvent) {
+        use ratatui::crossterm::event::KeyModifiers;
+        let ctrl = k.modifiers.contains(KeyModifiers::CONTROL);
+        match k.code {
+            KeyCode::Esc => {
+                self.mode = Mode::Arrange(0);
+                return;
+            }
+            KeyCode::Enter => {
+                let Some(name) = fav::parse_name(&buf) else {
+                    self.note = Some(format!("A name is 1 to {} characters.", fav::NAME_MAX));
+                    self.mode = Mode::SaveFavourite(buf);
+                    return;
+                };
+                self.mode = Mode::Normal;
+                match self.save_draft() {
+                    Ok((mut body, _)) => {
+                        body["name"] = json!(name);
+                        self.layouts.save_out = Some(body);
+                        self.note = Some(format!("Saving “{}”…", shown(&name)));
+                    }
+                    Err(why) => self.note = Some(why),
+                }
+                return;
+            }
+            KeyCode::Backspace => {
+                buf.pop();
+            }
+            KeyCode::Char('u') if ctrl => buf.clear(),
+            KeyCode::Char(c) if !ctrl && !k.modifiers.contains(KeyModifiers::ALT) => save_push(&mut buf, c),
+            _ => {}
+        }
+        self.mode = Mode::SaveFavourite(buf);
+    }
+
+    /// Pasted into the name prompt.
+    pub(super) fn save_paste(&mut self, text: &str) {
+        if let Mode::SaveFavourite(buf) = &mut self.mode {
+            for c in text.chars() {
+                save_push(buf, if c.is_control() { ' ' } else { c });
+            }
+        }
+    }
+
+    /// The status line while typing the name.
+    pub fn save_line(&self, buf: &str) -> String {
+        let replaces =
+            fav::parse_name(buf).is_some_and(|n| self.layouts.favourites.iter().flatten().any(|f| f.name == n));
+        format!(
+            "save layout as (enter saves, esc back){}: {}▏",
+            if replaces {
+                " · replaces yours of that name"
+            } else {
+                ""
+            },
+            shown(buf)
+        )
+    }
+
+    /// `POST /api/me/layouts`, from the event loop: (status, body), or why it did not get there.
+    pub fn on_favourite_saved(&mut self, r: Result<(u16, Value), String>) {
+        self.layouts.saving = false;
+        self.note = Some(match r {
+            Ok((code @ (200 | 201), v)) => match fav::parse_favourite(&v["favourite"]) {
+                Some(f) => {
+                    let name = shown(&f.name);
+                    let list = self.layouts.favourites.get_or_insert_with(Vec::new);
+                    match list.iter_mut().find(|g| g.id == f.id) {
+                        Some(g) => *g = f,
+                        None => list.push(f),
+                    }
+                    if code == 200 {
+                        format!("Replaced your favourite “{name}”.")
+                    } else {
+                        format!("Saved “{name}”. prefix Space lists it under Favourites.")
+                            .replace("prefix", &self.keymap.prefix_label())
+                    }
+                }
+                None => {
+                    self.layouts.fetch = true;
+                    "Saved.".into()
+                }
+            },
+            Ok((code, v)) => {
+                let c = v["error"]["code"].as_str().or(v["error"].as_str());
+                fav::save_problem(code, c).into()
+            }
+            Err(_) => "Not saved: the server could not be reached.".into(),
+        });
     }
 
     /// Why nothing may be arranged here now, in the web's words; None = it may.
@@ -362,6 +554,30 @@ impl App {
         self.layouts.undo = None;
         let params = json!({ "tab_id": u.tab, "root": u.root, "expect_rev": u.rev });
         self.request_layout("layout.arrange", params, LayoutReq::Undo);
+    }
+
+    /// `t` in the popup: the focused terminal goes to a new tab of its workspace
+    /// (`pane.move`, as the phone's Switcher does), named after it when it has a name.
+    /// Nothing is closed; offered only when the tab has another terminal.
+    fn move_to_new_tab(&mut self) {
+        if let Some(why) = self.arrange_blocked() {
+            self.note = Some(why);
+            return;
+        }
+        let Some(id) = self.focus.clone().filter(|f| self.tab_panes().contains(f)) else {
+            return;
+        };
+        let label = self
+            .topo()
+            .and_then(|t| t.pane(&id))
+            .and_then(|p| p.label.clone())
+            .filter(|l| !l.trim().is_empty());
+        let mut dest = json!({ "type": "new_tab" });
+        if let Some(l) = &label {
+            dest["label"] = json!(l);
+        }
+        let params = json!({ "pane_id": id, "destination": dest, "focus": true });
+        self.request_layout("pane.move", params, LayoutReq::Move(label.unwrap_or(id)));
     }
 
     /// Enter on a favourite: the popup already showed what happens; do it.
@@ -497,6 +713,14 @@ impl App {
                 }
                 self.restore_step();
             }
+            LayoutReq::Move(name) => {
+                self.note = Some(match error {
+                    None => format!("Moved {} to a new tab. Nothing was closed.", shown(&name)),
+                    Some("pane_not_found" | "not_found") => format!("{} is gone. Nothing was changed.", shown(&name)),
+                    Some(code @ ("machine_offline" | "forbidden_scope")) => fav::problem(code, false).into(),
+                    Some(_) => format!("Could not move {}. Nothing was changed.", shown(&name)),
+                });
+            }
             LayoutReq::RestoreArrange => {
                 let Some(r) = self.layouts.restore.take() else { return };
                 if error.is_none() {
@@ -612,7 +836,7 @@ pub fn draw(app: &App, sel: usize, main: Rect, buf: &mut Buffer) {
     let mut lines: Vec<(String, Style)> = vec![];
     let dim = Style::default().fg(Color::DarkGray);
     let hl = Style::default().fg(Color::Black).bg(Color::Cyan);
-    let fav_lines = 1 + favs.len().max(1) + usize::from(all_favs > favs.len());
+    let fav_lines = 2 + favs.len().max(1) + usize::from(all_favs > favs.len());
     let tail = 2 + preview.as_ref().map_or(0, |p| p.lines.len().min(3));
     let thumb_rows = patterns.len().div_ceil(per_row);
     let with_pictures =
@@ -656,8 +880,14 @@ pub fn draw(app: &App, sel: usize, main: Rect, buf: &mut Buffer) {
         }
     }
     let undo = if app.layouts.undo.is_some() { "   u Undo" } else { "" };
+    let more = match app.arrange_more() {
+        0 => String::new(),
+        _ if app.layouts.more => "   m Fewer layouts".into(),
+        n => format!("   m More layouts ({n})"),
+    };
     if count >= 2 {
-        lines.push((format!("E Even out sizes{undo}"), Style::default()));
+        lines.push((format!("E Even out sizes{more}{undo}"), Style::default()));
+        lines.push(("t Move this terminal to a new tab".into(), Style::default()));
     } else if !undo.is_empty() {
         lines.push((undo.trim_start().to_string(), Style::default()));
     }
@@ -666,7 +896,7 @@ pub fn draw(app: &App, sel: usize, main: Rect, buf: &mut Buffer) {
         (None, _) => lines.push(("Reading your favourites…".into(), dim)),
         (Some(_), Some(_)) => lines.push(("Favourites could not be read. Try again later.".into(), dim)),
         (Some(l), None) if l.is_empty() => {
-            lines.push(("None yet: save a layout from the Arrange panel on the web.".into(), dim))
+            lines.push(("None yet: s saves this layout to open again later.".into(), dim))
         }
         _ => {
             for (i, f) in favs.iter().enumerate() {
@@ -689,6 +919,9 @@ pub fn draw(app: &App, sel: usize, main: Rect, buf: &mut Buffer) {
             }
         }
     }
+    if app.layouts.favourites.is_some() && app.layouts.problem.is_none() {
+        lines.push(("s Save this layout".into(), Style::default()));
+    }
     let foot = match (selected, &preview) {
         (Some(Pick::Favourite(_)), Some(p)) => {
             for l in p.lines.iter().take(3) {
@@ -696,7 +929,11 @@ pub fn draw(app: &App, sel: usize, main: Rect, buf: &mut Buffer) {
             }
             format!("Enter: {}   Esc cancels", p.button)
         }
-        (Some(Pick::Pattern(p)), _) => format!("Enter: arrange as {}   1-4 pick   Esc cancels", arrange::label(p)),
+        (Some(Pick::Pattern(p)), _) => format!(
+            "Enter: arrange as {}   1-{} pick   Esc cancels",
+            arrange::label(p),
+            patterns.len().min(9)
+        ),
         _ => "Esc closes".into(),
     };
     lines.push((foot, dim));

@@ -29,6 +29,13 @@
 
 export type PluginItemKind = 'mcp' | 'skill' | 'subagent' | 'command' | 'instructions';
 export const PLUGIN_ITEM_KINDS: readonly PluginItemKind[] = ['mcp', 'skill', 'subagent', 'command', 'instructions'];
+/**
+ * The kinds `config.pluginSet` carries: the user's items and curated add-ons
+ * (src/addon.ts). An add-on is never created from the item form, so it is
+ * not in PLUGIN_ITEM_KINDS.
+ */
+export type PluginSetKind = PluginItemKind | 'addon';
+export const PLUGIN_SET_KINDS: readonly PluginSetKind[] = [...PLUGIN_ITEM_KINDS, 'addon'];
 export type PluginScope = 'user' | 'machine' | 'project';
 export const PLUGIN_SCOPES: readonly PluginScope[] = ['user', 'machine', 'project'];
 const RANK: Record<PluginScope, number> = { user: 0, machine: 1, project: 2 };
@@ -261,7 +268,7 @@ export function effectivePlugin(rows: PluginRows, plugin: string, target: Plugin
 
 // ── the wire: config.pluginSet ───────────────────────────────────────────
 
-export interface PluginSetItem { id: string; kind: PluginItemKind; name: string; version: number; definition: unknown }
+export interface PluginSetItem { id: string; kind: PluginSetKind; name: string; version: number; definition: unknown }
 export interface PluginSetEntry { items: string[]; values?: Record<string, unknown> }
 /** Plugin id → what it gets. */
 export type PluginSetScope = Record<string, PluginSetEntry>;
@@ -315,10 +322,10 @@ export function parsePluginSet(v: unknown): PluginSet | undefined {
   for (const x of Array.isArray(v.items) ? v.items : []) {
     if (items.length >= MAX_PLUGIN_SET_ITEMS) break;
     if (!isObj(x) || typeof x.id !== 'string' || !PLUGIN_ITEM_ID.test(x.id) || known.has(x.id)) continue;
-    if (typeof x.name !== 'string' || !PLUGIN_ITEM_NAME.test(x.name) || !PLUGIN_ITEM_KINDS.includes(x.kind as PluginItemKind)) continue;
+    if (typeof x.name !== 'string' || !PLUGIN_ITEM_NAME.test(x.name) || !PLUGIN_SET_KINDS.includes(x.kind as PluginSetKind)) continue;
     if (!Number.isSafeInteger(x.version) || (x.version as number) < 1 || !isObj(x.definition)) continue;
     known.add(x.id);
-    items.push({ id: x.id, kind: x.kind as PluginItemKind, name: x.name, version: x.version as number, definition: x.definition });
+    items.push({ id: x.id, kind: x.kind as PluginSetKind, name: x.name, version: x.version as number, definition: x.definition });
   }
   const projects: Record<string, PluginSetScope> = {};
   if (isObj(v.projects)) {

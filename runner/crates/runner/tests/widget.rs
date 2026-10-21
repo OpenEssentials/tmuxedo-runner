@@ -61,6 +61,19 @@ fn agent_list() -> serde_json::Value {
     ]})
 }
 
+fn usage_list() -> serde_json::Value {
+    let s = NOW / 1000;
+    json!({ "type": "usage_list", "enabled": true, "records": [
+        { "plugin": "claude", "name": "Claude Code", "observedAt": NOW, "windows": [
+            { "id": "5h", "label": "5-hour", "usedPct": 81.4, "resetsAt": s + 2 * 3600 + 15 * 60 },
+            { "id": "7d", "label": "weekly", "usedPct": 34.0, "resetsAt": s + 3 * 86_400 }
+        ] },
+        { "plugin": "codex", "name": "Codex", "observedAt": NOW, "windows": [
+            { "id": "5h", "label": "5-hour", "usedPct": 100.0, "resetsAt": s + 40 * 60 }
+        ] }
+    ] })
+}
+
 fn needs_list() -> serde_json::Value {
     json!({ "type": "needs_list", "items": [
         { "id": "n2", "pane_id": "w1:p2", "plugin": "claude", "kind": "permission", "title": "Run a command",
@@ -115,7 +128,21 @@ fn all_data() -> Vec<(&'static str, Data)> {
         ("machine", machine()),
         ("agents", Data::Agents(widget::agents_from(&agent_list()))),
         ("needs", Data::Needs(widget::needs_from(&needs_list(), NOW))),
-        ("usage", Data::Usage),
+        ("usage", Data::Usage(widget::usage_from(&usage_list(), NOW))),
+        (
+            "usage-off",
+            Data::Usage(widget::usage_from(
+                &json!({"type": "usage_list", "enabled": false, "records": []}),
+                NOW,
+            )),
+        ),
+        (
+            "usage-empty",
+            Data::Usage(widget::usage_from(
+                &json!({"type": "usage_list", "enabled": true, "records": []}),
+                NOW,
+            )),
+        ),
         ("no-runner", Data::NoRunner),
         ("agents-empty", Data::Agents(vec![])),
         ("needs-empty", Data::Needs(vec![])),
@@ -127,10 +154,33 @@ fn all_data() -> Vec<(&'static str, Data)> {
 fn snapshots_at_odd_sizes_for_every_widget_and_tier() {
     for (name, data) in all_data() {
         snapshot(&format!("{name}-blocks.txt"), &sheet(&data, Glyphs::Blocks));
-        if ["machine", "agents", "needs"].contains(&name) {
+        if ["machine", "agents", "needs", "usage"].contains(&name) {
             snapshot(&format!("{name}-ascii.txt"), &sheet(&data, Glyphs::Ascii));
         }
     }
+}
+
+#[test]
+fn usage_shows_each_window_as_a_gauge_with_its_reset() {
+    let d = Data::Usage(widget::usage_from(&usage_list(), NOW));
+    let t = widget::text(&draw(&d, 72, 10, &opts(Glyphs::Blocks, false)));
+    assert!(t.contains("Claude Code"), "{t}");
+    assert!(
+        t.contains("5-hour") && t.contains("81%") && t.contains("resets in 2 h 15 m"),
+        "{t}"
+    );
+    assert!(t.contains("weekly") && t.contains("34%"), "{t}");
+    assert!(
+        t.contains("Codex") && t.contains("100%") && t.contains("resets in 40 m"),
+        "{t}"
+    );
+    assert!(t.contains('█'), "a gauge: {t}");
+    let off = Data::Usage(widget::usage_from(&json!({"enabled": false, "records": []}), NOW));
+    let t = widget::text(&draw(&off, 72, 10, &opts(Glyphs::Blocks, false)));
+    assert!(t.contains("AI usage is off"), "{t}");
+    // One row: the fullest window.
+    let t = widget::text(&draw(&d, 40, 1, &opts(Glyphs::Blocks, false)));
+    assert!(t.contains("100%"), "{t}");
 }
 
 #[test]

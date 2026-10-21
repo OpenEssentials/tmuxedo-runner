@@ -7,9 +7,12 @@
 //! Inside a container the numbers are the CONTAINER's: memory from the nearest
 //! cgroup v2 directory with a numeric `memory.max` (the one the memory
 //! watchdog enforces), CPU against the nearest numeric `cpu.max` quota. On a
-//! machine without limits they come from `/proc`. Where neither exists (not
-//! Linux), CPU and memory are left out of the sample: "not available", never
-//! a guess. Disk is `statvfs` of the runner's home everywhere.
+//! machine without limits they come from `/proc`. On macOS they come from the
+//! host's own counters (`host_statistics64`, `host_statistics`, `sysctl`; no
+//! process is run): [`mac_mem`] and [`mac_cpu_ticks`] turn those into the
+//! same numbers. Where none of these exists, CPU and memory are left out of
+//! the sample: "not available", never a guess. Disk is `statvfs` of the
+//! runner's home everywhere.
 //!
 //! Values only. No process is listed, no name, command line, user or path is
 //! read or sent. Every file may be missing, short, huge or junk: reads are
@@ -37,10 +40,13 @@ pub struct Roots {
     pub home: PathBuf,
     /// The process whose cgroup is "this machine" (the pane holder, as the watchdog uses).
     pub pid: u32,
+    /// Ask the host's own counters where there is no `/proc` (macOS).
+    pub host_api: bool,
 }
 
 impl Roots {
-    /// The real machine. Not Linux: no `/proc`, no cgroups, so CPU and memory are not available.
+    /// The real machine. Linux: `/proc` and cgroups. macOS: the host's
+    /// counters. Anything else: CPU and memory are not available.
     pub fn system(home: &Path, pid: u32) -> Self {
         let linux = cfg!(target_os = "linux");
         Roots {
@@ -48,6 +54,7 @@ impl Roots {
             cgroup: linux.then(|| PathBuf::from("/sys/fs/cgroup")),
             home: home.to_path_buf(),
             pid,
+            host_api: cfg!(target_os = "macos"),
         }
     }
 }
@@ -156,6 +163,159 @@ pub fn parse_cgroup_rel(text: &str) -> Option<PathBuf> {
 pub fn parse_loadavg(text: &str) -> Option<f64> {
     let v: f64 = text.split_ascii_whitespace().next()?.parse().ok()?;
     (v.is_finite() && v >= 0.0).then_some(v)
+}
+
+/// macOS page counts, as `host_statistics64(HOST_VM_INFO64)` gives them (and `vm_stat` prints them).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct MacVm {
+    pub free: u64,
+    pub active: u64,
+    pub inactive: u64,
+    pub speculative: u64,
+    pub wired: u64,
+    pub purgeable: u64,
+    /// Pages the compressor occupies ("Pages occupied by compressor").
+    pub compressor: u64,
+    /// Anonymous pages ("Anonymous pages"; `internal_page_count`).
+    pub internal: u64,
+    /// File-backed pages ("File-backed pages"; `external_page_count`).
+    pub external: u64,
+}
+
+/// macOS memory "used" as Activity Monitor counts it: app memory (anonymous
+/// minus purgeable) + wired + compressed, against physical memory. Cache
+/// (file-backed, purgeable, free) is not used, the same rule as
+/// `MemAvailable` on Linux. None without a page size or physical memory.
+pub fn mac_mem(vm: &MacVm, page: u64, physical: u64) -> Option<StatsMem> {
+    if page == 0 || physical == 0 {
+        return None;
+    }
+    let pages = vm
+        .internal
+        .saturating_sub(vm.purgeable)
+        .saturating_add(vm.wired)
+        .saturating_add(vm.compressor);
+    Some(StatsMem {
+        used: pages.saturating_mul(page).min(physical),
+        limit: physical,
+        limited: false,
+        pressure10: None,
+        swap_used: None,
+    })
+}
+
+/// macOS `host_cpu_load_info.cpu_ticks` (user, system, idle, nice) as
+/// (busy, all), the same pair [`parse_proc_stat`] gives on Linux.
+pub fn mac_cpu_ticks(t: [u32; 4]) -> (u64, u64) {
+    let [user, system, idle, nice] = t.map(u64::from);
+    let busy = user + system + nice;
+    (busy, busy + idle)
+}
+
+/// The host calls behind [`Roots::host_api`]: macOS only; elsewhere they answer nothing.
+#[cfg(target_os = "macos")]
+mod host {
+    use super::{mac_cpu_ticks, mac_mem, MacVm};
+    use std::ffi::{c_void, CStr};
+    use std::sync::OnceLock;
+    use tmuxedo_protocol::stats::StatsMem;
+
+    /// One send right for the life of the process (each `mach_host_self` adds a reference).
+    #[allow(deprecated)] // libc points at the mach2 crate; the call is the same
+    fn port() -> libc::mach_port_t {
+        static PORT: OnceLock<libc::mach_port_t> = OnceLock::new();
+        // SAFETY: no arguments; returns the host port name.
+        *PORT.get_or_init(|| unsafe { libc::mach_host_self() })
+    }
+
+    fn sysctl<T: Copy + Default>(name: &CStr) -> Option<T> {
+        let mut v = T::default();
+        let mut len = std::mem::size_of::<T>();
+        // SAFETY: `v` is a plain value of `len` bytes; no new value is set.
+        let r = unsafe {
+            libc::sysctlbyname(
+                name.as_ptr(),
+                (&mut v as *mut T).cast::<c_void>(),
+                &mut len,
+                std::ptr::null_mut(),
+                0,
+            )
+        };
+        (r == 0 && len == std::mem::size_of::<T>()).then_some(v)
+    }
+
+    pub fn mem() -> Option<StatsMem> {
+        // SAFETY: a zeroed plain C struct, filled by the kernel up to `count` integers.
+        let mut vm: libc::vm_statistics64 = unsafe { std::mem::zeroed() };
+        let mut count = libc::HOST_VM_INFO64_COUNT;
+        let r = unsafe {
+            libc::host_statistics64(
+                port(),
+                libc::HOST_VM_INFO64,
+                (&mut vm as *mut libc::vm_statistics64).cast(),
+                &mut count,
+            )
+        };
+        if r != libc::KERN_SUCCESS {
+            return None;
+        }
+        let v = MacVm {
+            free: vm.free_count.into(),
+            active: vm.active_count.into(),
+            inactive: vm.inactive_count.into(),
+            speculative: vm.speculative_count.into(),
+            wired: vm.wire_count.into(),
+            purgeable: vm.purgeable_count.into(),
+            compressor: vm.compressor_page_count.into(),
+            internal: vm.internal_page_count.into(),
+            external: vm.external_page_count.into(),
+        };
+        mac_mem(&v, crate::watchdog::page_size(), sysctl::<u64>(c"hw.memsize")?)
+    }
+
+    /// (busy, all, cores).
+    pub fn cpu() -> Option<(u64, u64, u32)> {
+        // SAFETY: as in `mem`, for the four tick counters.
+        let mut info: libc::host_cpu_load_info = unsafe { std::mem::zeroed() };
+        let mut count = libc::HOST_CPU_LOAD_INFO_COUNT;
+        let r = unsafe {
+            libc::host_statistics(
+                port(),
+                libc::HOST_CPU_LOAD_INFO,
+                (&mut info as *mut libc::host_cpu_load_info).cast(),
+                &mut count,
+            )
+        };
+        if r != libc::KERN_SUCCESS {
+            return None;
+        }
+        let cores = sysctl::<i32>(c"hw.logicalcpu")
+            .and_then(|n| u32::try_from(n).ok())
+            .unwrap_or(0);
+        let (busy, all) = mac_cpu_ticks(info.cpu_ticks);
+        Some((busy, all, cores))
+    }
+
+    pub fn load1() -> Option<f64> {
+        let mut l = [0f64; 3];
+        // SAFETY: room for the three values asked for.
+        let n = unsafe { libc::getloadavg(l.as_mut_ptr(), 3) };
+        (n >= 1 && l[0].is_finite() && l[0] >= 0.0).then_some((l[0] * 100.0).round() / 100.0)
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+mod host {
+    use tmuxedo_protocol::stats::StatsMem;
+    pub fn mem() -> Option<StatsMem> {
+        None
+    }
+    pub fn cpu() -> Option<(u64, u64, u32)> {
+        None
+    }
+    pub fn load1() -> Option<f64> {
+        None
+    }
 }
 
 /// The nearest cgroup directory at or above `rel` for which `found` answers.
@@ -291,7 +451,9 @@ impl Sampler {
                 swap_used: read_u64(&dir.join("memory.swap.current")).filter(|s| *s > 0),
             });
         }
-        let proc = self.roots.proc.as_deref()?;
+        let Some(proc) = self.roots.proc.as_deref() else {
+            return if self.roots.host_api { host::mem() } else { None };
+        };
         let (total, avail, swap_total, swap_free) = parse_meminfo(&read_capped(&proc.join("meminfo"))?)?;
         if total == 0 {
             return None;
@@ -321,7 +483,8 @@ impl Sampler {
             .proc
             .as_deref()
             .and_then(|p| read_capped(&p.join("stat")))
-            .and_then(|t| parse_proc_stat(&t));
+            .and_then(|t| parse_proc_stat(&t))
+            .or_else(|| self.roots.host_api.then(host::cpu).flatten());
         if let Some((_, _, cores)) = host {
             out.cores = (cores > 0).then_some(cores);
         }
@@ -373,7 +536,8 @@ impl Sampler {
                 .proc
                 .as_deref()
                 .and_then(|p| read_capped(&p.join("loadavg")))
-                .and_then(|t| parse_loadavg(&t));
+                .and_then(|t| parse_loadavg(&t))
+                .or_else(|| self.roots.host_api.then(host::load1).flatten());
         }
         let known = out != StatsCpu::default();
         (known.then_some(out), mark)
@@ -423,6 +587,7 @@ mod tests {
             cgroup: Some(cg),
             home: dir.to_path_buf(),
             pid: 7,
+            host_api: false,
         }
     }
 
@@ -558,6 +723,7 @@ mod tests {
                 cgroup: None,
                 home: d.path().to_path_buf(),
                 pid: 7,
+                host_api: false,
             },
             t0,
         );
@@ -571,6 +737,7 @@ mod tests {
                 cgroup: Some(d.path().join("no-cg")),
                 home: d.path().join("no-home"),
                 pid: 7,
+                host_api: false,
             },
             t0,
         );
@@ -734,5 +901,144 @@ mod tests {
         assert_eq!(parse_loadavg("0.10 0.20 0.30 1/2 3\n"), Some(0.1));
         assert_eq!(kv("a 1\nb 2\n", "b"), Some(2));
         assert_eq!(kv("ab 1\n", "a"), None);
+    }
+
+    /// `vm_stat` output (fixture strings from an Apple-silicon and an Intel Mac) → page counts and page size.
+    fn vm_stat(text: &str) -> (MacVm, u64) {
+        let page = text
+            .split("page size of ")
+            .nth(1)
+            .and_then(|r| r.split_whitespace().next())
+            .and_then(|n| n.parse().ok())
+            .unwrap_or(0);
+        let n = |key: &str| {
+            text.lines()
+                .find_map(|l| l.strip_prefix(key)?.strip_prefix(':'))
+                .and_then(|v| v.trim().trim_end_matches('.').parse::<u64>().ok())
+                .unwrap_or(0)
+        };
+        let vm = MacVm {
+            free: n("Pages free"),
+            active: n("Pages active"),
+            inactive: n("Pages inactive"),
+            speculative: n("Pages speculative"),
+            wired: n("Pages wired down"),
+            purgeable: n("Pages purgeable"),
+            compressor: n("Pages occupied by compressor"),
+            internal: n("Anonymous pages"),
+            external: n("File-backed pages"),
+        };
+        (vm, page)
+    }
+
+    const VM_STAT_ARM: &str = "Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                               12345.
+Pages active:                            250000.
+Pages inactive:                          240000.
+Pages speculative:                         5000.
+Pages throttled:                              0.
+Pages wired down:                        100000.
+Pages purgeable:                          10000.
+\"Translation faults\":                 123456789.
+Pages copy-on-write:                    1234567.
+Pages zero filled:                     98765432.
+Pages reactivated:                        12345.
+Pages purged:                              6789.
+File-backed pages:                       200000.
+Anonymous pages:                         295000.
+Pages stored in compressor:              150000.
+Pages occupied by compressor:             50000.
+Decompressions:                          100000.
+Compressions:                            200000.
+Pageins:                                 300000.
+Pageouts:                                  1000.
+Swapins:                                      0.
+Swapouts:                                     0.
+";
+
+    const VM_STAT_INTEL: &str = "Mach Virtual Memory Statistics: (page size of 4096 bytes)
+Pages free:                                1000.
+Pages active:                            900000.
+Pages inactive:                          800000.
+Pages speculative:                          100.
+Pages throttled:                              0.
+Pages wired down:                        500000.
+Pages purgeable:                              0.
+File-backed pages:                       300000.
+Anonymous pages:                        1400000.
+Pages occupied by compressor:            400000.
+";
+
+    #[test]
+    fn mac_memory_counts_app_wired_and_compressed_against_physical() {
+        let (vm, page) = vm_stat(VM_STAT_ARM);
+        assert_eq!(page, 16384);
+        assert_eq!(
+            (vm.internal, vm.purgeable, vm.wired, vm.compressor),
+            (295_000, 10_000, 100_000, 50_000)
+        );
+        // A 16 GiB Mac: app 285000 + wired 100000 + compressed 50000 pages = 435000 × 16 KiB.
+        let m = mac_mem(&vm, page, 16 * GIB).unwrap();
+        assert_eq!((m.used, m.limit, m.limited), (435_000 * 16384, 16 * GIB, false));
+        assert!((m.used as f64 / m.limit as f64 - 0.4148).abs() < 0.001);
+        assert_eq!((m.pressure10, m.swap_used), (None, None));
+        // Intel, 4 KiB pages, an 8 GiB machine reporting more than it has: capped at physical.
+        let (vm, page) = vm_stat(VM_STAT_INTEL);
+        assert_eq!(page, 4096);
+        let m = mac_mem(&vm, page, 8 * GIB).unwrap();
+        assert_eq!(m.used, 8 * GIB, "2.3 M pages × 4 KiB > 8 GiB: never above the limit");
+        // Junk: no page size, no memory, empty output.
+        assert_eq!(mac_mem(&vm, 0, 8 * GIB), None);
+        assert_eq!(mac_mem(&vm, page, 0), None);
+        let (empty, p) = vm_stat("");
+        assert_eq!((empty, p), (MacVm::default(), 0));
+        assert_eq!(mac_mem(&empty, 4096, GIB).unwrap().used, 0);
+        // Purgeable larger than anonymous (a stale snapshot) never goes negative.
+        let odd = MacVm {
+            internal: 5,
+            purgeable: 9,
+            ..MacVm::default()
+        };
+        assert_eq!(mac_mem(&odd, 4096, GIB).unwrap().used, 0);
+    }
+
+    #[test]
+    fn mac_cpu_ticks_give_the_proc_stat_pair() {
+        // user, system, idle, nice
+        assert_eq!(mac_cpu_ticks([300, 100, 550, 50]), (450, 1000));
+        assert_eq!(
+            mac_cpu_ticks([u32::MAX, u32::MAX, u32::MAX, u32::MAX]).1,
+            4 * u64::from(u32::MAX)
+        );
+        // Two readings → a share, as on Linux; a counter that wrapped gives none.
+        let (b0, a0) = mac_cpu_ticks([300, 100, 550, 50]);
+        let (b1, a1) = mac_cpu_ticks([400, 150, 600, 50]);
+        assert_eq!(pct((b1 - b0) as f64, (a1 - a0) as f64), Some(75.0));
+        let (b2, _) = mac_cpu_ticks([1, 0, 0, 0]);
+        assert_eq!(b2.checked_sub(b1), None);
+    }
+
+    #[test]
+    fn host_api_off_or_not_macos_reads_nothing() {
+        let d = tempfile::tempdir().unwrap();
+        let t0 = Instant::now();
+        let mut s = started(
+            Roots {
+                proc: None,
+                cgroup: None,
+                home: d.path().to_path_buf(),
+                pid: 7,
+                host_api: cfg!(target_os = "macos"),
+            },
+            t0,
+        );
+        let a = s.tick(t0, 1).unwrap();
+        if cfg!(target_os = "macos") {
+            let m = a.mem.expect("macOS reports memory");
+            assert!(m.used > 0 && m.used <= m.limit && !m.limited);
+            assert!(a.cpu.and_then(|c| c.cores).is_some_and(|n| n > 0));
+        } else {
+            assert_eq!((a.cpu, a.mem), (None, None));
+        }
     }
 }

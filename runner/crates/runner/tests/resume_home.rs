@@ -190,7 +190,7 @@ async fn home_sessions_resume_in_work_and_project_sessions_stay() {
     std::fs::write(
         real.join("claude"),
         format!(
-            "#!/bin/sh\nprintf '%s|%s\\n' \"$(pwd)\" \"$*\" >> '{}'\necho \"RESUMED-IN: $(pwd)\"\nexec sleep 600\n",
+            "#!/bin/sh\nprintf '%s|%s\\n' \"$(pwd)\" \"$(printf '%s' \"$*\" | tr '\\n' ' ')\" >> '{}'\necho \"RESUMED-IN: $(pwd)\"\nexec sleep 600\n",
             calls.display()
         ),
     )
@@ -304,7 +304,8 @@ async fn home_sessions_resume_in_work_and_project_sessions_stay() {
     assert_eq!(got.len(), 3, "{got:?}");
     let want = |cwd: &str, sid: &str| {
         got.iter().any(|(c, a)| {
-            // (After the files fragment, Phase 15: `--add-dir … --append-system-prompt-file …`.)
+            // (After the files fragment, Phase 15: `--add-dir …`; its note is folded into one
+            // leading `--append-system-prompt` holding new lines, so the fake logs them as spaces.)
             c == cwd && a.contains("--settings ") && a.ends_with(&format!("claude-settings.json --resume {sid}"))
         })
     };

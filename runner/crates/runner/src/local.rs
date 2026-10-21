@@ -17,6 +17,8 @@ pub struct LocalReq {
     pub params: Value,
     /// The calling process (SO_PEERCRED / LOCAL_PEERPID), when the OS says.
     pub peer: Option<i32>,
+    /// The caller's parent chain, read with the request (hooks and usage reports, crate::ancestry).
+    pub chain: Option<crate::ancestry::Snapshot>,
     pub reply: oneshot::Sender<LocalReply>,
 }
 
@@ -25,6 +27,20 @@ impl LocalReq {
     pub fn peer_pid(&self) -> Option<u32> {
         self.peer.and_then(|p| u32::try_from(p).ok()).filter(|&p| p > 0)
     }
+
+    /// Where the ancestry check reads the caller's processes: the chain read with the
+    /// request when there is one, the live system otherwise.
+    pub fn procs(&self) -> &dyn crate::ancestry::Procs {
+        match &self.chain {
+            Some(s) => s,
+            None => &crate::ancestry::System,
+        }
+    }
+}
+
+/// The methods whose caller the daemon checks (crate::ancestry): their chain is read at once.
+fn checks_caller(method: &str) -> bool {
+    matches!(method, "hook.event" | "usage.report")
 }
 
 /// `TMUXEDO_RUNNER_SOCKET_GROUP=<gid>`: the socket and its directory are shared with that
@@ -105,10 +121,15 @@ async fn handle(s: UnixStream, tx: mpsc::Sender<LocalReq>) {
             continue;
         };
         let (rtx, rrx) = oneshot::channel();
+        let chain = match peer.and_then(|p| u32::try_from(p).ok()).filter(|&p| p > 0) {
+            Some(pid) if checks_caller(method) => Some(crate::ancestry::Snapshot::take(&crate::ancestry::System, pid)),
+            _ => None,
+        };
         let req = LocalReq {
             method: method.to_string(),
             params: v.get("params").cloned().unwrap_or(json!({})),
             peer,
+            chain,
             reply: rtx,
         };
         if tx.send(req).await.is_err() {

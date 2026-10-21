@@ -27,8 +27,22 @@ pub enum NetEvent {
     ControlRefused(String, String),
     /// `GET /api/machines/{id}/plugins/effective` answered (super::agent_settings).
     AgentSettings(String, Result<Value, String>),
+    /// `GET /api/v1/machines/{id}/fs/…` answered (super::browse): machine, the request, the result or (HTTP status, error code).
+    Files(String, String, Result<Value, (Option<u16>, String)>),
+    /// `POST /api/v1/machines/{id}/wake` answered (super::wake): the relay's name or the error.
+    Wake(String, Result<String, String>),
+    /// A search answer (super::search): generation, who answered, status and body (Err: no connection).
+    Search(u64, super::search::Target, Result<(u16, serde_json::Value), String>),
     /// `GET /api/me/layouts` (the account's layout favourites).
     Favourites(Result<Value, String>),
+    /// `POST /api/me/layouts` (saving a favourite): status and body.
+    FavouriteSaved(Result<(u16, Value), String>),
+    /// `GET /api/shares?shared=byme` and `?shared=me` (super::shares).
+    Shares(Result<super::shares::Shares, String>),
+    /// `GET /api/away` (super::away): "While you were away".
+    Away(Result<super::away::Away, String>),
+    /// `GET /api/me/palette-recent` (super::palette): the account's Recent.
+    Recent(Result<Value, String>),
 }
 
 /// What the event loop sends a machine's socket task.

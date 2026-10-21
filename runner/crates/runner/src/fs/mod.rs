@@ -689,7 +689,11 @@ impl Daemon {
 
     pub(crate) fn fs_guard(&self) -> jail::Guard {
         let real = |p: std::path::PathBuf| p.canonicalize().unwrap_or(p);
-        let mut own = vec![real(self.opts.state_dir.clone()), real(crate::paths::config_dir())];
+        let mut own = vec![
+            real(self.opts.state_dir.clone()),
+            real(crate::paths::config_dir()),
+            real(self.opts.recordings_dir.clone()),
+        ];
         if let Some(f) = &self.files {
             own.push(real(f.root.clone()));
         }

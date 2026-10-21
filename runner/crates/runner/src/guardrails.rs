@@ -34,10 +34,12 @@ pub const READ_ONLY_METHODS: &[&str] = &[
     "chat.file",
     "files.list",
     "files.stat",
+    "search",
     "files.quota",
     "files.read",
     "files.upload_status",
     "needs.list",
+    "usage.list",
     "task.get",
     "task.list",
     "fs.roots",
@@ -50,6 +52,9 @@ pub const READ_ONLY_METHODS: &[&str] = &[
     "git.diff",
     "checkpoint.list",
     "checkpoint.preview",
+    "session.summary",
+    "replay.list",
+    "replay.read",
 ];
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

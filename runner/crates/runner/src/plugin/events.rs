@@ -129,6 +129,8 @@ pub struct HookOutcome {
     /// The agent's session id and cwd, when the payload carries them.
     pub session_id: Option<String>,
     pub cwd: Option<String>,
+    /// The session's transcript file, when the payload names it (`hooks.transcript_field`).
+    pub transcript: Option<String>,
     /// A row said a held prompt is over (`hooks.map[].release`).
     pub release: bool,
 }

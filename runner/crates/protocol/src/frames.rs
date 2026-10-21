@@ -175,6 +175,14 @@ pub struct RunnerInfo {
     /// the labels its owner gave it. Absent = this machine takes no automation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub automation: Option<Automation>,
+    /// Whether the runner keeps the machine awake while agents work
+    /// ([`crate::wake::KeepAwake`]); absent on older runners.
+    #[serde(rename = "keepAwake", default, skip_serializing_if = "Option::is_none")]
+    pub keep_awake: Option<crate::wake::KeepAwake>,
+    /// The interfaces this machine can be woken through
+    /// ([`crate::wake::Network`]); absent on older runners.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub network: Option<crate::wake::Network>,
 }
 
 /// `hello.runner.automation`: the machine's own automation labels (at most
@@ -444,7 +452,7 @@ pub enum GatewayFrame {
         /// Project env (docs/protocol.md `config`): project key → {NAME:
         /// value | null}. Absent = unchanged.
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        projects: Option<Value>,
+        projects: Option<Box<Value>>,
         /// What each plugin gets on this machine, per project
         /// ([`crate::plugin_set::parse_plugin_set`]). Absent = unchanged.
         #[serde(default, rename = "pluginSet", skip_serializing_if = "Option::is_none")]
@@ -454,6 +462,19 @@ pub enum GatewayFrame {
         /// frame enum stays small.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         roles: Option<Box<Value>>,
+        /// The projects whose search history this machine keeps
+        /// (docs/protocol.md "Search history"): `{projects: [{key, days?}]}`.
+        /// Absent = unchanged (an older web). Boxed: the frame enum stays small.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        history: Option<Box<Value>>,
+        /// Keep this machine awake while agents work (`true` | `false`).
+        /// Absent = unchanged.
+        #[serde(default, rename = "keepAwake", skip_serializing_if = "Option::is_none")]
+        keep_awake: Option<Box<Value>>,
+        /// Warn before the memory watchdog stops a process (`true` | `false`;
+        /// docs/protocol.md "Machine stats"). Absent = unchanged.
+        #[serde(default, rename = "memoryWarn", skip_serializing_if = "Option::is_none")]
+        memory_warn: Option<Box<Value>>,
     },
     /// Replay a chat's durable events from seq `from` (default 1) as CHAT
     /// frames tagged `req`, then `chat_attached`, then stream it live.
@@ -671,6 +692,19 @@ mod tests {
                 plugins: None,
                 automation: Some(Automation {
                     labels: vec!["automation".into()],
+                }),
+                keep_awake: Some(crate::wake::KeepAwake {
+                    enabled: true,
+                    available: true,
+                    held: true,
+                    reason: None,
+                }),
+                network: Some(crate::wake::Network {
+                    interfaces: vec![crate::wake::Interface {
+                        mac: "02:00:00:00:00:01".into(),
+                        ipv4: "192.0.2.20".into(),
+                        prefix: 24,
+                    }],
                 }),
             }),
             RunnerFrame::Topology {
