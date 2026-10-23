@@ -1,16 +1,60 @@
-# CI for every push and pull request: the runner on Linux (fmt, clippy, tests,
-# the agent-detection coverage gate) and natively on macOS (Intel and Apple
-# Silicon), tmuxedo for Mac (apps/mac: unsigned build, XCTest, launchd and
-# isolation checks), the TypeScript protocol package and its fixtures, the
-# publication gate (scripts/scrub.py) and two secret scanners over the whole
-# history. GitHub-hosted runners only. The one secret, SCRUB_PRIVATE_PATTERNS,
-# holds the operator's scrub gates (scripts/scrub.py explains why they are not
-# in the repository); pull requests from forks run without it. Actions are
-# pinned by commit SHA (the tag is in the comment).
+# CI on pull requests and on `main`: the runner on Linux (fmt, clippy, tests,
+# the agent-detection coverage gate) and natively on macOS (Apple Silicon
+# always, Intel off the pull-request path), tmuxedo for Mac (apps/mac:
+# unsigned build, XCTest, launchd and isolation checks), the TypeScript
+# protocol package and its fixtures, the publication gate (scripts/scrub.py)
+# and two secret scanners over the whole history. GitHub-hosted runners only.
+# The one secret, SCRUB_PRIVATE_PATTERNS, holds the operator's scrub gates
+# (scripts/scrub.py explains why they are not in the repository); pull
+# requests from forks run without it. Actions are pinned by commit SHA (the
+# tag is in the comment).
+#
+# ── WHAT A macOS MINUTE COSTS, AND WHY THIS FILE IS SHAPED LIKE THIS ──
+#
+# A GitHub-hosted macOS minute is billed as TEN included minutes. The
+# organisation's Actions budget is $0 permanently and `prevent_further_usage`
+# is set, so exhausting the 50,000-minute allowance is not an invoice — it
+# STOPS CI FOR EVERY REPOSITORY IN THE ORGANISATION until the month turns.
+#
+# Measured over the seven runs of 2026-10-16..22, one run of this workflow
+# spent ~36 real macOS minutes across three 10x jobs: ~360 included-equivalent
+# minutes, or 0.72% of the whole month, PER RUN. This repository was 23% of
+# the organisation's entire monthly consumption. Three things were paying for
+# nothing, and each has a line below that stops it:
+#
+#   1. `push: branches: ['**']` fired on every push to every branch, and a
+#      branch with an open pull request fired TWICE (the push run and the
+#      pull_request run are different concurrency groups, so neither cancels
+#      the other). Pushes also never cancelled, so an agent pushing a branch
+#      every few minutes queued full runs, macOS jobs and all. `push` is now
+#      `main` only: a branch is covered by its pull request, once.
+#   2. The macOS jobs ran in parallel with `runner-linux`, so a tree whose
+#      shared `cargo clippy`/`cargo test` was already broken still bought
+#      three macOS jobs. In four of those seven runs `runner-linux` failed and
+#      ~1,640 included-equivalent minutes were spent re-discovering it at 10x.
+#      The macOS jobs now `needs: runner-linux`. Consequence worth knowing:
+#      while `main` is red on Linux, the macOS jobs do not run at all. That is
+#      deliberate — fix Linux first, it costs a tenth as much to learn on.
+#   3. Intel ran on every pull request. It was the single most expensive line
+#      in the sample (95 of 250 real macOS minutes) for a platform GitHub is
+#      retiring, testing the same source as Apple Silicon. It now runs on
+#      `main` and on `workflow_dispatch`, not on pull requests. Releases are
+#      unaffected: release.yml builds both architectures from a `v*` tag.
+#
+# `runner-macos` also had NO `timeout-minutes`, so a hung 10x job billed to
+# the six-hour default: 3,600 included-equivalent minutes, 7% of the month,
+# from one hang. It is bounded now.
+#
+# Still on the table and deliberately not done here: skipping the macOS jobs
+# for changes that cannot affect them (a docs-only pull request still buys
+# Apple Silicon), which needs a path gate and can get a coverage decision
+# wrong, so it wants its own change.
 name: ci
 on:
+  # `main` only. Every other branch is covered by its pull request — once,
+  # not once per push and again for the pull request. See the header.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -35,15 +79,22 @@ jobs:
         run: docker build -f runner/Dockerfile.downloads --target test .
 
   runner-macos:
+    # BEHIND LINUX ON PURPOSE. The same clippy run and the same workspace
+    # tests cost a tenth as much on ubuntu-latest, so if they fail there they
+    # are not worth re-discovering on three 10x runners.
+    needs: runner-linux
+    # Measured 10-22 minutes. A 10x job with no bound bills to the six-hour
+    # default when it hangs, which is 7% of the organisation's month.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Intel. macos-13 is retired on GitHub-hosted runners; macos-15-intel
-          # is the standard Intel image.
-          - runner: macos-15-intel
-          # Apple Silicon.
-          - runner: macos-latest
+        # Apple Silicon always. Intel only off the pull-request path: it was
+        # the most expensive line in this workflow, for the same source on a
+        # platform GitHub is retiring (macos-13 is already gone;
+        # macos-15-intel is the standard Intel image). `fromJSON` because a
+        # matrix list cannot be made conditional element by element.
+        runner: ${{ github.event_name == 'pull_request' && fromJSON('["macos-latest"]') || fromJSON('["macos-15-intel","macos-latest"]') }}
     runs-on: ${{ matrix.runner }}
     defaults:
       run:
@@ -140,6 +191,11 @@ jobs:
   #   has passwordless sudo), the live ACL tests inside XCTest, and Tools/isolation-e2e.sh proving
   #   every boundary three times, each from setup to uninstall.
   mac-app:
+    # Behind Linux for the same reason as `runner-macos`: this job builds the
+    # universal runner from this commit before it can build the app, so a
+    # workspace that does not compile or test on Linux cannot produce an app
+    # worth 75 minutes at 10x.
+    needs: runner-linux
     runs-on: macos-15
     timeout-minutes: 75
     steps:
