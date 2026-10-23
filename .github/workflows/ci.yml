@@ -45,10 +45,15 @@
 # the six-hour default: 3,600 included-equivalent minutes, 7% of the month,
 # from one hang. It is bounded now.
 #
-# Still on the table and deliberately not done here: skipping the macOS jobs
-# for changes that cannot affect them (a docs-only pull request still buys
-# Apple Silicon), which needs a path gate and can get a coverage decision
-# wrong, so it wants its own change.
+# A fourth: the macOS jobs ran for changes that cannot reach them. A
+# documentation-only pull request bought Apple Silicon and `mac-app`. The
+# `changes` job below decides, and it is written as a DENY list — only paths
+# that PROVABLY cannot affect a native build are ignorable, and anything it
+# does not recognise spends the minutes. An allow list would have silently
+# skipped macOS the first time someone added a directory, and a missing test
+# run is a worse outcome than a wasted one. Note what is deliberately NOT
+# ignorable: this file. A gate that skips validating its own change is a gate
+# that can break the macOS lane and nobody finds out until a release.
 name: ci
 on:
   # `main` only. Every other branch is covered by its pull request — once,
@@ -78,11 +83,99 @@ jobs:
       - name: fmt + clippy + tests
         run: docker build -f runner/Dockerfile.downloads --target test .
 
+  # WHICH 10x JOBS THIS CHANGE ACTUALLY NEEDS. One ubuntu-latest minute, so
+  # that a change which cannot reach a native build does not buy ~155 real
+  # macOS minutes (~1,550 included-equivalent, 3.1% of the organisation's
+  # month). See the header for why this is a deny list and not an allow list.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      native: ${{ steps.decide.outputs.native }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: on a pull request HEAD is the merge commit and HEAD^1
+          # is the base tip, and on a push `github.event.before` has to be
+          # resolvable. A shallow clone has neither.
+          fetch-depth: 0
+      - id: decide
+        env:
+          # Empty on workflow_dispatch, which then runs everything.
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -eu
+
+          # FAIL SAFE, IN ONE PLACE. Every path out of this script that is not
+          # a confident "nothing native changed" ends here, because spending
+          # macOS minutes on a change that did not need them costs money,
+          # while skipping them on a change that did costs a broken release.
+          run_everything() {
+            echo "native=true" >> "$GITHUB_OUTPUT"
+            echo "running the native jobs: $1"
+            exit 0
+          }
+
+          if [ "${GITHUB_EVENT_NAME}" = 'pull_request' ]; then
+            # The merge commit's first parent is the base branch tip, so this
+            # is exactly what the pull request introduces. An unmergeable pull
+            # request has no merge commit and no first parent.
+            git rev-parse --verify HEAD^1 >/dev/null 2>&1 \
+              || run_everything 'no merge commit to compare against'
+            changed=$(git diff --name-only HEAD^1 HEAD)
+          else
+            case "$BASE" in
+              ''|0000000000000000000000000000000000000000)
+                run_everything "no comparable predecessor (event ${GITHUB_EVENT_NAME})" ;;
+            esac
+            git rev-parse --verify "$BASE" >/dev/null 2>&1 \
+              || run_everything "the previous commit $BASE is not in this clone"
+            changed=$(git diff --name-only "$BASE" HEAD)
+          fi
+
+          [ -n "$changed" ] || run_everything 'an empty diff, which should not happen'
+
+          echo 'changed:'
+          echo "$changed" | sed 's/^/  /'
+
+          # A `for` loop, not `while read`, because `run_everything` has to
+          # be able to `exit` the script and a pipeline would put it in a
+          # subshell. The cost is word splitting, which is why a path
+          # containing a space falls through to the catch-all and spends the
+          # minutes. That is the direction to be wrong in.
+          for f in $changed; do
+            case "$f" in
+              # Prose. Any depth: a README inside the Rust workspace is still
+              # a README.
+              *.md|docs/*|LICENSE|NOTICE) ;;
+              # The publication gate's own program and its allow list. Read by
+              # the `scrub` job, by nothing a native build compiles or runs.
+              scripts/*) ;;
+              # Release plumbing: release.yml and the scripts only it calls.
+              # THIS FILE IS NOT HERE ON PURPOSE — see the header.
+              .github/workflows/ci.yml) run_everything "$f changed, so the native jobs must prove it" ;;
+              .github/*) ;;
+              # Everything else, named or not. `runner/**` is the Rust
+              # workspace both macOS jobs build; `apps/mac/**` is the app and
+              # its end-to-end scripts; `packages/protocol/**` holds fixtures
+              # the Rust tests read directly (runner/crates/schema/tests,
+              # runner/crates/runner/tests/plugin_*.rs), so a protocol change
+              # really can turn the native tests red.
+              *) run_everything "$f can affect a native build" ;;
+            esac
+          done
+
+          echo "native=false" >> "$GITHUB_OUTPUT"
+          echo 'skipping the native jobs: nothing outside prose, scripts/ and release plumbing changed'
+
   runner-macos:
     # BEHIND LINUX ON PURPOSE. The same clippy run and the same workspace
     # tests cost a tenth as much on ubuntu-latest, so if they fail there they
     # are not worth re-discovering on three 10x runners.
-    needs: runner-linux
+    needs: [changes, runner-linux]
+    # `needs` still requires runner-linux to SUCCEED (this `if` holds no
+    # always()/!cancelled()), so a red tree skips these as before.
+    if: needs.changes.outputs.native == 'true'
     # Measured 10-22 minutes. A 10x job with no bound bills to the six-hour
     # default when it hangs, which is 7% of the organisation's month.
     timeout-minutes: 45
@@ -195,7 +288,8 @@ jobs:
     # universal runner from this commit before it can build the app, so a
     # workspace that does not compile or test on Linux cannot produce an app
     # worth 75 minutes at 10x.
-    needs: runner-linux
+    needs: [changes, runner-linux]
+    if: needs.changes.outputs.native == 'true'
     runs-on: macos-15
     timeout-minutes: 75
     steps:
