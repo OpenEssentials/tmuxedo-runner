@@ -23,7 +23,11 @@ jobs:
   build-linux:
     # Both Linux targets are static musl builds through cargo-zigbuild, the
     # same recipe as runner/Dockerfile.downloads.
-    runs-on: ubuntu-latest
+    # hangar-big, NOT hangar: two full musl release builds (x86_64 and
+    # aarch64) through cargo-zigbuild, from a toolchain installed in-job.
+    # The shared pool is 6Gi memory and a 4Gi work volume; this one gets
+    # 16Gi and 80Gi. Nothing here is private either -- see above.
+    runs-on: hangar-big
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -72,7 +72,11 @@ env:
   CARGO_TERM_COLOR: never
 jobs:
   runner-linux:
-    runs-on: ubuntu-latest
+    # hangar-big, NOT hangar: it builds the Rust workspace inside dind
+    # (cargo fmt, clippy, tests through runner/Dockerfile.downloads).
+    # The shared pool is 6Gi memory and a 4Gi work volume; this one gets
+    # 16Gi and 80Gi. Nothing here is private either -- see above.
+    runs-on: hangar-big
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -88,7 +92,9 @@ jobs:
   # macOS minutes (~1,550 included-equivalent, 3.1% of the organisation's
   # month). See the header for why this is a deny list and not an allow list.
   changes:
-    runs-on: ubuntu-latest
+    # hangar (ARC, cluster B). Nothing in this job is private -- the
+    # reason is the organisation's Actions budget, not a lab dependency.
+    runs-on: ${{ vars.CI_RUNS_ON || 'hangar' }}
     timeout-minutes: 5
     outputs:
       native: ${{ steps.decide.outputs.native }}
@@ -214,7 +220,11 @@ jobs:
 
   # crates/detect: every line and every branch covered (runner/scripts/detect-coverage.sh).
   detect-coverage:
-    runs-on: ubuntu-latest
+    # hangar-big, NOT hangar: cargo-llvm-cov instruments and builds the
+    # whole Rust workspace twice inside dind, on a nightly toolchain.
+    # The shared pool is 6Gi memory and a 4Gi work volume; this one gets
+    # 16Gi and 80Gi. Nothing here is private either -- see above.
+    runs-on: hangar-big
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -223,7 +233,9 @@ jobs:
         run: docker build -f runner/Dockerfile.downloads --target coverage .
 
   protocol:
-    runs-on: ubuntu-latest
+    # hangar (ARC, cluster B). Nothing in this job is private -- the
+    # reason is the organisation's Actions budget, not a lab dependency.
+    runs-on: ${{ vars.CI_RUNS_ON || 'hangar' }}
     defaults:
       run:
         working-directory: packages/protocol
@@ -241,7 +253,9 @@ jobs:
         run: npm run fixtures && git diff --exit-code -- fixtures
 
   secrets:
-    runs-on: ubuntu-latest
+    # hangar (ARC, cluster B). Nothing in this job is private -- the
+    # reason is the organisation's Actions budget, not a lab dependency.
+    runs-on: ${{ vars.CI_RUNS_ON || 'hangar' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -259,7 +273,9 @@ jobs:
   # The publication gate: nothing internal (hosts, accounts, identifiers, private names) in the
   # tree or anywhere in the history (scripts/scrub.py, scripts/scrub-allow.txt).
   scrub:
-    runs-on: ubuntu-latest
+    # hangar (ARC, cluster B). Nothing in this job is private -- the
+    # reason is the organisation's Actions budget, not a lab dependency.
+    runs-on: ${{ vars.CI_RUNS_ON || 'hangar' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
